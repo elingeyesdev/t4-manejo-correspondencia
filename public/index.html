@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Correspondencia · Recepción</title>
+<style>
+:root{font-family:Inter,Segoe UI,Arial,sans-serif;color:#182b39;background:#f3f6f8;font-synthesis:none}*{box-sizing:border-box}body{margin:0}header{background:#122d3c;color:white;padding:22px 5%;display:flex;align-items:center;justify-content:space-between}.brand{font-size:19px;font-weight:700;letter-spacing:-.4px}.brand span{display:inline-grid;place-items:center;background:#32b5a0;color:#102d3b;width:36px;height:36px;border-radius:10px;margin-right:12px}.badge{font-size:12px;color:#c3d3da;border:1px solid #49616d;border-radius:20px;padding:8px 13px}main{max-width:1280px;margin:auto;padding:40px 28px}.eyebrow{color:#228675;font-weight:700;letter-spacing:1.8px;font-size:11px}h1{font-size:32px;letter-spacing:-1px;margin:10px 0}p{color:#677985;line-height:1.6}.intro{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}.count{background:white;padding:18px 28px;border:1px solid #dce5ea;border-radius:12px;min-width:155px}.count strong{font-size:30px;display:block}.count small{color:#6a7b87}.grid{display:grid;grid-template-columns:360px 1fr;gap:24px;align-items:start}.card{background:white;border:1px solid #dde6eb;border-radius:14px;overflow:hidden;box-shadow:0 4px 15px #18314004}.card-head{padding:24px;border-bottom:1px solid #edf1f4}h2{font-size:18px;margin:0 0 6px}.card-head p{font-size:13px;margin:0}form{padding:24px}label{font-size:13px;font-weight:600;display:block;margin-bottom:7px}label b{color:#228675}input,textarea{font:inherit;color:inherit;background:white;width:100%;border:1px solid #cdd9e0;border-radius:7px;padding:11px 12px;outline:none}input:focus,textarea:focus{border-color:#208f7d;box-shadow:0 0 0 3px #208f7d18}textarea{resize:vertical;min-height:76px}.field{margin-bottom:19px}.hint{font-size:11px;color:#7a8b96;margin-top:6px}.error{color:#ad243a;font-size:12px;margin-top:5px;min-height:0}button{font:inherit;border:0;cursor:pointer;border-radius:7px;padding:13px 15px;background:#177e6f;color:white;font-weight:600;width:100%}button:hover{background:#106758}button:disabled{opacity:.6;cursor:wait}.notice{font-size:12px;background:#f1f8f6;border-radius:7px;padding:12px;color:#4d726a;margin:18px 0 0}.list-head{display:flex;align-items:center;justify-content:space-between;gap:16px}.list-head button{width:auto;background:#f0f5f7;color:#375462;font-size:12px;padding:8px 12px}.search{padding:16px 24px;border-bottom:1px solid #edf1f4}.search input{font-size:13px;background:#f8fafb}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px;text-align:left}th{font-size:10px;text-transform:uppercase;letter-spacing:.8px;background:#f9fbfc;color:#738591;padding:14px 18px}td{padding:19px 18px;border-top:1px solid #edf1f4;vertical-align:top}td small{display:block;color:#7a8a95;margin-top:5px;max-width:220px;overflow-wrap:anywhere}.guide{font-size:11px;font-weight:700;color:#167b6b;background:#eaf6f2;padding:6px 8px;border-radius:5px;white-space:nowrap}.empty{padding:65px 24px;text-align:center;color:#748690}.empty strong{display:block;font-size:16px;color:#425b69;margin:15px}.empty p{font-size:13px}.status{margin:0 0 20px;padding:14px 18px;border-radius:8px;background:#e0f3ec;color:#16664b;overflow-wrap:anywhere}.status.bad{background:#fdebed;color:#a2253a}[hidden]{display:none!important}footer{margin-top:25px;font-size:11px;color:#8b9aa4;display:flex;justify-content:space-between}td{overflow-wrap:anywhere} @media(max-width:900px){.grid{grid-template-columns:1fr}.intro{gap:20px}h1{font-size:26px}main{padding:28px 18px}.count{padding:14px 18px}.badge{display:none}} @media(max-width:450px){.intro{align-items:start}.count{min-width:95px;padding:12px}.count strong{font-size:24px}h1{font-size:23px}}
+</style>
+</head>
+<body>
+<header><div class="brand"><span>↗</span> Correspondencia</div><div class="badge">Recepción · Correspondencia entrante</div></header>
+<main>
+<div class="intro"><div><div class="eyebrow">GESTIÓN DOCUMENTAL</div><h1>Registro de correspondencia</h1><p>Organiza lo que llega. Mantén el control de cada entrega.</p></div><div class="count"><strong id="total">0</strong><small>registros recibidos</small></div></div>
+<div id="status" class="status" role="status" aria-live="polite" hidden></div>
+<div class="grid">
+<section class="card"><div class="card-head"><h2>Nueva correspondencia</h2><p>Completa los datos del documento recibido.</p></div>
+<form id="form">
+<div class="field"><label for="remitente">Remitente <b>*</b></label><input id="remitente" name="remitente" maxlength="150" placeholder="Persona o institución de origen" required aria-describedby="error-remitente"><div class="error" id="error-remitente"></div></div>
+<div class="field"><label for="destinatario">Destinatario <b>*</b></label><input id="destinatario" name="destinatario" maxlength="150" placeholder="Persona o unidad que recibe" required aria-describedby="error-destinatario"><div class="error" id="error-destinatario"></div></div>
+<div class="field"><label for="fecha">Fecha de recepción <b>*</b></label><input id="fecha" name="fecha" type="date" required aria-describedby="error-fecha"><div class="error" id="error-fecha"></div></div>
+<div class="field"><label for="asunto">Asunto <span class="hint">· Opcional</span></label><textarea id="asunto" name="asunto" maxlength="500" placeholder="Breve descripción del documento" aria-describedby="error-asunto"></textarea><div class="error" id="error-asunto"></div></div>
+<button id="submit" type="submit">+ Registrar correspondencia</button><div class="notice">La guía se genera automáticamente al guardar.<br>Los campos con * son obligatorios.</div>
+</form></section>
+<section class="card"><div class="card-head list-head"><div><h2>Correspondencia recibida</h2><p>Consulta las guías y los documentos registrados.</p></div><button id="refresh" type="button">Actualizar</button></div><div class="search"><input id="search" type="search" aria-label="Buscar correspondencia" placeholder="Buscar por guía, remitente, destinatario o asunto…"></div>
+<div class="table-wrap" id="table" hidden><table><thead><tr><th>Guía / fecha</th><th>Remitente</th><th>Destinatario / asunto</th></tr></thead><tbody id="rows"></tbody></table></div><div id="empty" class="empty"><div style="font-size:32px">✉</div><strong>Aún no hay correspondencia</strong><p>Registra el primer documento para verlo aquí.</p></div></section>
+</div><footer><span>Sistema de correspondencia · P04</span><span>Registro y seguimiento de recepción</span></footer>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let records = [];
+function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+$('fecha').value=today();
+function notice(message,bad=false){$('status').textContent=message;$('status').classList.toggle('bad',bad);$('status').hidden=false;}
+function render(){
+ $('total').textContent=records.length;
+ const term=$('search').value.trim().toLocaleLowerCase('es');
+ const filtered=records.filter(r=>[r.guia,r.remitente,r.destinatario,r.asunto].some(v=>v.toLocaleLowerCase('es').includes(term)));
+ $('rows').replaceChildren();
+ for(const r of filtered){const tr=document.createElement('tr');const first=document.createElement('td');const guide=document.createElement('span');guide.className='guide';guide.textContent=r.guia;const date=document.createElement('small');date.textContent=r.fecha.split('-').reverse().join('/');first.append(guide,date);const from=document.createElement('td');from.textContent=r.remitente;const to=document.createElement('td');to.textContent=r.destinatario;if(r.asunto){const subject=document.createElement('small');subject.textContent=r.asunto;to.append(subject);}tr.append(first,from,to);$('rows').append(tr);}
+ $('table').hidden=!filtered.length;$('empty').hidden=!!filtered.length;
+ if(!filtered.length){$('empty').querySelector('strong').textContent=term?'No hay coincidencias':'Aún no hay correspondencia';$('empty').querySelector('p').textContent=term?'Prueba con otra búsqueda.':'Registra el primer documento para verlo aquí.';}
+}
+async function load(){const res=await fetch('/api/correspondencia');if(!res.ok)throw new Error('No se pudo cargar el listado. Usa Actualizar para reintentar.');records=await res.json();render();}
+$('search').addEventListener('input',render);
+$('refresh').addEventListener('click',()=>load().catch(e=>notice(e.message,true)));
+$('form').addEventListener('submit',async event=>{
+ event.preventDefault();for(const f of ['remitente','destinatario','fecha','asunto'])$('error-'+f).textContent='';
+ const input=Object.fromEntries(new FormData(event.target));let invalid=false;
+ for(const f of ['remitente','destinatario','fecha'])if(!input[f].trim()){$('error-'+f).textContent='Este campo es obligatorio.';invalid=true;}
+ if(invalid)return;
+ $('submit').disabled=true;$('submit').textContent='Guardando…';
+ try{const res=await fetch('/api/correspondencia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});const data=await res.json();if(!res.ok){for(const [f,msg] of Object.entries(data.errors||{})){const el=$('error-'+f);if(el)el.textContent=msg;}throw new Error(data.error||'No se pudo guardar.');}records.unshift(data);$('search').value='';render();event.target.reset();$('fecha').value=today();notice(`Correspondencia registrada correctamente. Guía: ${data.guia}`);$('remitente').focus();}
+ catch(e){notice(e.message==='Failed to fetch'?'No se pudo conectar con el servidor. Verifica la conexión y consulta el listado antes de reintentar.':e.message,true);}
+ finally{$('submit').disabled=false;$('submit').textContent='+ Registrar correspondencia';}
+});
+load().catch(e=>notice(e.message,true));
+</script>
+</body></html>
