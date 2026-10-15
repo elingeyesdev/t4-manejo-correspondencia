@@ -48,7 +48,7 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
     } on ConsultaEnvioException catch (error) {
       if (!mounted) return;
       setState(() {
-        _esError = error is! ConsultaNoDisponible;
+        _esError = true;
         _mensaje = error.mensaje;
       });
     } catch (error, stack) {

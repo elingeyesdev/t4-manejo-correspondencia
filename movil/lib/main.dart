@@ -8,11 +8,8 @@ import 'services/consulta_envio_service.dart';
 void main() => runApp(const CorrespondenciaApp());
 
 class CorrespondenciaApp extends StatelessWidget {
-  const CorrespondenciaApp({
-    super.key,
-    this.servicio = const ConsultaEnvioApi(),
-  });
-  final ConsultaEnvioService servicio;
+  const CorrespondenciaApp({super.key, this.servicio});
+  final ConsultaEnvioService? servicio;
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Sistema de Correspondencia',
@@ -59,13 +56,29 @@ class CorrespondenciaApp extends StatelessWidget {
 
 class PantallaPrincipal extends StatefulWidget {
   const PantallaPrincipal({super.key, required this.servicio});
-  final ConsultaEnvioService servicio;
+  final ConsultaEnvioService? servicio;
   @override
   State<PantallaPrincipal> createState() => _PantallaPrincipalState();
 }
 
 class _PantallaPrincipalState extends State<PantallaPrincipal> {
   int _pagina = 0;
+  late final ConsultaEnvioService _servicio;
+
+  @override
+  void initState() {
+    super.initState();
+    _servicio = widget.servicio ?? ConsultaEnvioApi();
+  }
+
+  @override
+  void dispose() {
+    if (widget.servicio == null && _servicio is ConsultaEnvioApi) {
+      _servicio.close();
+    }
+    super.dispose();
+  }
+
   void _navegar(int pagina) {
     Navigator.pop(context);
     setState(() => _pagina = pagina);
@@ -108,7 +121,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
         index: _pagina,
         children: [
           HomePage(onConsultar: () => setState(() => _pagina = 1)),
-          ConsultaEnvioPage(servicio: widget.servicio),
+          ConsultaEnvioPage(servicio: _servicio),
         ],
       ),
     ),
