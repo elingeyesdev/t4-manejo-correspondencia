@@ -1,97 +1,88 @@
-# P04 — Consulta móvil de envío por número de guía
+# P04 móvil — Consulta de envío por número de guía
 
-Issue: [#9 — Implementar consulta de envío por número de guía](https://github.com/elingeyesdev/t4-manejo-correspondencia/issues/9).
-Responsable: RazzellRC. Etiqueta: movil. Milestone: Iteración 02, la misma entrega P04 del registro web #7.
-Rama: feature/9-movil-consulta-guia, preparada desde develop actualizado (5daeed2).
+Issue #9. Como destinatario quiero consultar un envío con el número de guía para saber en qué estado está.
 
-## Alcance real
+## Qué hace
 
-Como destinatario quiero consultar un envío con el número de guía para saber en qué estado está.
+Inicio y Drawer permiten abrir Consultar envío. Se ingresa una guía y se pulsa Consultar. Flutter realiza un GET real al backend y muestra guía, estado y fecha del último movimiento recibidos. Una guía vacía no se envía, una inexistente muestra un aviso y un fallo de conexión conserva la entrada para reintentar. Campo y botón se bloquean mientras se consulta; no hay reintentos automáticos ni envíos simultáneos.
 
-La interfaz, validación, carga y manejo de resultados están preparados. La consulta móvil real sigue PENDIENTE: el backend publicado por el compañero registra y lista correspondencias, pero no expone consulta por guía ni datos de estado o último movimiento.
+Se conserva Material 3, verde #8BC34A y #456B2F, blanco y gris claro, con Material Icons. No hay datos simulados en la aplicación.
 
-La aplicación normal no utiliza datos de ejemplo ni presenta resultados ficticios: ante una guía válida informa que el servicio está pendiente de conexión. No se reutilizó la API del proyecto anterior.
+## Ejecutar y probar manualmente
 
-## Ejecutar la aplicación
-
-Requisitos: Flutter 3.47.6, Dart 3.13.5, Android SDK y un dispositivo o emulador Android funcional.
+En una terminal, desde la raíz del repositorio:
 
 ```powershell
-cd C:\Users\ElniComp2023\Downloads\t4-manejo-correspondencia\movil
+node server.js
+```
+
+Abrir http://localhost:3000 y registrar una correspondencia ficticia desde el formulario web. Copiar la guía generada. En otra terminal:
+
+```powershell
+cd movil
 flutter pub get
-flutter analyze
-flutter test
-flutter build apk --debug
 flutter devices
 flutter run -d ID_DEL_DISPOSITIVO
 ```
 
-APK: build/app/outputs/flutter-apk/app-debug.apk. Si el emulador no tiene aceleración por hardware, usar un teléfono con depuración USB o habilitar la aceleración; esto no impide compilar ni ejecutar las pruebas de widgets.
+En un Android Emulator, la URL predeterminada es http://10.0.2.2:3000. Está centralizada en lib/config/api_config.dart. Para un teléfono USB, puede utilizarse el enlace ADB sin exponer el servidor a la red:
 
-## Flujo
+```powershell
+adb reverse tcp:3000 tcp:3000
+flutter run -d ID_DEL_TELEFONO --dart-define=API_BASE_URL=http://127.0.0.1:3000
+```
 
-1. Inicio muestra el acceso Consultar envío y el Drawer permite navegar entre ambas pantallas.
-2. Ingresar una guía y pulsar Consultar o la búsqueda del teclado.
-3. Una guía vacía o con espacios muestra Ingrese el número de guía y no llama al servicio.
-4. Durante la consulta se bloquean el campo y el botón y aparece Consultando...
-5. Cuando se conecte la API, se mostrarán únicamente la guía, el estado y la fecha/hora del último movimiento recibidos del servicio.
-6. El resultado inexistente muestra No se encontró un envío con ese número de guía.
-7. Un fallo de conexión conserva la guía y permite reintentar.
-8. En esta versión, la consulta informa que falta conectar el servicio. Este aviso NO significa que la guía no exista.
+Para un teléfono por red local, configurar explícitamente HOST=0.0.0.0 al iniciar Node y API_BASE_URL con la IP del PC, en la misma red local. El puerto y acceso de red deben coincidir. La app no necesita acceso directo al archivo JSON.
 
-Cambiar la guía borra el resultado anterior para evitar confusiones. La fecha se muestra en la zona horaria local del dispositivo. Solo se eliminan espacios exteriores: no se imponen prefijos ni reglas no acordadas.
+Pruebas manuales:
 
-Diseño: Material 3, verde principal #8BC34A, verde oscuro #456B2F, blanco, texto oscuro y gris claro; iconos Material, sin estadísticas ni funcionalidades simuladas.
+1. Consultar sin guía: mensaje obligatorio, sin solicitud.
+2. Consultar la guía creada: guía, estado y fecha reales.
+3. Comparar con GET /api/correspondencia/guia/{guia} y data/correspondencia.json.
+4. Consultar una guía inexistente: aviso claro, sin resultado anterior.
+5. Apagar Node y consultar: mensaje de conexión, guía conservada.
+6. Iniciar Node y repetir: recuperación.
+7. Pulsar varias veces Consultar durante el envío: una sola consulta.
 
-## Código
+## Contrato implementado
 
-- lib/main.dart: aplicación, tema y Drawer.
-- lib/config/api_config.dart: URL base centralizada mediante API_BASE_URL, sin valor predeterminado inventado.
-- lib/models/envio_consulta.dart: datos necesarios por la pantalla; no es un contrato JSON confirmado.
-- lib/pages/home_page.dart: Inicio.
-- lib/pages/consulta_envio_page.dart: formulario, resultado y mensajes.
-- lib/services/consulta_envio_service.dart: interfaz y adaptador pendiente de conectar.
-- test/widget_test.dart: nueve pruebas controladas; los datos de ejemplo están solo en test/.
+GET /api/correspondencia/guia/{guia}, puerto 3000 por defecto. La guía se envía como segmento codificado; el backend admite espacios exteriores y mayúsculas/minúsculas.
 
-ConsultaEnvioService recibe la guía y devuelve EnvioConsulta, null para inexistente o un error conocido. El adaptador de producción ConsultaEnvioApi siempre lanza ConsultaNoDisponible hasta acordar la API. No hace solicitudes ni inventa un resultado. Definir API_BASE_URL por sí solo no habilita la consulta.
+- 200: registro con id, guia, remitente, destinatario, fecha, asunto, creadoEn, estado, fechaUltimoMovimiento.
+- 404 y codigo GUIA_NO_ENCONTRADA: no existe la guía.
+- 400: guía obligatoria o codificación incorrecta.
+- 409: registro antiguo sin estado/fecha de seguimiento. La app explica que existe, pero no tiene seguimiento.
+- Otros errores, timeout, JSON ilegible y falta de conexión: mensajes legibles; no se muestra JSON ni stack trace.
 
-Dependencias: Flutter, flutter_localizations del SDK y las herramientas flutter_test/flutter_lints. No se añadió http todavía porque no existe un endpoint adecuado que consumir. No se agregaron arquitecturas ni gestores de estado innecesarios.
+El backend ahora persiste Registrado y fechaUltimoMovimiento al crear una correspondencia. Es el primer movimiento real: el registro. No se inventan estados Entregado o En tránsito. No se agregaron cambios de estado, login, OCR ni funciones ajenas a la ficha.
 
-Android incluye android.permission.INTERNET. No se habilitó tráfico HTTP sin cifrar; si la futura API local lo requiere, se limitará esa excepción a debug. Producción debe usar HTTPS.
+Los registros anteriores sin esos campos no se modifican automáticamente ni se presentan con datos inventados. La app muestra el aviso correspondiente.
 
-## API real encontrada y dependencia pendiente
+Las fechas UTC del servidor se convierten a la zona horaria del Android. El emulador utilizado usa GMT; 21:30 GMT corresponde a 17:30 en Bolivia para la evidencia tomada. El instante es el mismo.
 
-Código revisado: rama remota feature/7-web-registro-correspondencia, commit da9e181, asociada al Issue #7 y PR #8 del compañero. Ese PR todavía no está fusionado en develop y no se incorporó a la rama móvil.
+## Estructura y dependencias
 
-Tecnología: Node.js con módulos estándar. Puerto predeterminado 3000 y escucha en 127.0.0.1. Almacenamiento: data/correspondencia.json, configurable mediante DATA_DIR.
+- lib/main.dart: tema y navegación, con cierre del cliente HTTP al salir.
+- lib/config/api_config.dart: URL y construcción de la ruta.
+- lib/models/envio_consulta.dart: validación de la respuesta real.
+- lib/pages/: Inicio y consulta.
+- lib/services/consulta_envio_service.dart: GET HTTP, timeout y errores.
+- test/widget_test.dart: comportamiento de interfaz con casos controlados.
+- test/consulta_envio_api_test.dart: contrato, codificación y errores HTTP.
+- test/consulta_real_test.dart: widgets + servicio de producción + sockets reales + Node + comparación con JSON persistido; incluye servidor apagado.
 
-Operaciones reales:
+Se usa package:http y flutter_localizations del SDK. No se añadieron gestores de estado ni arquitecturas adicionales. Internet se permite en el manifiesto principal; usesCleartextTraffic está únicamente en src/debug/AndroidManifest.xml. Para producción se requiere HTTPS.
 
-- POST /api/correspondencia: requiere remitente, destinatario y fecha; asunto opcional; genera guia y devuelve HTTP 201.
-- GET /api/correspondencia: devuelve el listado completo, del más reciente al más antiguo.
+## Verificaciones y evidencia
 
-Campos reales: id, guia, remitente, destinatario, fecha, asunto y creadoEn.
+```powershell
+flutter analyze
+flutter test
+flutter build apk --debug
+```
 
-No existe ruta de detalle/consulta por guía, ni campos de estado o fecha del último movimiento. No se asumió que creadoEn fuera un movimiento ni se generó un estado a partir del registro. Tampoco se usó el listado completo para presentar una consulta de seguimiento incompleta como si cumpliera la ficha.
+Las pruebas reales arrancan Node desde ../server.js; necesitan node disponible en PATH. No sustituyen su respuesta por datos de MockClient. Usan almacenamiento temporal aislado y lo eliminan al terminar.
 
-El compañero debe exponer o acordar una consulta de un solo envío por su guia real, preferentemente GET, definiendo ruta, parámetro, respuesta, estados, fecha del último movimiento con zona horaria, inexistencia, errores y autenticación. No se eligió una ruta ficticia.
+Además se instaló el APK normal en Medium_Phone (Android Emulator con WHPX) y se verificaron guía vacía, guía real, estado y fecha, inexistencia y servidor apagado. Las capturas reales están en ../docs/evidencia/.
 
-El servidor actual escucha solo en el equipo local. Antes de una prueba Android debe acordarse también el acceso desde el emulador o teléfono (enlace ADB o escucha de red controlada), sin modificar a ciegas el servidor del compañero.
-
-## Evidencia y limitaciones
-
-Las nueve pruebas cubren guía vacía, éxito controlado, inexistencia, conexión, doble consulta, servicio pendiente, navegación, limpieza de resultado anterior y respuesta después de cerrar la pantalla. Sus casos exitosos no son evidencia de integración real.
-
-Se ejecutó el server.js publicado por el compañero sin cambiar su lógica, en una copia bajo build/revision y con almacenamiento de prueba aislado. Se verificaron POST 201 y GET 200 con una guía generada por ese backend. La respuesta confirmó que no incluye estado ni último movimiento. No se tocaron datos reales ni archivos de su rama.
-
-Prueba móvil de extremo a extremo: PENDIENTE del contrato de consulta. Antes de declarar completada la historia deben conectarse el adaptador y probarse una guía real, una inexistente y el servidor inaccesible, contrastando estado y fechas con el backend.
-
-No se han marcado criterios como completados ni movido la historia a Hecho.
-
-## Entrega Git
-
-Se conservaron los 33 archivos móviles locales al preparar la rama definitiva desde origin/develop. No se modificaron los tres archivos base del compañero (.gitignore, README.md y package.json), ni se integró su rama web.
-
-Esta entrega se prepara con commits LOCALES separados por implementación, pruebas y documentación. El push lo hará el usuario manualmente cuando termine de revisar. No se crea PR ni se hace merge o aprobación en esta etapa.
-
-Antes de una entrega funcional completa: acordar e implementar la API pendiente, repetir pruebas reales y verificaciones, revisar los archivos excluidos y solicitar revisión del compañero. Si se abre un PR mientras la API falta, debe describirse esa limitación y dejar el Issue #9 abierto; no debe prometer que la integración está terminada.
+APK normal: build/app/outputs/flutter-apk/app-debug.apk, sin versionar. Los datos de prueba y los registros de diagnóstico quedan bajo build/revision, también ignorados. Las capturas incorporadas en docs/ son evidencia revisable, no un APK ni una caché.
