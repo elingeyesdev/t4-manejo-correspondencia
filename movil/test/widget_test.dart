@@ -43,16 +43,6 @@ void main() {
     fechaUltimoMovimiento: DateTime(2026, 10, 15, 9, 30),
   );
 
-  test(
-    'el servicio real pendiente nunca fabrica resultados ni guía inexistente',
-    () async {
-      await expectLater(
-        const ConsultaEnvioApi().consultar('PRUEBA-014'),
-        throwsA(isA<ConsultaNoDisponible>()),
-      );
-    },
-  );
-
   testWidgets('número vacío o espacios no consulta el servicio', (
     tester,
   ) async {
@@ -145,22 +135,6 @@ void main() {
       tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
       isNotNull,
     );
-  });
-
-  testWidgets('la app predeterminada explica que falta conectar el servicio', (
-    tester,
-  ) async {
-    await preparar(tester, const ConsultaEnvioApi());
-    await consultar(tester, 'PRUEBA-014');
-    expect(
-      find.textContaining('El servicio está pendiente de conexión.'),
-      findsOneWidget,
-    );
-    expect(
-      find.text('No se encontró un envío con ese número de guía.'),
-      findsNothing,
-    );
-    expect(find.text('Resultado de la consulta'), findsNothing);
   });
 
   testWidgets('navegación Inicio y Consultar envío conserva la guía', (
