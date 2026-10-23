@@ -1,0 +1,48 @@
+name: Núcleo Laravel
+on:
+  push:
+    branches: [develop, 'feature/**']
+  pull_request:
+    branches: [develop, main]
+permissions:
+  contents: read
+jobs:
+  laravel:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: correspondencia_test
+          POSTGRES_USER: correspondencia
+          POSTGRES_PASSWORD: ci_password_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U correspondencia -d correspondencia_test"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    defaults:
+      run:
+        working-directory: web
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: correspondencia_test
+      DB_USERNAME: correspondencia
+      DB_PASSWORD: ci_password_only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_pgsql, mbstring, dom, xml
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env
+      - run: php artisan key:generate
+      - run: composer validate --strict
+      - run: vendor/bin/pint --test
+      - run: php artisan test
+      - run: php vendor/phpunit/phpunit/phpunit tests/Postgres --colors=never
+      - run: composer audit
