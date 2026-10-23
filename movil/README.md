@@ -1,3 +1,5 @@
+> Estado de integración Laravel: este documento conserva la evidencia del prototipo Node. La API definitiva está en web/ y requiere token; ver ../docs/diseno/api.md. La adaptación autenticada del cliente queda pendiente de revisión con el responsable móvil.
+
 # P04 móvil — Consulta de envío por número de guía
 
 Issue #9. Como destinatario quiero consultar un envío con el número de guía para saber en qué estado está.
@@ -13,7 +15,7 @@ Se conserva Material 3, verde #8BC34A y #456B2F, blanco y gris claro, con Materi
 En una terminal, desde la raíz del repositorio:
 
 ```powershell
-node server.js
+node prototipo/node/server.js
 ```
 
 Abrir http://localhost:3000 y registrar una correspondencia ficticia desde el formulario web. Copiar la guía generada. En otra terminal:
@@ -81,7 +83,7 @@ flutter test
 flutter build apk --debug
 ```
 
-Las pruebas reales arrancan Node desde ../server.js; necesitan node disponible en PATH. No sustituyen su respuesta por datos de MockClient. Usan almacenamiento temporal aislado y lo eliminan al terminar.
+Las pruebas reales arrancan Node desde ../prototipo/node/server.js; necesitan node disponible en PATH. No sustituyen su respuesta por datos de MockClient. Usan almacenamiento temporal aislado y lo eliminan al terminar.
 
 Además se instaló el APK normal en Medium_Phone (Android Emulator con WHPX) y se verificaron guía vacía, guía real, estado y fecha, inexistencia y servidor apagado. Las capturas reales están en ../docs/evidencia/.
 
