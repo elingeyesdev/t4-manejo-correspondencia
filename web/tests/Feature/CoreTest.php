@@ -242,7 +242,7 @@ class CoreTest extends TestCase
         $input['asunto'] = '<script>alert(1)</script>';
         $this->post('/documentos', $input)->assertRedirect();
         $doc = Document::first();
-        $this->get('/documentos/'.$doc->id)->assertOk()->assertSee('&lt;script&gt;',false)->assertDontSee('<script>alert(1)</script>',false);
+        $this->get('/documentos/'.$doc->id)->assertOk()->assertSee('&lt;script&gt;', false)->assertDontSee('<script>alert(1)</script>', false);
         $this->get('/documentos')->assertOk();
     }
 }

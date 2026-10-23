@@ -24,7 +24,7 @@ Artisan::command('correspondencia:administrador', function () {
             $this->error($e);
         }
 
-return 1;
+        return 1;
     }
     User::create(['name' => $name, 'email' => $email, 'password' => $password, 'role' => 'administrador', 'unit_id' => $unit->id, 'enabled' => true]);
     $this->info('Administrador creado. La contraseña no se guarda en archivos ni se muestra.');

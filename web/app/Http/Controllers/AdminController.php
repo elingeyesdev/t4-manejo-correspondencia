@@ -92,6 +92,6 @@ class AdminController extends Controller
 
     private function saved(Request $r, $model)
     {
-        return $r->is('api/*') ? response()->json($model) : redirect()->route('admin')->with('status','Cambios guardados.');
+        return $r->is('api/*') ? response()->json($model) : redirect()->route('admin')->with('status', 'Cambios guardados.');
     }
 }
