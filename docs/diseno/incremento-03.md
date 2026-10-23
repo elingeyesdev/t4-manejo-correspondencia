@@ -12,4 +12,4 @@ Depende de D. Russel revisa contrato de sesiones/token, URL del emulador, 401/40
 
 ## Planificación
 
-E pertenece a la ruta crítica; M tiene holgura prevista de 2 días. E/M alimentan N y sus holguras no se suman como reservas independientes. Confirmar disponibilidad y reestimar tras la revisión de D. Corte propuesto de semana 3: 05/11/2026, pendiente de validación docente.
+E pertenece a la ruta crítica; M tiene holgura prevista de 2 días. E/M alimentan N y sus holguras no se suman como reservas independientes. Confirmar disponibilidad y reestimar tras la revisión de D. Corte de semana 3: 05/11/2026. El usuario confirmó el 23/10/2026 la aprobación docente de las fechas; la aceptación funcional sigue requiriendo pruebas y revisión.

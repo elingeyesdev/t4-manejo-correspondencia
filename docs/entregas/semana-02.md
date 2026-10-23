@@ -1,6 +1,6 @@
 # Entrega acumulada hasta la semana 2 — #11
 
-Preparación: 23/10/2026. Corte propuesto del documento: 29/10/2026. Paquete D, EDT 3.1. Estado: implementado para revisión; pendiente de aprobación del compañero y validación docente. La entrega no se declara aceptada por este informe.
+Preparación: 23/10/2026. Corte: 29/10/2026, fecha aprobada por el docente según confirmación del usuario el 23/10/2026. Paquete D, EDT 3.1. Estado: implementado para revisión; pendiente de aprobación del compañero y validación docente. La entrega no se declara aceptada por este informe.
 
 ## Trazabilidad
 
@@ -30,7 +30,7 @@ El PR #8 permanece abierto y su base web ya estaba reutilizada en #10. No se fus
 - Composer valida el manifiesto y no informa avisos de vulnerabilidad en las dependencias instaladas.
 - Revisión en navegador: acceso con cuenta ficticia local, formulario, registro real en PostgreSQL, IDs/códigos distintos, detalle, estado y administración.
 
-La evidencia se encuentra en docs/evidencia/semana-02/. Las pruebas Flutter no se ejecutaron en esta sesión (SDK no disponible en PATH); tampoco se acredita integración autenticada con Laravel. La CI se configura para PostgreSQL; su ejecución remota debe verificarse en el PR.
+La evidencia se encuentra en docs/evidencia/semana-02/. Las pruebas Flutter no se ejecutaron en esta sesión (SDK no disponible en PATH); tampoco se acredita integración autenticada con Laravel. La CI se configura para PostgreSQL; ejecución remota aprobada en Linux/PostgreSQL: https://github.com/elingeyesdev/t4-manejo-correspondencia/actions/runs/40036634850 (código ef10e4f).
 
 ## Datos locales y ejecución
 
@@ -42,4 +42,4 @@ La ruta crítica del documento es A-B-C-D-E-F-G-H-Z; D no tiene holgura. La impl
 
 El corte pide también el inicio del siguiente incremento: docs/diseno/incremento-03.md identifica dependencias y criterios; es planificación inicial, no código de adjuntos o QR.
 
-Pendientes: revisión de Russel, revisión de Mathew del móvil, validación docente, conciliación de issues previos y aceptación del contrato móvil. Ninguno se marca terminado sin evidencia.
+Pendientes: revisión de Russel, revisión de Mathew del móvil, aceptación docente del software, revisión de issues previos y aceptación del contrato móvil. Las fechas ya fueron confirmadas y conciliadas en GitHub; no se confunden con esa aceptación. Ninguno se marca terminado sin evidencia.
