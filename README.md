@@ -1,44 +1,81 @@
-# Sistema de correspondencia — P04
+# Sistema de correspondencia institucional
 
-Registro web de correspondencia entrante y consulta móvil por número de guía.
+Aplicación web y API en **Laravel 13 / PHP**, con PostgreSQL y cliente Android en Flutter. Proyecto académico del equipo Mathew Bruckner Becerra (Xmathewbruk, web/API) y Russel (RazzellRC, Android), con revisión cruzada.
 
-## Ejecutar backend y formulario web
+## Estado de la entrega
 
-Requisito: Node.js 20 o superior. No necesita dependencias npm.
+Rama de trabajo `feature/11-nucleo-laravel`, issue #11. Implementa el núcleo previsto hasta la semana 2: acceso web, unidades, tipos, prioridades, usuarios/roles y registro transaccional de documento y hoja. **Pendiente de revisión del compañero y validación docente.** El cronograma es una planificación, no evidencia de aceptación.
 
-```sh
-node server.js
+El prototipo anterior en Node.js se conserva en `prototipo/node/` como referencia histórica. El backend definitivo es Laravel. La aplicación móvil aún requiere coordinar autenticación y el nuevo contrato; sus pruebas históricas con Node no acreditan integración con Laravel.
+
+## Estructura
+
+| Carpeta | Contenido |
+| --- | --- |
+| `web/` | Laravel: interfaz Blade, API, dominio, migraciones y pruebas |
+| `movil/` | Flutter del compañero; integración autenticada pendiente |
+| `docs/` | Diseño, contrato, planificación y evidencias |
+| `prototipo/node/` | Prototipo previo de referencia |
+| `scripts/` | Auxiliares de desarrollo y pruebas |
+
+## Requisitos
+
+- PHP compatible con Laravel 13 (mínimo 8.3; probado localmente con 8.5).
+- Composer 2; extensiones PHP PDO, pdo_pgsql, mbstring, xml, curl, fileinfo y openssl.
+- PostgreSQL 16 y dos bases separadas: `correspondencia` y `correspondencia_test`.
+- Git. Herd puede proporcionar PHP y Composer; no es una dependencia del código.
+
+Las vistas Blade usan estilos locales y no requieren compilar JavaScript para este corte.
+
+## Instalación en otro equipo
+
+```powershell
+git clone https://github.com/elingeyesdev/t4-manejo-correspondencia.git
+cd t4-manejo-correspondencia
+git switch feature/11-nucleo-laravel
+cd web
+composer install
+Copy-Item .env.example .env
+php artisan key:generate
 ```
 
-Abrir http://localhost:3000. Registrar remitente, destinatario y fecha; el backend genera la guía y guarda el estado inicial Registrado con la fecha real del registro como primer movimiento. Copiar la guía para consultarla desde Android.
+En PostgreSQL cree un usuario de desarrollo con contraseña privada y las bases `correspondencia` y `correspondencia_test` de su propiedad. Configure `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME` y `DB_PASSWORD` en `web/.env`. Para una instalación nueva:
 
-Datos: data/correspondencia.json (ignorado por Git). PORT permite cambiar el puerto y DATA_DIR permite utilizar almacenamiento aislado. El servidor escucha 127.0.0.1 por defecto.
-
-## Aplicación Android
-
-Ver [movil/README.md](movil/README.md). El emulador utiliza http://10.0.2.2:3000 para acceder al servidor de la computadora. HTTP está habilitado únicamente para debug.
-
-## API
-
-- POST /api/correspondencia: registro (201); remitente, destinatario y fecha obligatorios, asunto opcional.
-- GET /api/correspondencia: listado.
-- GET /api/correspondencia/guia/{guia}: consulta individual (200), guía inexistente (404 con codigo GUIA_NO_ENCONTRADA), guía vacía (400), registro antiguo sin seguimiento (409).
-
-La consulta devuelve el registro guardado con guia, estado y fechaUltimoMovimiento; no genera información en Flutter. Al registrar, estado es Registrado y fechaUltimoMovimiento es la fecha/hora del servidor en UTC. Registro es el único movimiento implementado en esta entrega; no se simulan entregas o derivaciones.
-
-Los registros antiguos sin datos de seguimiento conservan sus datos y reciben un aviso 409. No se migran ni modifican silenciosamente.
-
-## Pruebas
-
-```sh
-node --test
-cd movil
-flutter pub get
-flutter analyze
-flutter test
-flutter build apk --debug
+```powershell
+php artisan migrate --seed
+php artisan correspondencia:administrador
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-Las pruebas Node y Flutter con HTTP real crean datos ficticios en carpetas aisladas y no modifican datos reales.
+Abra http://127.0.0.1:8000. El comando de administrador solicita la contraseña de forma oculta; no hay contraseñas predeterminadas ni cuentas compartidas versionadas. Los catálogos iniciales son datos de demostración, no una validación institucional.
 
-La base del registro, formulario web y pruebas originales procede de feature/7-web-registro-correspondencia, commit da9e181 (Issue #7). Se reutilizó sin fusionar su PR. La extensión de consulta y la app móvil corresponden al Issue #9.
+En el equipo donde se preparó esta rama, PostgreSQL portátil escucha únicamente en `127.0.0.1:55432`; sus binarios y datos están fuera del repositorio. `scripts/Iniciar-PostgresLocal.cmd` permite reiniciarlo. La contraseña local está solamente en `.env`, ignorado por Git.
+
+## Verificación
+
+```powershell
+cd web
+composer validate --strict
+php artisan test
+vendor/bin/pint --test
+composer audit
+```
+
+La ejecución ordinaria usa SQLite en memoria para pruebas rápidas. Desde la raíz, ejecutar `php scripts/test-postgres.php` prueba el mismo núcleo contra **correspondencia_test**, que se vacía durante las pruebas. Nunca apuntar las pruebas a datos reales. La CI usa PostgreSQL 16.
+
+## Seguridad y límites
+
+Sesión web con CSRF, límite de intentos de acceso, contraseñas con hash y tokens API revocables de ocho horas. Cada operación exige cuenta/unidad habilitadas y autorización en servidor. Un usuario de recepción registra en su unidad; el administrador puede registrar en cualquier unidad habilitada. La asignación inicial y esta política deben revisarse con el compañero y docente.
+
+El registro reconoce `Idempotency-Key` y guarda documento, hoja, primer movimiento, auditoría y solicitud en una transacción. No hay edición ni borrado ordinarios de IDs o movimientos.
+
+Adjuntos, cifrado de archivos, QR, derivaciones, recepción, atención, respuestas y cierre no forman parte de este incremento. El esquema incluye el vínculo futuro de respuesta; no presenta esas funciones como implementadas. Un despliegue público requiere configuración operativa y HTTPS; el servidor de desarrollo escucha solo localmente.
+
+## Documentación y revisión
+
+- [Alcance y plan de semana 2](docs/entregas/semana-02.md)
+- [Decisión técnica](docs/decisiones/001-laravel.md)
+- [Modelo de datos](docs/diseno/modelo.md)
+- [Contrato API](docs/diseno/api.md)
+- [Guía de revisión cruzada](docs/revision-semana-02.md)
+- [Convenciones de colaboración](CONTRIBUTING.md)

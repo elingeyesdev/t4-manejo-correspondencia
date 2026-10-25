@@ -57,7 +57,7 @@ void main() {
         final listo = Completer<String>();
         servidor = await Process.start(
           'node',
-          [File('../server.js').absolute.path],
+          [File('../prototipo/node/server.js').absolute.path],
           environment: {'PORT': '0', 'DATA_DIR': datos!.path},
         );
         servidor!.stdout
