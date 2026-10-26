@@ -6,7 +6,9 @@ Aplicación web y API en **Laravel 13 / PHP**, con PostgreSQL y cliente Android 
 
 - Núcleo Laravel/PostgreSQL: PR #12 revisado e integrado en develop; Issue #11 cerrado.
 - Consulta móvil P04: PR #10 integrado; Issue #9 cerrado.
-- Diseño móvil #6 y adaptación a Laravel: implementados para revisión de Mathew.
+- Adaptación móvil a Laravel #13: aprobada por Xmathewbruk e integrada mediante PR #14 el 26/10/2026.
+- Diseño móvil #6: incluido en PR #14; queda pendiente registrar el recorrido humano completo del diseño.
+- Semana 2: incremento técnico integrado; ver [acta de cierre](docs/entregas/cierre-semana-02.md). La aceptación docente del software sigue pendiente.
 - Cámara, QR, adjuntos, recepción, atención y derivación siguen pendientes de implementación.
 
 La app usa sesiones protegidas, consulta, bandeja, detalle y registro reales de Laravel.

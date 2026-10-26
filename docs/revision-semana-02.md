@@ -1,6 +1,6 @@
 # Guía de revisión cruzada — #11
 
-Autor del trabajo web/API: Mathew. Revisor previsto: Russel. Estado: pendiente de revisión humana, no aprobado por este documento.
+Autor del trabajo web/API: Mathew. Revisor: Russel. PR #12 aprobado el 25/10/2026 por RazzellRC e integrado en develop. Esta guía conserva el recorrido previsto; no afirma que cada paso se haya ejecutado por el mero hecho de la aprobación. Registro consolidado en [acta de cierre](entregas/cierre-semana-02.md).
 
 ## Preparación
 
@@ -26,6 +26,6 @@ Seguir README desde una copia de la rama. Crear bases aisladas y administrador p
 - [ ] Lectura de cambios de esquema, autorización e idempotencia.
 - [ ] Contrato revisado con responsable móvil.
 - [ ] Correcciones atendidas y verificadas.
-- [ ] Aprobación formal del compañero registrada en GitHub antes de integrar.
+- [x] Aprobación formal del compañero registrada en GitHub antes de integrar: [revisión del PR #12](https://github.com/elingeyesdev/t4-manejo-correspondencia/pull/12#pullrequestreview-5645807603).
 
-Mathew debe revisar por separado el trabajo de Russel en #10 y registrar observaciones reales. El PR #10 ya integrado no acredita retrospectivamente una aprobación que no figure en GitHub. El PR #8 continúa abierto: comparar su contenido ya reutilizado antes de decidir su cierre o actualización.
+Cliente Laravel de Russel revisado en PR #14: solicitud de cambios, corrección 532bd1a, regresiones aprobadas, observación resuelta y aprobación de Xmathewbruk antes del merge. Esto no acredita retrospectivamente una aprobación del PR #10. El PR #8 se retira como antecedente Node sustituido por PR #12. Las casillas anteriores sin evidencia específica se conservan sin marcar.

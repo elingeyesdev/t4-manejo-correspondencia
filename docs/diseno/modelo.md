@@ -1,6 +1,6 @@
 # Modelo de datos y recorrido
 
-Referencias: #4, #11; documentación del sistema, páginas 3, 15, 18 y 22. Modelo de la primera entrega Laravel; revisión cruzada pendiente.
+Referencias: #4, #11; documentación del sistema, páginas 3, 15, 18 y 22. Modelo del núcleo Laravel revisado y aprobado en PR #12. La aceptación del diseño completo #4, incluidas operaciones futuras, sigue siendo independiente.
 
 ```mermaid
 erDiagram

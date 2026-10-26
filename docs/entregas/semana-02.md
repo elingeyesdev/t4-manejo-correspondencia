@@ -1,6 +1,6 @@
 # Entrega acumulada hasta la semana 2 — #11
 
-Preparación: 23/10/2026. Corte: 29/10/2026, fecha aprobada por el docente según confirmación del usuario el 23/10/2026. Paquete D, EDT 3.1. Estado: implementado para revisión; pendiente de aprobación del compañero y validación docente. La entrega no se declara aceptada por este informe.
+Preparación: 23/10/2026. Corte planificado: 29/10/2026, fecha aprobada por el docente según confirmación del usuario el 23/10/2026. Paquete D, EDT 3.1. Núcleo aprobado por RazzellRC e integrado en PR #12 el 25/10/2026; adaptación móvil aprobada por Xmathewbruk e integrada en PR #14 el 26/10/2026. Cierre técnico y evidencia en [acta de cierre](cierre-semana-02.md). La aceptación docente del software sigue pendiente.
 
 ## Trazabilidad
 
@@ -12,13 +12,13 @@ Preparación: 23/10/2026. Corte: 29/10/2026, fecha aprobada por el docente segú
 | HU-04 / CU-02 | Usuarios, roles/unidades, hash, deshabilitación, versión de autorización y revocación de tokens |
 | HU-05 / CU-03 | StoreDocumentRequest y RegisterDocument: documento, hoja, movimiento, solicitud y auditoría transaccionales |
 | Reintentos/concurrencia | Clave por actor/operación, huella de campos y bloqueo de fila; prueba de dos procesos sobre PostgreSQL |
-| Revisión cruzada | docs/revision-semana-02.md; pendiente de ejecución y aprobación por Russel |
+| Revisión cruzada | PR #12 aprobado por RazzellRC; PR #14 aprobado por Xmathewbruk; enlaces y límites en el acta de cierre |
 
 ## Organización del repositorio
 
 Web/API definitivas en web/, Flutter en movil/, referencias y diseño en docs/. Node quedó en prototipo/node/ con historial conservado. Se ajustó solamente la ruta del servidor histórico en una prueba móvil y su guía; no se reescribió la aplicación Android.
 
-El PR #8 permanece abierto y su base web ya estaba reutilizada en #10. No se fusionan ni cierran automáticamente. #10 figura integrado, pero no tenía revisión formal en la consulta realizada: debe revisarse honestamente sin inventar aprobación retrospectiva.
+El prototipo del PR #8 queda sustituido por el núcleo Laravel aprobado en PR #12, sin fusionar el backend Node ni simular aprobación retrospectiva. #10 se conserva como antecedente de la consulta móvil; la revisión actual del cliente Laravel está registrada en PR #14.
 
 ## Verificación local realizada
 
@@ -42,4 +42,4 @@ La ruta crítica del documento es A-B-C-D-E-F-G-H-Z; D no tiene holgura. La impl
 
 El corte pide también el inicio del siguiente incremento: docs/diseno/incremento-03.md identifica dependencias y criterios; es planificación inicial, no código de adjuntos o QR.
 
-Pendientes: revisión de Russel, revisión de Mathew del móvil, aceptación docente del software, revisión de issues previos y aceptación del contrato móvil. Las fechas ya fueron confirmadas y conciliadas en GitHub; no se confunden con esa aceptación. Ninguno se marca terminado sin evidencia.
+Actualización del 26/10/2026: las revisiones del núcleo y del cliente Laravel ya están aprobadas e integradas. Permanecen la aceptación docente del software, los criterios no acreditados de diseño/planificación #1–#6 y las funciones de iteraciones posteriores. La evidencia local anterior se conserva como registro histórico; las comprobaciones más recientes y sus límites están en el acta de cierre. No se modificaron fechas, duraciones ni dependencias del cronograma.
