@@ -78,7 +78,11 @@ void main() {
           }
         });
         final base = await listo.future.timeout(const Duration(seconds: 15));
-        cliente = IOClient(_HttpReal().createHttpClient(null));
+        // Evita reutilizar sockets inactivos mientras el harness construye la UI.
+        // No modifica el cliente de producción ni añade reintentos.
+        cliente = IOClient(
+          _HttpReal().createHttpClient(null)..idleTimeout = Duration.zero,
+        );
         final registro = await cliente!.post(
           Uri.parse('$base/api/correspondencia'),
           headers: {'Content-Type': 'application/json'},

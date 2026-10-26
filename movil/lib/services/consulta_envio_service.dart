@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
+import 'laravel_api.dart';
 import '../models/envio_consulta.dart';
 
 abstract interface class ConsultaEnvioService {
@@ -22,10 +23,12 @@ class ErrorConexion extends ConsultaEnvioException {
 
 class ConsultaEnvioApi implements ConsultaEnvioService {
   ConsultaEnvioApi({
+    this.api,
     this.baseUrl = ApiConfig.baseUrl,
     http.Client? client,
     this.timeout = const Duration(seconds: 15),
   }) : _client = client ?? http.Client();
+  final ApiLaravel? api;
   final String baseUrl;
   final Duration timeout;
   final http.Client _client;
@@ -36,6 +39,26 @@ class ConsultaEnvioApi implements ConsultaEnvioService {
     final guia = numeroGuia.trim();
     if (guia.isEmpty) {
       throw const ConsultaEnvioException('Ingrese el número de guía.');
+    }
+    if (api != null) {
+      try {
+        final body = await api!.enviar(
+          'GET',
+          'correspondencia/guia/${Uri.encodeComponent(guia)}',
+        );
+        final envio = EnvioConsulta.fromJson(body);
+        if (envio.numeroGuia.toUpperCase() != guia.toUpperCase()) {
+          throw const FormatException('Guía diferente.');
+        }
+        return envio;
+      } on ErrorLaravel catch (e) {
+        if (e.estado == 404 && e.codigo == 'GUIA_NO_ENCONTRADA') return null;
+        throw ConsultaEnvioException(e.mensaje);
+      } on FormatException {
+        throw const ConsultaEnvioException(
+          'La respuesta del servidor no es válida.',
+        );
+      }
     }
     try {
       final response = await _client

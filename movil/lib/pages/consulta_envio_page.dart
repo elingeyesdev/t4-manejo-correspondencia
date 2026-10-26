@@ -85,15 +85,32 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF3E9),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.travel_explore_outlined,
+                    color: Color(0xFF456B2F),
+                    size: 30,
+                  ),
+                ),
+              ),
               Text(
                 'Consultar envío',
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: Theme.of(context).textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               const Text(
                 'Ingrese el número de guía para conocer el estado y el último movimiento.',
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               TextFormField(
                 controller: _guia,
                 enabled: !_consultando,
@@ -159,9 +176,10 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                   child: Card(
                     margin: EdgeInsets.zero,
                     elevation: 0,
-                    color: const Color(0xFFF4F5F2),
+                    color: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Color(0xFFDDE5D6)),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(20),
@@ -172,24 +190,71 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                             'Resultado de la consulta',
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
-                          const Divider(height: 28),
+                          const SizedBox(height: 20),
                           const Text('Número de guía'),
                           SelectableText(
                             envio.numeroGuia,
-                            style: Theme.of(context).textTheme.titleLarge,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 16),
                           const Text('Estado actual'),
-                          Text(
-                            envio.estado,
-                            style: Theme.of(context).textTheme.titleMedium,
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF3E9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              envio.estado,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(color: const Color(0xFF456B2F)),
+                            ),
                           ),
                           const SizedBox(height: 16),
                           const Text('Último movimiento'),
-                          Text(_fechaAmigable(envio.fechaUltimoMovimiento)),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.schedule_outlined,
+                                size: 18,
+                                color: Color(0xFF667064),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _fechaAmigable(envio.fechaUltimoMovimiento),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
+                  ),
+                ),
+              if (_envio == null && _mensaje == null && !_consultando)
+                Padding(
+                  padding: const EdgeInsets.only(top: 28),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.manage_search_outlined,
+                        size: 42,
+                        color: Color(0xFFB5BFAE),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'El seguimiento aparecerá aquí',
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(color: const Color(0xFF75806E)),
+                      ),
+                    ],
                   ),
                 ),
             ],
