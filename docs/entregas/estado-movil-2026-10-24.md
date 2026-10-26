@@ -28,10 +28,3 @@ Autor: RazzellRC. Revisión pendiente: Xmathewbruk.
 - 12/11: operaciones Android N; cámara, QR, adjuntos, recepción, atención y derivación siguen como diseño.
 
 No se acredita aprobación del móvil ni se cierra #6 antes de la revisión.
-
-## Corrección de revisión — 26/10/2026
-
-Reintentar bandeja conserva la operación fallida: Actualizar repite página 1 y
-reemplaza la lista; Cargar más repite la página pendiente y conserva las anteriores.
-Se reprodujo el fallo antes de corregirlo. Cuatro regresiones nuevas aprobadas;
-suite completa de 66 pruebas, análisis limpio y APK debug compilado.

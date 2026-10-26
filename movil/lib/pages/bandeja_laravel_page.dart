@@ -12,7 +12,6 @@ class BandejaLaravelPage extends StatefulWidget {
 class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
   final _documentos = <Map<String, dynamic>>[];
   bool _cargando = false;
-  bool _reiniciarAlReintentar = true;
   String? _error;
   int _pagina = 0;
   int _ultima = 1;
@@ -26,7 +25,6 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
     if (_cargando) return;
     setState(() {
       _cargando = true;
-      _reiniciarAlReintentar = reiniciar;
       _error = null;
     });
     try {
@@ -83,7 +81,7 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
           TextButton(
-            onPressed: () => _cargar(reiniciar: _reiniciarAlReintentar),
+            onPressed: () => _cargar(reiniciar: _pagina == 0),
             child: const Text('Reintentar'),
           ),
         ],
