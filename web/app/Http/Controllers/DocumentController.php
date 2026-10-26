@@ -22,6 +22,17 @@ class DocumentController extends Controller
         return view('documents.index', ['documents' => $docs]);
     }
 
+    public function configuration(Request $r)
+    {
+        abort_unless($r->user()->canRegister(), 403);
+
+        return response()->json([
+            'unidades' => Unit::where('enabled', true)->when(! $r->user()->isAdmin(), fn ($q) => $q->whereKey($r->user()->unit_id))->get(['id', 'name']),
+            'tipos' => Catalog::where(['kind' => 'tipo', 'enabled' => true])->get(['id', 'name']),
+            'prioridades' => Catalog::where(['kind' => 'prioridad', 'enabled' => true])->get(['id', 'name']),
+        ]);
+    }
+
     public function create(Request $r)
     {
         abort_unless($r->user()->canRegister(), 403);

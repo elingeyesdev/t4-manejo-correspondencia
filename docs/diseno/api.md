@@ -31,4 +31,12 @@ Errores comunes: 401 sin token/sesión; 403 cuenta, unidad o permiso inválido; 
 
 La consulta conserva `guia`, `estado` y `fechaUltimoMovimiento` como campos superiores, pero ahora exige credenciales y el estado es `REGISTRADA`. El móvil actual no envía token y traduce cualquier 409 como seguimiento ausente: debe actualizar su manejo. No reutilizar ese significado para conflictos de registro. Los nuevos documentos no se importan desde el JSON; una importación histórica requeriría decisión y pruebas aparte.
 
-Puerto Laravel local 8000, frente al 3000 del prototipo. Emulador: `http://10.0.2.2:8000`. USB: `adb reverse tcp:8000 tcp:8000`. El móvil debe configurar API_BASE_URL y usar HTTPS fuera del entorno local. Su acceso autenticado está planificado para semana 3; no se declara integración Android completada en esta rama.
+Puerto Laravel local 8000, frente al 3000 del prototipo. Emulador: `http://10.0.2.2:8000`. USB: `adb reverse tcp:8000 tcp:8000`. El móvil debe configurar API_BASE_URL y usar HTTPS fuera del entorno local. El acceso autenticado de la semana 3 está implementado para revisión en #13.
+
+## Opciones de registro para Android
+
+`GET /api/configuracion-registro`, autenticado y con cuenta/unidad habilitadas.
+Recepción y administrador reciben `{unidades:[{id,name}],tipos:[{id,name}],prioridades:[{id,name}]}`.
+Solo se devuelven opciones habilitadas; recepción ve únicamente su unidad.
+Funcionario recibe 403. No concede acceso administrativo a usuarios ni catálogos.
+Pruebas: `ConfiguracionMovilTest`. Ampliación al núcleo del PR #12 incluida en la entrega móvil para revisión.

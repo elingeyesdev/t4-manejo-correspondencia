@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/sesiones', [SessionController::class, 'token'])->middleware('throttle:5,1');
 Route::middleware(['auth:sanctum', 'operational'])->group(function () {
     Route::delete('/sesiones/actual', [SessionController::class, 'revoke']);
+    Route::get('/configuracion-registro', [DocumentController::class, 'configuration']);
     Route::get('/documentos', [DocumentController::class, 'index']);
     Route::post('/documentos', [DocumentController::class, 'store']);
     Route::get('/documentos/{id}', [DocumentController::class, 'show'])->whereUuid('id');
