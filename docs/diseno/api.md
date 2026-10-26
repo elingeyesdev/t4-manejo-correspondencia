@@ -1,6 +1,6 @@
 # Contrato API de la semana 2
 
-Laravel sirve el prefijo `/api`. JSON UTF-8, `Accept: application/json`. Referencias #4 y #11. Este contrato requiere revisión de Russel antes de adaptar el móvil.
+Laravel sirve el prefijo `/api`. JSON UTF-8, `Accept: application/json`. Referencias #4 y #11. Contrato del núcleo revisado con PR #12; adaptación Flutter de Russel aprobada e integrada en PR #14. Esto no cierra el diseño completo de operaciones futuras de #4.
 
 ## Acceso
 
@@ -29,9 +29,9 @@ Errores comunes: 401 sin token/sesión; 403 cuenta, unidad o permiso inválido; 
 
 ## Diferencias con el prototipo móvil
 
-La consulta conserva `guia`, `estado` y `fechaUltimoMovimiento` como campos superiores, pero ahora exige credenciales y el estado es `REGISTRADA`. El móvil actual no envía token y traduce cualquier 409 como seguimiento ausente: debe actualizar su manejo. No reutilizar ese significado para conflictos de registro. Los nuevos documentos no se importan desde el JSON; una importación histórica requeriría decisión y pruebas aparte.
+La consulta conserva `guia`, `estado` y `fechaUltimoMovimiento` como campos superiores, exige credenciales y el estado es `REGISTRADA`. El cliente Flutter integrado en PR #14 envía token y distingue conflictos de registro de una guía inexistente. El comportamiento anterior de Node se conserva como referencia histórica. Los nuevos documentos no se importan desde el JSON; una importación histórica requeriría decisión y pruebas aparte.
 
-Puerto Laravel local 8000, frente al 3000 del prototipo. Emulador: `http://10.0.2.2:8000`. USB: `adb reverse tcp:8000 tcp:8000`. El móvil debe configurar API_BASE_URL y usar HTTPS fuera del entorno local. El acceso autenticado de la semana 3 está implementado para revisión en #13.
+Puerto Laravel local 8000, frente al 3000 del prototipo. Emulador: `http://10.0.2.2:8000`. USB: `adb reverse tcp:8000 tcp:8000`. El móvil debe configurar API_BASE_URL y usar HTTPS fuera del entorno local. El acceso autenticado previsto para la semana 3 se adelantó y quedó integrado mediante #13 / PR #14.
 
 ## Opciones de registro para Android
 
@@ -39,4 +39,4 @@ Puerto Laravel local 8000, frente al 3000 del prototipo. Emulador: `http://10.0.
 Recepción y administrador reciben `{unidades:[{id,name}],tipos:[{id,name}],prioridades:[{id,name}]}`.
 Solo se devuelven opciones habilitadas; recepción ve únicamente su unidad.
 Funcionario recibe 403. No concede acceso administrativo a usuarios ni catálogos.
-Pruebas: `ConfiguracionMovilTest`. Ampliación al núcleo del PR #12 incluida en la entrega móvil para revisión.
+Pruebas: `ConfiguracionMovilTest`. Ampliación al núcleo del PR #12 incluida en la entrega móvil aprobada e integrada mediante PR #14.

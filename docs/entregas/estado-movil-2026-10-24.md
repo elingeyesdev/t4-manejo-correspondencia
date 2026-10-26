@@ -1,6 +1,6 @@
 # Entrega móvil — 25/10/2026
 
-Autor: RazzellRC. Revisión pendiente: Xmathewbruk.
+Autor: RazzellRC. Estado actualizado el 26/10/2026: PR #14 aprobado por Xmathewbruk e integrado en develop. Ver [acta de cierre](cierre-semana-02.md) para evidencia y límites. Las secciones de validación siguientes conservan los resultados declarados por el autor.
 
 ## Realizado
 
@@ -22,12 +22,12 @@ Autor: RazzellRC. Revisión pendiente: Xmathewbruk.
 
 ## Planificación
 
-- 26/10: presentar el diseño #6 de la entrega aplazada del 22/10; falta revisión de Mathew.
+- 26/10: diseño #6 incluido en PR #14; falta registrar el recorrido humano completo del diseño.
 - 29/10: núcleo web/API #11, aprobado e integrado mediante PR #12; consulta P04 #9 publicada en PR #10.
-- 05/11: acceso y bandeja Android M, adelantados en esta adaptación; pendientes de revisión.
+- 05/11: acceso y bandeja Android M, adelantados, aprobados e integrados mediante PR #14 el 26/10.
 - 12/11: operaciones Android N; cámara, QR, adjuntos, recepción, atención y derivación siguen como diseño.
 
-No se acredita aprobación del móvil ni se cierra #6 antes de la revisión.
+Actualización del 26/10: la adaptación funcional #13 ya tiene aprobación e integración. #6 conserva pendiente el registro del recorrido humano completo del diseño; no se confunde con la aprobación técnica del PR.
 
 ## Corrección de revisión — 26/10/2026
 
