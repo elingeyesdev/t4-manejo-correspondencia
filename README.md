@@ -4,23 +4,27 @@ Aplicación web y API en **Laravel 13 / PHP**, con PostgreSQL y cliente Android 
 
 ## Estado de la entrega
 
-Rama de trabajo `feature/11-nucleo-laravel`, issue #11. Implementa el núcleo previsto hasta la semana 2: acceso web, unidades, tipos, prioridades, usuarios/roles y registro transaccional de documento y hoja. **Pendiente de revisión del compañero y validación docente.** El cronograma es una planificación, no evidencia de aceptación.
+- Núcleo Laravel/PostgreSQL: PR #12 revisado e integrado en develop; Issue #11 cerrado.
+- Consulta móvil P04: PR #10 integrado; Issue #9 cerrado.
+- Diseño móvil #6 y adaptación a Laravel: implementados para revisión de Mathew.
+- Cámara, QR, adjuntos, recepción, atención y derivación siguen pendientes de implementación.
 
-El prototipo anterior en Node.js se conserva en `prototipo/node/` como referencia histórica. El backend definitivo es Laravel. La aplicación móvil aún requiere coordinar autenticación y el nuevo contrato; sus pruebas históricas con Node no acreditan integración con Laravel.
+La app usa sesiones protegidas, consulta, bandeja, detalle y registro reales de Laravel.
+Node se conserva en `prototipo/node/` como antecedente; no es el backend de la app.
 
 ## Estructura
 
 | Carpeta | Contenido |
 | --- | --- |
 | `web/` | Laravel: interfaz Blade, API, dominio, migraciones y pruebas |
-| `movil/` | Flutter del compañero; integración autenticada pendiente |
+| `movil/` | Flutter: acceso, consulta, bandeja, registro y diseños móviles |
 | `docs/` | Diseño, contrato, planificación y evidencias |
 | `prototipo/node/` | Prototipo previo de referencia |
 | `scripts/` | Auxiliares de desarrollo y pruebas |
 
 ## Requisitos
 
-- PHP compatible con Laravel 13 (mínimo 8.3; probado localmente con 8.5).
+- PHP >=8.4.1 para el composer.lock actual; probado con 8.4.27 y 8.5.
 - Composer 2; extensiones PHP PDO, pdo_pgsql, mbstring, xml, curl, fileinfo y openssl.
 - PostgreSQL 16 y dos bases separadas: `correspondencia` y `correspondencia_test`.
 - Git. Herd puede proporcionar PHP y Composer; no es una dependencia del código.
@@ -32,7 +36,7 @@ Las vistas Blade usan estilos locales y no requieren compilar JavaScript para es
 ```powershell
 git clone https://github.com/elingeyesdev/t4-manejo-correspondencia.git
 cd t4-manejo-correspondencia
-git switch feature/11-nucleo-laravel
+git switch develop
 cd web
 composer install
 Copy-Item .env.example .env
