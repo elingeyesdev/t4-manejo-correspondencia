@@ -125,7 +125,7 @@ void main() {
         sesion = SesionController(api: api!, almacen: _Almacen());
         await sesion!.restaurar();
         await sesion!.ingresar(email, env['FLUTTER_TEST_PASSWORD']!);
-        expect(sesion!.autenticada, true);
+        expect(sesion!.autenticada, true, reason: sesion!.mensaje);
         final config = await api!.enviar('GET', 'configuracion-registro');
         final datos = <String, dynamic>{
           'remitente': 'Dirección académica',

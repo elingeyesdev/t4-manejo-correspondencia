@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'theme/sakai_theme.dart';
+import 'widgets/sakai_widgets.dart';
 import 'pages/consulta_envio_page.dart';
 import 'pages/diseno_movil_page.dart';
 import 'pages/home_page.dart';
@@ -14,7 +17,19 @@ import 'pages/registro_correspondencia_page.dart';
 import 'services/consulta_envio_service.dart';
 import 'services/correspondencia_api.dart';
 
-void main() => runApp(const CorrespondenciaApp());
+void main() {
+  LicenseRegistry.addLicense(() async* {
+    for (final entry in {
+      'Sakai / PrimeVue': 'Sakai-MIT.txt',
+      'PrimeIcons': 'PrimeIcons-MIT.txt',
+    }.entries) {
+      yield LicenseEntryWithLineBreaks([
+        entry.key,
+      ], await rootBundle.loadString('assets/licenses/${entry.value}'));
+    }
+  });
+  runApp(const CorrespondenciaApp());
+}
 
 class CorrespondenciaApp extends StatelessWidget {
   const CorrespondenciaApp({
@@ -33,68 +48,7 @@ class CorrespondenciaApp extends StatelessWidget {
     locale: const Locale('es'),
     supportedLocales: const [Locale('es')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    theme: ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF8BC34A))
-          .copyWith(
-            primary: const Color(0xFF456B2F),
-            onPrimary: Colors.white,
-            surface: Colors.white,
-            onSurface: const Color(0xFF202020),
-          ),
-      scaffoldBackgroundColor: const Color(0xFFF7F8F5),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFFE4E8DF)),
-        ),
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFFF7F8F5),
-        foregroundColor: Color(0xFF263320),
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFCDD5C7)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF456B2F), width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF456B2F),
-          foregroundColor: Colors.white,
-          minimumSize: const Size(0, 52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF456B2F),
-          minimumSize: const Size(0, 48),
-          side: const BorderSide(color: Color(0xFFCDD5C7)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-    ),
+    theme: Sakai.theme,
     home: servicio != null || apiRegistro != null
         ? PantallaPrincipal(servicio: servicio, apiRegistro: apiRegistro)
         : PuertaSesion(sesion: sesion),
@@ -166,6 +120,8 @@ class PantallaPrincipal extends StatefulWidget {
 
 class _PantallaPrincipalState extends State<PantallaPrincipal> {
   int _pagina = 0;
+  static const _ordenPestanas = [0, 3, 1, 4];
+  final _deslizador = PageController();
   final _scaffold = GlobalKey<ScaffoldState>();
   bool _confirmandoSalida = false;
 
@@ -205,10 +161,26 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
 
   final _visitadas = <int>{0};
   bool get _puedeRegistrar => widget.sesion?.puedeRegistrar ?? true;
-  void _mostrar(int pagina) => setState(() {
-    _pagina = pagina;
-    _visitadas.add(pagina);
-  });
+  void _mostrar(int pagina) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _pagina = pagina;
+      _visitadas.add(pagina);
+    });
+    if (widget.sesion != null && pagina != 2 && _deslizador.hasClients) {
+      // Los botones saltan directamente sin cargar pestañas intermedias.
+      _deslizador.jumpToPage(_ordenPestanas.indexOf(pagina));
+    }
+  }
+
+  void _alDeslizar(int index) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _pagina = _ordenPestanas[index];
+      _visitadas.add(_pagina);
+    });
+  }
+
   late final ConsultaEnvioService _servicio;
   late final CorrespondenciaApi _registro;
 
@@ -225,6 +197,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
       _servicio.close();
     }
     if (widget.apiRegistro == null) _registro.close();
+    _deslizador.dispose();
     super.dispose();
   }
 
@@ -232,6 +205,91 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     Navigator.pop(context);
     _mostrar(pagina);
   }
+
+  String get _iniciales {
+    final partes = (widget.sesion?.nombre ?? '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .take(2);
+    return partes.isEmpty
+        ? 'CU'
+        : partes
+              .map((p) => String.fromCharCode(p.runes.first))
+              .join()
+              .toUpperCase();
+  }
+
+  Widget _cuenta() => ListView(
+    padding: const EdgeInsets.all(20),
+    children: [
+      Text('Mi cuenta', style: Theme.of(context).textTheme.headlineSmall),
+      const SizedBox(height: 20),
+      SakaiSection(
+        title: 'Cuenta institucional',
+        icon: PrimeIcons.user,
+        child: Column(
+          children: [
+            SakaiField('Nombre', widget.sesion!.nombre),
+            SakaiField('Correo', widget.sesion!.usuario?['email']),
+            SakaiField('Rol', widget.sesion!.rol),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      OutlinedButton.icon(
+        onPressed: widget.sesion!.ocupada ? null : () => widget.sesion!.salir(),
+        icon: const Icon(Icons.logout),
+        label: const Text('Cerrar sesión'),
+      ),
+      const SizedBox(height: 16),
+      ListTile(
+        leading: const Icon(Icons.info_outline),
+        title: const Text('Acerca de la aplicación'),
+        subtitle: const Text('Sakai / PrimeVue · PrimeIcons'),
+        onTap: () => showAboutDialog(
+          context: context,
+          applicationName: 'Correspondencia',
+          applicationVersion: '1.0.0',
+          applicationLegalese: 'Interfaz Flutter adaptada de Sakai / PrimeVue. Iconos PrimeIcons. Recursos originales bajo licencia MIT.',
+          children: [
+            const SelectableText(
+              'Fuente: https://github.com/primefaces/sakai-vue',
+            ),
+          ],
+        ),
+      ),
+      if (widget.sesion!.mensaje != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Text(
+            widget.sesion!.mensaje!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ),
+    ],
+  );
+
+  Widget _seccion(int pagina) => switch (pagina) {
+    0 => HomePage(
+      nombre: widget.sesion?.nombre ?? '',
+      onConsultar: () => _mostrar(1),
+      onVerDiseno: _verDiseno,
+      onNuevoRegistro: () => _mostrar(2),
+      puedeRegistrar: _puedeRegistrar,
+      onBandeja: widget.sesion == null ? null : () => _mostrar(3),
+    ),
+    1 =>
+      _visitadas.contains(1)
+          ? ConsultaEnvioPage(servicio: _servicio)
+          : const SizedBox.shrink(),
+    3 =>
+      _visitadas.contains(3)
+          ? BandejaLaravelPage(api: widget.sesion!.api)
+          : const SizedBox.shrink(),
+    4 => _cuenta(),
+    _ => const SizedBox.shrink(),
+  };
 
   void _verDiseno() {
     Navigator.of(context)
@@ -249,7 +307,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
       appBar: AppBar(
         title: const Row(
           children: [
-            Icon(Icons.markunread_mailbox_outlined, size: 24),
+            Icon(PrimeIcons.folder, size: 24, color: Sakai.green),
             SizedBox(width: 10),
             Flexible(
               child: Text(
@@ -259,7 +317,58 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
             ),
           ],
         ),
+        actions: [
+          if (widget.sesion != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: IconButton(
+                tooltip: 'Mi cuenta',
+                onPressed: () => _mostrar(4),
+                icon: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Sakai.mint,
+                  child: Text(
+                    _iniciales,
+                    style: const TextStyle(
+                      color: Sakai.green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
+      bottomNavigationBar: widget.sesion == null || _pagina == 2
+          ? null
+          : NavigationBar(
+              selectedIndex: switch (_pagina) {
+                3 => 1,
+                1 => 2,
+                4 => 3,
+                _ => 0,
+              },
+              onDestinationSelected: (index) => _mostrar(_ordenPestanas[index]),
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(PrimeIcons.home),
+                  label: 'Inicio',
+                ),
+                NavigationDestination(
+                  icon: Icon(PrimeIcons.inbox),
+                  label: 'Bandeja',
+                ),
+                NavigationDestination(
+                  icon: Icon(PrimeIcons.search),
+                  label: 'Consulta',
+                ),
+                NavigationDestination(
+                  icon: Icon(PrimeIcons.user),
+                  label: 'Cuenta',
+                ),
+              ],
+            ),
       drawer: Drawer(
         child: SafeArea(
           child: ListView(
@@ -326,30 +435,53 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
       ),
       body: SafeArea(
         child: IndexedStack(
-          index: _pagina,
+          index: _pagina == 2 ? 1 : 0,
           children: [
-            HomePage(
-              onConsultar: () => _mostrar(1),
-              onVerDiseno: _verDiseno,
-              onNuevoRegistro: () => _mostrar(2),
-              puedeRegistrar: _puedeRegistrar,
-              onBandeja: widget.sesion == null ? null : () => _mostrar(3),
-            ),
-            _visitadas.contains(1)
-                ? ConsultaEnvioPage(servicio: _servicio)
-                : const SizedBox.shrink(),
+            if (widget.sesion != null)
+              PageView(
+                key: const ValueKey('secciones-deslizables'),
+                controller: _deslizador,
+                onPageChanged: _alDeslizar,
+                children: [
+                  for (final pagina in _ordenPestanas)
+                    _SeccionConservada(
+                      key: ValueKey(pagina),
+                      child: _seccion(pagina),
+                    ),
+                ],
+              )
+            else
+              IndexedStack(
+                index: _pagina == 1 ? 1 : 0,
+                children: [_seccion(0), _seccion(1)],
+              ),
             !_visitadas.contains(2)
                 ? const SizedBox.shrink()
                 : widget.sesion != null
                 ? RegistroLaravelPage(api: widget.sesion!.api)
                 : RegistroCorrespondenciaPage(api: _registro),
-            if (widget.sesion != null)
-              _visitadas.contains(3)
-                  ? BandejaLaravelPage(api: widget.sesion!.api)
-                  : const SizedBox.shrink(),
           ],
         ),
       ),
     ),
   );
+}
+
+/// Mantiene formularios, búsqueda y posición de desplazamiento entre pestañas.
+class _SeccionConservada extends StatefulWidget {
+  const _SeccionConservada({super.key, required this.child});
+  final Widget child;
+  @override
+  State<_SeccionConservada> createState() => _SeccionConservadaState();
+}
+
+class _SeccionConservadaState extends State<_SeccionConservada>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
 }

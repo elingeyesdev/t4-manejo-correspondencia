@@ -122,3 +122,8 @@ los campos de la sección. Si el menú está abierto, primero lo cierra.
 Desde un detalle regresa a la bandeja. En Gestión documental retrocede por las
 pantallas del diseño. Desde Inicio pide confirmación; solo Salir cierra la app,
 sin cerrar la sesión. Pruebas de regresión en `test/retroceso_test.dart`.
+## Apariencia Sakai
+
+Adaptación móvil de Sakai / PrimeVue con iconos originales PrimeIcons.
+Fuente, licencias y alcance: [DISENO_SAKAI.md](DISENO_SAKAI.md).
+Comandos usados y estado local: [GUIA_GIT_DISENO.md](GUIA_GIT_DISENO.md).

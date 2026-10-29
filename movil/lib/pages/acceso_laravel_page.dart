@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../theme/sakai_theme.dart';
+import '../widgets/sakai_widgets.dart';
+
 import '../services/sesion_controller.dart';
 
 class AccesoLaravelPage extends StatefulWidget {
@@ -36,98 +39,100 @@ class _AccesoLaravelPageState extends State<AccesoLaravelPage> {
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
-            child: Form(
-              key: _form,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Icon(
-                      Icons.markunread_mailbox_outlined,
-                      size: 48,
-                      color: Color(0xFF456B2F),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Correspondencia',
-                    style: Theme.of(context).textTheme.headlineMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Ingresa con tu cuenta institucional para consultar los documentos de tu unidad.',
-                  ),
-                  const SizedBox(height: 28),
-                  TextFormField(
-                    controller: _correo,
-                    enabled: !widget.sesion.ocupada,
-                    keyboardType: TextInputType.emailAddress,
-                    autocorrect: false,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Correo electrónico',
-                      prefixIcon: Icon(Icons.alternate_email),
-                    ),
-                    validator: (v) =>
-                        v == null ||
-                            !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                                .hasMatch(v.trim())
-                        ? 'Ingresa un correo válido.'
-                        : null,
-                  ),
-                  const SizedBox(height: 18),
-                  TextFormField(
-                    controller: _clave,
-                    enabled: !widget.sesion.ocupada,
-                    obscureText: _ocultar,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        tooltip: _ocultar
-                            ? 'Mostrar contraseña'
-                            : 'Ocultar contraseña',
-                        onPressed: () => setState(() => _ocultar = !_ocultar),
-                        icon: Icon(
-                          _ocultar
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                        ),
+            child: SakaiPanel(
+              child: Form(
+                key: _form,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Icon(
+                        PrimeIcons.folder,
+                        size: 48,
+                        color: Sakai.green,
                       ),
                     ),
-                    validator: (v) => v == null || v.isEmpty
-                        ? 'Ingresa tu contraseña.'
-                        : null,
-                    onFieldSubmitted: (_) => _ingresar(),
-                  ),
-                  if (widget.sesion.mensaje != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 18),
-                      child: Semantics(
-                        liveRegion: true,
-                        child: Text(
-                          widget.sesion.mensaje!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
+                    const SizedBox(height: 24),
+                    Text(
+                      'Correspondencia',
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Ingresa con tu cuenta institucional para consultar los documentos de tu unidad.',
+                    ),
+                    const SizedBox(height: 28),
+                    TextFormField(
+                      controller: _correo,
+                      enabled: !widget.sesion.ocupada,
+                      keyboardType: TextInputType.emailAddress,
+                      autocorrect: false,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(
+                        labelText: 'Correo electrónico',
+                        prefixIcon: Icon(Icons.alternate_email),
+                      ),
+                      validator: (v) =>
+                          v == null ||
+                              !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                                  .hasMatch(v.trim())
+                          ? 'Ingresa un correo válido.'
+                          : null,
+                    ),
+                    const SizedBox(height: 18),
+                    TextFormField(
+                      controller: _clave,
+                      enabled: !widget.sesion.ocupada,
+                      obscureText: _ocultar,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      textInputAction: TextInputAction.done,
+                      decoration: InputDecoration(
+                        labelText: 'Contraseña',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          tooltip: _ocultar
+                              ? 'Mostrar contraseña'
+                              : 'Ocultar contraseña',
+                          onPressed: () => setState(() => _ocultar = !_ocultar),
+                          icon: Icon(
+                            _ocultar
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                           ),
                         ),
                       ),
+                      validator: (v) => v == null || v.isEmpty
+                          ? 'Ingresa tu contraseña.'
+                          : null,
+                      onFieldSubmitted: (_) => _ingresar(),
                     ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: widget.sesion.ocupada ? null : _ingresar,
-                    child: Text(
-                      widget.sesion.ocupada
-                          ? 'Ingresando...'
-                          : 'Iniciar sesión',
+                    if (widget.sesion.mensaje != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 18),
+                        child: Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            widget.sesion.mensaje!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: widget.sesion.ocupada ? null : _ingresar,
+                      child: Text(
+                        widget.sesion.ocupada
+                            ? 'Ingresando...'
+                            : 'Iniciar sesión',
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

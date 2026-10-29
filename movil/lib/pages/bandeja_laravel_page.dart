@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/laravel_api.dart';
+import '../theme/sakai_theme.dart';
+import '../widgets/sakai_widgets.dart';
 
 class BandejaLaravelPage extends StatefulWidget {
   const BandejaLaravelPage({super.key, required this.api});
@@ -14,6 +16,7 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
   bool _cargando = false;
   bool _reiniciarAlReintentar = true;
   String? _error;
+  String _busqueda = '';
   int _pagina = 0;
   int _ultima = 1;
   @override
@@ -50,6 +53,26 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
+  }
+
+  bool _coincide(Map<String, dynamic> d) =>
+      _busqueda.isEmpty ||
+      [
+        'asunto',
+        'remitente',
+        'codigo',
+        'guia',
+      ].any((key) => '${d[key] ?? ''}'.toLowerCase().contains(_busqueda));
+
+  (Color, Color) _acento(Map<String, dynamic> d) {
+    // El tipo mantiene su color entre páginas; no representa otro estado.
+    final tipo = (d['tipo'] as Map?)?['name']?.toString().toLowerCase() ?? '';
+    if (tipo.contains('informe')) return (Sakai.violet, Sakai.violetLight);
+    if (tipo.contains('nota') || tipo.contains('memor')) {
+      return (Sakai.amber, Sakai.amberLight);
+    }
+    if (tipo.contains('carta')) return (Sakai.cyan, Sakai.cyanLight);
+    return (Sakai.blue, Sakai.blueLight);
   }
 
   @override
@@ -92,21 +115,87 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
             padding: EdgeInsets.all(24),
             child: Text('Todavía no hay correspondencia disponible.'),
           ),
-        for (final d in _documentos)
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(d['asunto'] as String? ?? 'Correspondencia'),
-              subtitle: Text(
-                '${d['remitente'] ?? ''}\n${d['guia'] ?? ''}\n${d['estado'] ?? ''} · ${d['fecha'] ?? ''}',
-              ),
-              isThreeLine: true,
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => DetalleLaravelPage(
-                    api: widget.api,
-                    id: d['id'] as String,
+
+        TextField(
+          decoration: const InputDecoration(
+            hintText: 'Buscar documento',
+            prefixIcon: Icon(PrimeIcons.search),
+            helperText: 'Busca en los documentos que ya cargaste.',
+          ),
+          onChanged: (value) =>
+              setState(() => _busqueda = value.trim().toLowerCase()),
+        ),
+        const SizedBox(height: 16),
+        if (_busqueda.isNotEmpty && !_documentos.any(_coincide))
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Text('Sin coincidencias en los documentos cargados.'),
+          ),
+        for (final d in _documentos.where(_coincide))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => DetalleLaravelPage(
+                      api: widget.api,
+                      id: d['id'] as String,
+                    ),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SakaiIcon(
+                        PrimeIcons.file,
+                        color: _acento(d).$1,
+                        background: _acento(d).$2,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              d['asunto'] as String? ?? 'Correspondencia',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${d['remitente'] ?? ''}',
+                              style: const TextStyle(color: Sakai.muted),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${d['codigo'] ?? d['guia'] ?? ''}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                if (d['estado'] != null)
+                                  SakaiStatus('${d['estado']}'),
+                                Text(
+                                  sakaiDate(d['fecha']),
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8, top: 12),
+                        child: Icon(PrimeIcons.chevronRight, size: 14),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -179,47 +268,130 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
         }
         final d = snapshot.data!;
         final movimientos = d['movimientos'] as List? ?? [];
+
+        final hoja = d['hoja'] as Map?;
         return ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           children: [
-            Text(
-              d['asunto'] as String? ?? '',
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SakaiIcon(PrimeIcons.file, size: 52),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        d['asunto'] as String? ?? '',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 6),
+                      SelectableText(
+                        '${d['codigo'] ?? ''}',
+                        style: const TextStyle(color: Sakai.muted),
+                      ),
+                      const SizedBox(height: 10),
+                      if (d['estado'] != null) SakaiStatus('${d['estado']}'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SakaiSection(
+              title: 'Información del documento',
+              icon: PrimeIcons.file,
+              child: Column(
+                children: [
+                  SakaiField('Guía', d['guia']),
+                  const Divider(),
+                  SakaiField('Remitente', d['remitente']),
+                  SakaiField('Fecha', sakaiDate(d['fecha'])),
+                  SakaiField('Tipo', (d['tipo'] as Map?)?['name']),
+                  SakaiField('Prioridad', (d['prioridad'] as Map?)?['name']),
+                  SakaiField('Unidad', (d['unidad'] as Map?)?['name']),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
-            for (final entry in {
-              'Guía': d['guia'],
-              'Código': d['codigo'],
-              'Remitente': d['remitente'],
-              'Fecha': d['fecha'],
-              'Estado': d['estado'],
-              'Tipo': (d['tipo'] as Map?)?['name'],
-              'Prioridad': (d['prioridad'] as Map?)?['name'],
-              'Unidad': (d['unidad'] as Map?)?['name'],
-              'Hoja de ruta': (d['hoja'] as Map?)?['codigo'],
-            }.entries)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.key,
-                      style: Theme.of(context).textTheme.labelLarge,
+            SakaiSection(
+              title: 'Hoja de ruta',
+              icon: PrimeIcons.folder,
+              color: Sakai.violet,
+              background: Sakai.violetLight,
+              child: Column(
+                children: [
+                  SakaiField('Código', hoja?['codigo']),
+                  // Solo mostramos el responsable cuando la API lo proporciona.
+                  if (hoja?['responsable'] != null)
+                    SakaiField(
+                      'Responsable actual',
+                      hoja!['responsable'] is Map
+                          ? (hoja['responsable'] as Map)['name']
+                          : hoja['responsable'],
                     ),
-                    SelectableText('${entry.value ?? 'Sin información'}'),
-                  ],
-                ),
+                ],
               ),
-            const Divider(),
-            Text('Historial', style: Theme.of(context).textTheme.titleLarge),
-            for (final m in movimientos.whereType<Map>())
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.history),
-                title: Text('${m['action'] ?? ''}'),
-                subtitle: Text('${m['occurred_at'] ?? ''}'),
+            ),
+            const SizedBox(height: 16),
+            SakaiSection(
+              title: 'Historial',
+              icon: PrimeIcons.clock,
+              color: Sakai.amber,
+              background: Sakai.amberLight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (movimientos.isEmpty)
+                    const Text('Sin movimientos disponibles.'),
+                  for (final m in movimientos.whereType<Map>())
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 5),
+                            child: Icon(
+                              Icons.circle,
+                              size: 10,
+                              color: Sakai.green,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${m['action'] ?? ''}',
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                ),
+                                if (m['actor'] is Map)
+                                  Text(
+                                    '${(m['actor'] as Map)['name'] ?? ''}',
+                                    style: const TextStyle(color: Sakai.muted),
+                                  ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  sakaiDate(m['occurred_at']),
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Volver a mi bandeja'),
+            ),
           ],
         );
       },
