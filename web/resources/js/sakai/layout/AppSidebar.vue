@@ -1,11 +1,10 @@
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
 import { onBeforeUnmount, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
 import AppMenu from './AppMenu.vue';
 
 const { layoutState, isDesktop, hasOpenOverlay } = useLayout();
-const route = useRoute();
+const route = { path: window.location.pathname };
 const sidebarRef = ref(null);
 let outsideClickListener = null;
 

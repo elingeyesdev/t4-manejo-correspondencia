@@ -24,11 +24,10 @@ const containerClass = computed(() => {
         <AppSidebar />
         <div class="layout-main-container">
             <div class="layout-main">
-                <router-view />
+                <slot />
             </div>
             <AppFooter />
         </div>
         <div class="layout-mask animate-fadein" @click="hideMobileMenu" />
     </div>
-    <Toast />
 </template>
