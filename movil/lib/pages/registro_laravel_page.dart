@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../theme/sakai_theme.dart';
+import '../widgets/sakai_widgets.dart';
+
 import '../services/laravel_api.dart';
 
 class RegistroLaravelPage extends StatefulWidget {
@@ -158,11 +161,7 @@ class _RegistroLaravelPageState extends State<RegistroLaravelPage> {
       return ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Icon(
-            Icons.check_circle_outline,
-            color: Color(0xFF456B2F),
-            size: 56,
-          ),
+          const Icon(Icons.check_circle_outline, color: Sakai.green, size: 56),
           const SizedBox(height: 16),
           Text(
             'Correspondencia registrada',
@@ -195,110 +194,134 @@ class _RegistroLaravelPageState extends State<RegistroLaravelPage> {
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        Form(
-          key: _form,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Nueva correspondencia',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Completa los datos de recepción. La guía se genera al guardar.',
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _remitente,
-                enabled: !_enviando,
-                maxLength: 150,
-                decoration: InputDecoration(
-                  labelText: 'Remitente',
-                  errorText: _errores['remitente'],
+        SakaiPanel(
+          child: Form(
+            key: _form,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Nueva correspondencia',
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                validator: (v) => v == null || v.trim().isEmpty
-                    ? 'Ingresa el remitente.'
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _asunto,
-                enabled: !_enviando,
-                maxLength: 500,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Asunto',
-                  errorText: _errores['asunto'],
+                const SizedBox(height: 8),
+                const Text(
+                  'Completa los datos de recepción. La guía se genera al guardar.',
                 ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Ingresa el asunto.' : null,
-              ),
-              const SizedBox(height: 16),
-              _selector(
-                'Tipo de documento',
-                'tipos',
-                'tipo_id',
-                _tipo,
-                (v) => setState(() => _tipo = v),
-              ),
-              const SizedBox(height: 16),
-              _selector(
-                'Prioridad',
-                'prioridades',
-                'prioridad_id',
-                _prioridad,
-                (v) => setState(() => _prioridad = v),
-              ),
-              const SizedBox(height: 16),
-              _selector(
-                'Unidad',
-                'unidades',
-                'unidad_id',
-                _unidad,
-                (v) => setState(() => _unidad = v),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.calendar_today_outlined),
-                label: Text('Fecha de recepción: $_fechaTexto'),
-                onPressed: _enviando
-                    ? null
-                    : () async {
-                        final fecha = await showDatePicker(
-                          context: context,
-                          initialDate: _fecha,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (fecha != null && mounted) {
-                          setState(() => _fecha = fecha);
-                        }
-                      },
-              ),
-              if (_errores['fecha'] != null) Text(_errores['fecha']!),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      _error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                const SizedBox(height: 20),
+                const Row(
+                  children: [
+                    SakaiIcon(
+                      PrimeIcons.plus,
+                      color: Sakai.green,
+                      background: Sakai.mint,
+                      size: 36,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Datos del documento',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _remitente,
+                  enabled: !_enviando,
+                  maxLength: 150,
+                  decoration: InputDecoration(
+                    labelText: 'Remitente',
+                    errorText: _errores['remitente'],
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Ingresa el remitente.'
+                      : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _asunto,
+                  enabled: !_enviando,
+                  maxLength: 500,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Asunto',
+                    errorText: _errores['asunto'],
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Ingresa el asunto.'
+                      : null,
+                ),
+                const SizedBox(height: 16),
+                _selector(
+                  'Tipo de documento',
+                  'tipos',
+                  'tipo_id',
+                  _tipo,
+                  (v) => setState(() => _tipo = v),
+                ),
+                const SizedBox(height: 16),
+                _selector(
+                  'Prioridad',
+                  'prioridades',
+                  'prioridad_id',
+                  _prioridad,
+                  (v) => setState(() => _prioridad = v),
+                ),
+                const SizedBox(height: 16),
+                _selector(
+                  'Unidad',
+                  'unidades',
+                  'unidad_id',
+                  _unidad,
+                  (v) => setState(() => _unidad = v),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.calendar_today_outlined),
+                  label: Text('Fecha de recepción: $_fechaTexto'),
+                  onPressed: _enviando
+                      ? null
+                      : () async {
+                          final fecha = await showDatePicker(
+                            context: context,
+                            initialDate: _fecha,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (fecha != null && mounted) {
+                            setState(() => _fecha = fecha);
+                          }
+                        },
+                ),
+                if (_errores['fecha'] != null) Text(_errores['fecha']!),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        _error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                       ),
                     ),
                   ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: _enviando ? null : _guardar,
+                  icon: const Icon(Icons.save_outlined),
+                  label: Text(
+                    _enviando ? 'Guardando…' : 'Registrar correspondencia',
+                  ),
                 ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _enviando ? null : _guardar,
-                icon: const Icon(Icons.save_outlined),
-                label: Text(
-                  _enviando ? 'Guardando…' : 'Registrar correspondencia',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

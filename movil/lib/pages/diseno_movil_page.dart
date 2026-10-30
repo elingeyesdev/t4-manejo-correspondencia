@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/sakai_theme.dart';
+
 enum PantallaDiseno {
   acceso('Inicio de sesión'),
   bandeja('Mi bandeja'),
@@ -83,7 +85,7 @@ class _DisenoMovilPageState extends State<DisenoMovilPage> {
         margin: const EdgeInsets.symmetric(vertical: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF4F5F2),
+          color: Sakai.background,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -271,7 +273,7 @@ class _DisenoMovilPageState extends State<DisenoMovilPage> {
           _titulo('Iniciar sesión', 'Acceso de funcionarios'),
           const Text(
             'El acceso de usuarios está pendiente de conexión.',
-            style: TextStyle(color: Color(0xFF667064)),
+            style: TextStyle(color: Sakai.muted),
           ),
           const SizedBox(height: 20),
           const TextField(
@@ -312,7 +314,7 @@ class _DisenoMovilPageState extends State<DisenoMovilPage> {
             Card(
               margin: EdgeInsets.zero,
               elevation: 0,
-              color: const Color(0xFFF4F5F2),
+              color: Sakai.background,
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Column(
@@ -659,7 +661,7 @@ class _DisenoMovilPageState extends State<DisenoMovilPage> {
     width: double.infinity,
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
     decoration: BoxDecoration(
-      color: const Color(0xFFF4F5F2),
+      color: Sakai.background,
       border: Border.all(color: const Color(0xFFC8D5C0)),
       borderRadius: BorderRadius.circular(12),
     ),
@@ -872,14 +874,14 @@ class _DisenoMovilPageState extends State<DisenoMovilPage> {
                         const Icon(
                           Icons.cloud_off_outlined,
                           size: 15,
-                          color: Color(0xFF75806E),
+                          color: Sakai.muted,
                         ),
                         const SizedBox(width: 7),
                         Expanded(
                           child: Text(
                             'Conexión pendiente · cambios locales',
                             style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: const Color(0xFF75806E)),
+                                ?.copyWith(color: Sakai.muted),
                           ),
                         ),
                       ],

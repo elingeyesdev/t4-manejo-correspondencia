@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../theme/sakai_theme.dart';
+import '../widgets/sakai_widgets.dart';
+
 class HomePage extends StatelessWidget {
   const HomePage({
     super.key,
@@ -8,43 +11,86 @@ class HomePage extends StatelessWidget {
     required this.onNuevoRegistro,
     this.onBandeja,
     this.puedeRegistrar = true,
+    this.nombre = '',
   });
   final bool puedeRegistrar;
+  final String nombre;
   final VoidCallback? onBandeja;
-  final VoidCallback onConsultar;
-  final VoidCallback onVerDiseno;
-  final VoidCallback onNuevoRegistro;
+  final VoidCallback onConsultar, onVerDiseno, onNuevoRegistro;
 
-  Widget _acceso({
+  Widget _acceso(
+    BuildContext context, {
     required IconData icono,
     required String titulo,
     required String descripcion,
     required VoidCallback onTap,
-  }) => Card(
-    margin: const EdgeInsets.only(bottom: 12),
-    child: ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFEEF3E9),
-          borderRadius: BorderRadius.circular(12),
+    Color color = Sakai.blue,
+    Color fondo = Sakai.blueLight,
+    bool destacado = false,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.all(destacado ? 20 : 16),
+          child: Row(
+            children: [
+              SakaiIcon(
+                icono,
+                color: color,
+                background: fondo,
+                size: destacado ? 52 : 44,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      descripcion,
+                      style: const TextStyle(color: Sakai.muted, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (destacado)
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: const BoxDecoration(
+                    color: Sakai.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    PrimeIcons.chevronRight,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                )
+              else
+                const Icon(
+                  PrimeIcons.chevronRight,
+                  size: 14,
+                  color: Sakai.muted,
+                ),
+            ],
+          ),
         ),
-        child: Icon(icono, color: const Color(0xFF456B2F)),
       ),
-      title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 5),
-        child: Text(descripcion),
-      ),
-      trailing: const Icon(Icons.chevron_right, size: 22),
-      onTap: onTap,
     ),
   );
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.all(20),
     child: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
@@ -53,116 +99,61 @@ class HomePage extends StatelessWidget {
           children: [
             const SizedBox(height: 8),
             Text(
-              'GESTIÓN DOCUMENTAL',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF62705B),
-                letterSpacing: 1.5,
-              ),
+              nombre.isEmpty
+                  ? 'Correspondencia\ninstitucional'
+                  : 'Hola, ${nombre.trim().split(' ').first}',
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             Text(
-              'Correspondencia\ninstitucional',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                height: 1.15,
-                letterSpacing: -.7,
-              ),
+              nombre.isEmpty
+                  ? 'Consulte el estado de su envío con el número de guía.'
+                  : 'Gestiona los documentos de tu unidad.',
+              style: const TextStyle(color: Sakai.muted, height: 1.5),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'Consulte el estado de su envío con el número de guía.',
-              style: TextStyle(color: Color(0xFF667064), height: 1.6),
+            const SizedBox(height: 26),
+            _acceso(
+              context,
+              icono: PrimeIcons.search,
+              titulo: 'Consultar envío',
+              descripcion: 'Busca por número de guía',
+              onTap: onConsultar,
+              destacado: true,
             ),
-            const SizedBox(height: 28),
-            Material(
-              color: const Color(0xFF456B2F),
-              borderRadius: BorderRadius.circular(20),
-              child: InkWell(
-                onTap: onConsultar,
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.all(22),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.travel_explore_outlined,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                          Spacer(),
-                          Icon(
-                            Icons.arrow_forward,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Consultar envío',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Estado y último movimiento de tu correspondencia.',
-                        style: TextStyle(color: Color(0xFFE5EEDC), height: 1.5),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 14),
             Text(
-              'Más opciones',
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              'Accesos rápidos',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 14),
             if (puedeRegistrar)
               _acceso(
-                icono: Icons.note_add_outlined,
+                context,
+                icono: PrimeIcons.plus,
                 titulo: 'Nueva correspondencia',
-                descripcion: 'Remitente, asunto, tipo y fecha de recepción.',
+                descripcion: 'Registrar un documento recibido',
                 onTap: onNuevoRegistro,
+                color: Sakai.green,
+                fondo: Sakai.mint,
               ),
             if (onBandeja != null)
               _acceso(
-                icono: Icons.inbox_outlined,
+                context,
+                icono: PrimeIcons.inbox,
                 titulo: 'Mi bandeja',
-                descripcion: 'Documentos e historial de tu unidad.',
+                descripcion: 'Documentos de tu unidad',
                 onTap: onBandeja!,
               ),
             _acceso(
-              icono: Icons.folder_open_outlined,
+              context,
+              icono: PrimeIcons.folder,
               titulo: 'Gestión documental',
-              descripcion: 'Diseño de recepción, archivos y atención.',
+              descripcion: 'Diseño de recepción y atención',
               onTap: onVerDiseno,
+              color: Sakai.violet,
+              fondo: Sakai.violetLight,
             ),
-            const SizedBox(height: 12),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.description_outlined,
-                  size: 15,
-                  color: Color(0xFF788273),
-                ),
-                SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    'Sistema de correspondencia',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF788273)),
-                  ),
-                ),
-              ],
-            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),

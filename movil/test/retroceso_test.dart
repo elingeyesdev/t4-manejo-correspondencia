@@ -93,7 +93,7 @@ void main() {
         await tester.enterText(find.byType(TextFormField), 'COR-CONSERVADA');
       }
       await _atras(tester);
-      expect(find.text('Correspondencia\ninstitucional'), findsOneWidget);
+      expect(find.text('Hola, Recepción'), findsOneWidget);
       expect(find.text('¿Salir de Correspondencia?'), findsNothing);
     }
     await tester.tap(find.text('Consultar envío'));
@@ -107,7 +107,10 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
     await _atras(tester);
-    expect(find.text('Inicio'), findsNothing);
+    expect(
+      find.text('Inicio'),
+      findsOneWidget,
+    ); // Barra inferior, menú ya cerrado.
     expect(
       find.text(
         'Ingrese el número de guía para conocer el estado y el último movimiento.',
@@ -115,7 +118,7 @@ void main() {
       findsOneWidget,
     );
     await _atras(tester);
-    expect(find.text('Correspondencia\ninstitucional'), findsOneWidget);
+    expect(find.text('Hola, Recepción'), findsOneWidget);
   });
   testWidgets('Atrás desde detalle vuelve a bandeja y luego a Inicio', (
     tester,
@@ -130,7 +133,7 @@ void main() {
     await _atras(tester);
     expect(find.text('Bandeja de correspondencia'), findsOneWidget);
     await _atras(tester);
-    expect(find.text('Correspondencia\ninstitucional'), findsOneWidget);
+    expect(find.text('Hola, Recepción'), findsOneWidget);
   });
   testWidgets(
     'Inicio pide confirmación y solo salir explícitamente cierra Android',
@@ -155,7 +158,7 @@ void main() {
       expect(llamadas, isNot(contains('SystemNavigator.pop')));
       await tester.tap(find.text('Cancelar'));
       await tester.pumpAndSettle();
-      expect(find.text('Correspondencia\ninstitucional'), findsOneWidget);
+      expect(find.text('Hola, Recepción'), findsOneWidget);
       await _atras(tester);
       await tester.tap(find.text('Salir'));
       await tester.pumpAndSettle();
@@ -175,7 +178,7 @@ void main() {
     await _atras(tester);
     expect(find.text('Abrir bandeja'), findsOneWidget);
     await _atras(tester);
-    expect(find.text('Correspondencia\ninstitucional'), findsOneWidget);
+    expect(find.text('Hola, Recepción'), findsOneWidget);
     expect(find.text('¿Salir de Correspondencia?'), findsNothing);
   });
 }

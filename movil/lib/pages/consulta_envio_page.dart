@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/sakai_theme.dart';
+
 import '../models/envio_consulta.dart';
 import '../services/consulta_envio_service.dart';
 
@@ -91,12 +93,12 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                   padding: const EdgeInsets.all(14),
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEF3E9),
+                    color: Sakai.blueLight,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
-                    Icons.travel_explore_outlined,
-                    color: Color(0xFF456B2F),
+                    PrimeIcons.search,
+                    color: Sakai.green,
                     size: 30,
                   ),
                 ),
@@ -152,7 +154,7 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                     decoration: BoxDecoration(
                       color: _esError
                           ? Theme.of(context).colorScheme.errorContainer
-                          : const Color(0xFFF4F5F2),
+                          : Sakai.background,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -179,7 +181,7 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                     color: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: Color(0xFFDDE5D6)),
+                      side: const BorderSide(color: Sakai.border),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(20),
@@ -206,13 +208,13 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEEF3E9),
+                              color: Sakai.blueLight,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               envio.estado,
                               style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(color: const Color(0xFF456B2F)),
+                                  ?.copyWith(color: Sakai.green),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -223,7 +225,7 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                               const Icon(
                                 Icons.schedule_outlined,
                                 size: 18,
-                                color: Color(0xFF667064),
+                                color: Sakai.muted,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -252,7 +254,7 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                       Text(
                         'El seguimiento aparecerá aquí',
                         style: Theme.of(context).textTheme.bodyMedium
-                            ?.copyWith(color: const Color(0xFF75806E)),
+                            ?.copyWith(color: Sakai.muted),
                       ),
                     ],
                   ),

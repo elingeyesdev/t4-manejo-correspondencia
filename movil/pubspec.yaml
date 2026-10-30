@@ -17,3 +17,9 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 flutter:
   uses-material-design: true
+  assets:
+    - assets/licenses/
+  fonts:
+    - family: PrimeIcons
+      fonts:
+        - asset: assets/fonts/primeicons.ttf
