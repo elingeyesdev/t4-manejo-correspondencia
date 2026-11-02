@@ -46,16 +46,39 @@ defineProps({
         </section>
     </div>
 
-    <section class="card">
-        <h2 class="text-xl font-semibold mt-0 mb-5">Historial inicial</h2>
-        <DataTable :value="movements" dataKey="id" stripedRows tableStyle="min-width: 42rem">
-            <template #empty>No hay movimientos disponibles.</template>
-            <Column field="action" header="Acción" />
-            <Column field="actor" header="Actor" />
-            <Column field="date" header="Fecha y hora · Bolivia" />
-            <Column header="Estado">
-                <template #body="{ data }"><Tag :value="data.state" severity="info" /></template>
-            </Column>
-        </DataTable>
-    </section>
+   <section class="card">
+    <h2 class="text-xl font-semibold mt-0 mb-3">
+        Historial documental
+    </h2>
+
+    <p class="text-muted-color mb-5">
+        Se muestran únicamente los movimientos registrados.
+        El registro inicial no acredita derivaciones, recepciones ni cierre.
+    </p>
+
+    <DataTable
+        :value="movements"
+        dataKey="id"
+        stripedRows
+        tableStyle="min-width: 65rem"
+    >
+        <template #empty>
+            No hay movimientos registrados para este documento.
+        </template>
+
+        <Column field="action" header="Acción" />
+        <Column field="actor" header="Realizado por" />
+        <Column field="originUnit" header="Unidad de origen" />
+        <Column field="destinationUnit" header="Unidad de destino" />
+        <Column field="date" header="Fecha y hora · Bolivia" />
+
+        <Column header="Estado resultante">
+            <template #body="{ data }">
+                <Tag :value="data.state" severity="info" />
+            </template>
+        </Column>
+
+        <Column field="reason" header="Motivo" />
+    </DataTable>
+</section>
 </template>
