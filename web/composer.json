@@ -11,6 +11,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "endroid/qr-code": "6.*",
         "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0"
