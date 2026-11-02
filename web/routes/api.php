@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SessionController;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +14,15 @@ Route::middleware(['auth:sanctum', 'operational'])->group(function () {
     Route::post('/documentos', [DocumentController::class, 'store']);
     Route::get('/documentos/{id}', [DocumentController::class, 'show'])->whereUuid('id');
     Route::get('/correspondencia/guia/{guide}', [DocumentController::class, 'guide']);
+    Route::post('/documentos/{id}/adjuntos', [AttachmentController::class, 'store'])
+        ->whereUuid('id');
+
+    Route::get('/documentos/{id}/adjuntos', [AttachmentController::class, 'index'])
+        ->whereUuid('id');
+
+    Route::get('/documentos/{id}/adjuntos/{adjunto}/descarga', [AttachmentController::class, 'download'])
+        ->whereUuid('id')
+        ->whereUuid('adjunto');
     Route::get('/administracion', [AdminController::class, 'index']);
     foreach (['unidades' => 'unit', 'catalogos' => 'catalog', 'usuarios' => 'user'] as $path => $method) {
         Route::post('/'.$path, [AdminController::class, $method]);

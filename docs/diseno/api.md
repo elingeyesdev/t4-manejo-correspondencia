@@ -40,3 +40,7 @@ Recepción y administrador reciben `{unidades:[{id,name}],tipos:[{id,name}],prio
 Solo se devuelven opciones habilitadas; recepción ve únicamente su unidad.
 Funcionario recibe 403. No concede acceso administrativo a usuarios ni catálogos.
 Pruebas: `ConfiguracionMovilTest`. Ampliación al núcleo del PR #12 incluida en la entrega móvil aprobada e integrada mediante PR #14.
+
+## Adjuntos — incremento #18 / T08
+
+Esta rama incorpora carga, listado y descarga autenticados de adjuntos. Consultar [contrato de adjuntos y evidencia](adjuntos.md) para rutas, multipart, permisos, respuestas, cifrado, límites y recuperación. Implementación local verificada; revisión cruzada e integración Android pendientes. El contrato anterior conserva el alcance del núcleo de semana 2.
