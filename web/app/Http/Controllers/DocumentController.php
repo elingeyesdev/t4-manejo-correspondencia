@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDocumentRequest;
+use App\Models\Attachment;
 use App\Models\Catalog;
 use App\Models\Document;
 use App\Models\Unit;
@@ -54,7 +55,7 @@ class DocumentController extends Controller
     {
         $doc = Document::visibleTo($r->user())->findOrFail($id);
 
-        return $r->is('api/*') ? response()->json($doc->payload()) : view('documents.show', ['document' => $doc, 'payload' => $doc->payload()]);
+        return $r->is('api/*') ? response()->json($doc->payload()) : view('documents.show', ['document' => $doc, 'payload' => $doc->payload(), 'attachments' => Attachment::where('document_id', $doc->id)->latest()->orderBy('id')->paginate(15, ['*'], 'adjuntos_page')]);
     }
 
     public function guide(Request $r, string $guide)

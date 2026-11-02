@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AttachmentWebController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SessionController;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,9 @@ Route::middleware(['auth', 'operational'])->group(function () {
     Route::get('/documentos/nuevo', [DocumentController::class, 'create'])->name('documents.create');
     Route::post('/documentos', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('/documentos/{id}', [DocumentController::class, 'show'])->whereUuid('id')->name('documents.show');
+    Route::post('/documentos/{id}/adjuntos', [AttachmentWebController::class, 'store'])->whereUuid('id')->name('attachments.store');
+    Route::get('/documentos/{id}/adjuntos/{adjunto}/ver', [AttachmentWebController::class, 'view'])->whereUuid('id')->whereUuid('adjunto')->name('attachments.view');
+    Route::get('/documentos/{id}/adjuntos/{adjunto}/descarga', [AttachmentWebController::class, 'download'])->whereUuid('id')->whereUuid('adjunto')->name('attachments.download');
     Route::get('/administracion', [AdminController::class, 'index'])->name('admin');
     foreach (['unidades' => 'unit', 'catalogos' => 'catalog', 'usuarios' => 'user'] as $path => $method) {
         Route::post('/administracion/'.$path, [AdminController::class, $method]);
