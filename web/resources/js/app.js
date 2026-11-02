@@ -22,6 +22,7 @@ async function boot() {
         mountWidget(document.getElementById('login-form'), () => import('./sakai/LoginForm.vue')),
         mountWidget(document.getElementById('documents-table'), () => import('./sakai/DocumentsTable.vue')),
         mountWidget(document.getElementById('document-detail'), () => import('./sakai/DocumentDetail.vue')),
+        mountWidget(document.getElementById('document-attachments'), () => import('./sakai/AttachmentsPanel.vue')),
         ...Array.from(document.querySelectorAll('[data-sakai-form]'), (element) =>
             mountWidget(element, () => import('./sakai/SakaiForm.vue')),
         ),

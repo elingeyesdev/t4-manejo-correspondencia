@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -68,6 +69,14 @@ class ApiLaravel {
         'No se pudo conectar con el servidor. Revisa la conexión.',
       );
     }
+    return await _interpretar(response, tokenEnviado, autenticado);
+  }
+
+  Future<Map<String, dynamic>> _interpretar(
+    http.Response response,
+    String? tokenEnviado,
+    bool autenticado,
+  ) async {
     if (response.statusCode == 401) {
       if (autenticado && token == tokenEnviado) await alVencerSesion?.call();
       throw const ErrorLaravel(
@@ -122,6 +131,80 @@ class ApiLaravel {
       );
     }
     return body;
+  }
+
+  /// Transporte autenticado de archivos; nunca sigue enlaces externos ni redirecciones.
+  Future<http.Response> enviarArchivo(
+    http.BaseRequest request, {
+    Duration? limite,
+  }) async {
+    final origen = Uri.parse(baseUrl);
+    if (request.url.origin != origen.origin ||
+        !request.url.path.startsWith(
+          '${origen.path.replaceAll(RegExp(r'/+$'), '')}/api/',
+        )) {
+      throw const ErrorLaravel('La dirección del adjunto no es válida.');
+    }
+    final enviado = token;
+    if (enviado == null || enviado.isEmpty) {
+      throw const ErrorLaravel('Inicia sesión para continuar.', estado: 401);
+    }
+    request.headers['Authorization'] = 'Bearer $enviado';
+    request.headers['Accept'] = 'application/json';
+    request.followRedirects = false;
+    final espera = limite ?? timeout;
+    Future<http.Response> recibir() async {
+      final streamed = await _client.send(request);
+      const maximo = 10 * 1024 * 1024 + 64 * 1024;
+      if ((streamed.contentLength ?? 0) > maximo) {
+        await streamed.stream.listen(null).cancel();
+        throw const ErrorLaravel(
+          'El archivo recibido supera el tamaño permitido.',
+        );
+      }
+      final bytes = BytesBuilder(copy: false);
+      await for (final chunk in streamed.stream) {
+        if (bytes.length + chunk.length > maximo) {
+          throw const ErrorLaravel(
+            'El archivo recibido supera el tamaño permitido.',
+          );
+        }
+        bytes.add(chunk);
+      }
+      return http.Response.bytes(
+        bytes.takeBytes(),
+        streamed.statusCode,
+        headers: streamed.headers,
+      );
+    }
+
+    http.Response response;
+    try {
+      response = await recibir().timeout(espera);
+    } on TimeoutException {
+      throw const ErrorLaravel(
+        'El servidor tardó demasiado. Revisa la conexión.',
+        codigo: 'RESPUESTA_INCIERTA',
+      );
+    } on http.ClientException {
+      throw const ErrorLaravel(
+        'No se pudo conectar con el servidor.',
+        codigo: 'RESPUESTA_INCIERTA',
+      );
+    }
+    if (token != enviado) {
+      throw const ErrorLaravel(
+        'Tu sesión cambió. Vuelve a abrir el documento.',
+        estado: 401,
+      );
+    }
+    if (response.statusCode >= 300) {
+      if (response.statusCode < 400) {
+        throw const ErrorLaravel('El servidor intentó redirigir la descarga.');
+      }
+      await _interpretar(response, enviado, true);
+    }
+    return response;
   }
 
   void close() => _client.close();

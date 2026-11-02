@@ -27,4 +27,5 @@
         ];
     @endphp
     <div id="document-detail" data-props="{{ json_encode($detailProps, JSON_UNESCAPED_SLASHES) }}"></div>
+    @include('documents.attachments')
 @endsection

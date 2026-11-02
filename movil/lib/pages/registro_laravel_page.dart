@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,15 +7,23 @@ import '../theme/sakai_theme.dart';
 import '../widgets/sakai_widgets.dart';
 
 import '../services/laravel_api.dart';
+import '../services/adjuntos_api.dart';
+import '../services/camara_documento.dart';
+import '../widgets/adjuntos_documento.dart';
+import 'captura_documento_page.dart';
 
 class RegistroLaravelPage extends StatefulWidget {
-  const RegistroLaravelPage({super.key, required this.api});
+  const RegistroLaravelPage({super.key, required this.api, this.crearCamara});
   final ApiLaravel api;
+  final CamaraDocumento Function()? crearCamara;
   @override
   State<RegistroLaravelPage> createState() => _RegistroLaravelPageState();
 }
 
 class _RegistroLaravelPageState extends State<RegistroLaravelPage> {
+  FotoDocumento? _foto;
+  String? _nombreFoto;
+  bool _abriendoCamara = false, _fotoPendiente = false, _subiendoFoto = false;
   final _form = GlobalKey<FormState>();
   final _remitente = TextEditingController();
   final _asunto = TextEditingController();
@@ -33,9 +42,61 @@ class _RegistroLaravelPageState extends State<RegistroLaravelPage> {
 
   @override
   void dispose() {
+    if (_guardado == null) {
+      unawaited(_foto?.descartar() ?? Future<void>.value());
+    }
     _remitente.dispose();
     _asunto.dispose();
     super.dispose();
+  }
+
+  Future<void> _tomarFoto() async {
+    if (_enviando || _abriendoCamara) return;
+    setState(() => _abriendoCamara = true);
+    try {
+      final foto = await Navigator.of(context).push<FotoDocumento>(
+        MaterialPageRoute(
+          builder: (_) => CapturaDocumentoPage(
+            codigo: 'Nueva correspondencia',
+            camara: widget.crearCamara?.call(),
+            instruccion: 'Pulsa Usar foto para adjuntarla al formulario. Se subirá al registrar la correspondencia.',
+          ),
+        ),
+      );
+      if (!mounted) {
+        await foto?.descartar();
+        return;
+      }
+      if (foto == null) return;
+      try {
+        final tipo = AdjuntosApi.tipoFoto(foto.bytes);
+        if (foto.bytes.isEmpty || foto.bytes.length > limiteAdjunto) {
+          throw const ErrorLaravel('La foto debe ocupar como máximo 10 MB.');
+        }
+        final anterior = _foto;
+        setState(() {
+          _foto = foto;
+          _nombreFoto =
+              'foto-${nuevaClaveSolicitud()}.${tipo == 'image/png' ? 'png' : 'jpg'}';
+          _error = null;
+        });
+        await anterior?.descartar();
+      } on ErrorLaravel catch (e) {
+        await foto.descartar();
+        if (mounted) setState(() => _error = e.mensaje);
+      }
+    } finally {
+      if (mounted) setState(() => _abriendoCamara = false);
+    }
+  }
+
+  Future<void> _quitarFoto() async {
+    final anterior = _foto;
+    setState(() {
+      _foto = null;
+      _nombreFoto = null;
+    });
+    await anterior?.descartar();
   }
 
   Future<void> _cargar() async {
@@ -73,7 +134,7 @@ class _RegistroLaravelPageState extends State<RegistroLaravelPage> {
   String get _fechaTexto =>
       '${_fecha.year}-${_fecha.month.toString().padLeft(2, '0')}-${_fecha.day.toString().padLeft(2, '0')}';
   Future<void> _guardar() async {
-    if (_enviando) return;
+    if (_enviando || _abriendoCamara || _guardado != null) return;
     setState(() {
       _errores = {};
       _error = null;
@@ -107,7 +168,13 @@ class _RegistroLaravelPageState extends State<RegistroLaravelPage> {
           'La respuesta está incompleta. Consulta la bandeja antes de volver a registrar.',
         );
       }
-      if (mounted) setState(() => _guardado = r);
+      if (mounted) {
+        setState(() {
+          _guardado = r;
+          _fotoPendiente = _foto != null;
+          _subiendoFoto = _foto != null;
+        });
+      }
     } on ErrorLaravel catch (e) {
       if (mounted) {
         setState(() {
@@ -158,37 +225,76 @@ class _RegistroLaravelPageState extends State<RegistroLaravelPage> {
       );
     }
     if (_guardado case final Map<String, dynamic> r) {
-      return ListView(
+      return SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        children: [
-          const Icon(Icons.check_circle_outline, color: Sakai.green, size: 56),
-          const SizedBox(height: 16),
-          Text(
-            'Correspondencia registrada',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          const Text('Número de guía'),
-          SelectableText(r['guia'] as String),
-          const SizedBox(height: 12),
-          const Text('Código de documento'),
-          SelectableText(r['codigo'] as String),
-          const SizedBox(height: 12),
-          Text('Hoja de ruta: ${(r['hoja'] as Map?)?['codigo'] ?? ''}'),
-          const SizedBox(height: 24),
-          OutlinedButton(
-            onPressed: () => setState(() {
-              _guardado = null;
-              _remitente.clear();
-              _asunto.clear();
-              _huella = null;
-              _clave = null;
-              _errores = {};
-              _fecha = DateUtils.dateOnly(DateTime.now());
-            }),
-            child: const Text('Registrar otra correspondencia'),
-          ),
-        ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Sakai.green,
+              size: 56,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Correspondencia registrada',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 16),
+            const Text('Número de guía'),
+            SelectableText(r['guia'] as String),
+            const SizedBox(height: 12),
+            const Text('Código de documento'),
+            SelectableText(r['codigo'] as String),
+            const SizedBox(height: 12),
+            Text('Hoja de ruta: ${(r['hoja'] as Map?)?['codigo'] ?? ''}'),
+            const SizedBox(height: 24),
+            if (_foto != null || _fotoPendiente)
+              AdjuntosDocumento(
+                key: ValueKey(r['id']),
+                api: widget.api,
+                documentoId: r['id'] as String,
+                codigo: r['codigo'] as String,
+                fotoInicial: _foto,
+                nombreInicial: _nombreFoto,
+                subirAlAbrir: true,
+                crearCamara: widget.crearCamara,
+                alCambiar: (pendiente) {
+                  if (mounted) {
+                    setState(() {
+                      _fotoPendiente = pendiente;
+                    });
+                  }
+                },
+                alOcuparse: (ocupado) {
+                  if (mounted) setState(() => _subiendoFoto = ocupado);
+                },
+              ),
+            if (_fotoPendiente)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'La correspondencia ya está registrada. Completa la subida de la foto o descártala para continuar.',
+                ),
+              ),
+            OutlinedButton(
+              onPressed: _fotoPendiente || _subiendoFoto
+                  ? null
+                  : () => setState(() {
+                      _guardado = null;
+                      _foto = null;
+                      _nombreFoto = null;
+                      _remitente.clear();
+                      _asunto.clear();
+                      _huella = null;
+                      _clave = null;
+                      _errores = {};
+                      _fecha = DateUtils.dateOnly(DateTime.now());
+                    }),
+              child: const Text('Registrar otra correspondencia'),
+            ),
+          ],
+        ),
       );
     }
     return ListView(
@@ -298,6 +404,38 @@ class _RegistroLaravelPageState extends State<RegistroLaravelPage> {
                           }
                         },
                 ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Foto del documento (opcional)',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Puedes fotografiar la hoja o registrar sin foto. La imagen se guardará junto a la correspondencia.',
+                ),
+                const SizedBox(height: 12),
+                if (_foto != null) ...[
+                  Image.memory(
+                    _foto!.bytes,
+                    height: 200,
+                    fit: BoxFit.contain,
+                    semanticLabel: 'Foto adjunta al formulario',
+                    errorBuilder: (_, _, _) => const Text(
+                      'No se pudo mostrar la foto. Vuelve a tomarla.',
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _enviando || _abriendoCamara
+                        ? null
+                        : _quitarFoto,
+                    child: const Text('Quitar foto'),
+                  ),
+                ],
+                OutlinedButton.icon(
+                  onPressed: _enviando || _abriendoCamara ? null : _tomarFoto,
+                  icon: const Icon(Icons.add_a_photo_outlined),
+                  label: Text(_foto == null ? 'Adjuntar foto' : 'Cambiar foto'),
+                ),
                 if (_errores['fecha'] != null) Text(_errores['fecha']!),
                 if (_error != null)
                   Padding(
@@ -314,7 +452,7 @@ class _RegistroLaravelPageState extends State<RegistroLaravelPage> {
                   ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
-                  onPressed: _enviando ? null : _guardar,
+                  onPressed: _enviando || _abriendoCamara ? null : _guardar,
                   icon: const Icon(Icons.save_outlined),
                   label: Text(
                     _enviando ? 'Guardando…' : 'Registrar correspondencia',
