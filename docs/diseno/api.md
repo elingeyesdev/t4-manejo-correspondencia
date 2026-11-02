@@ -47,4 +47,8 @@ Esta rama incorpora carga, listado y descarga autenticados de adjuntos. Consulta
 
 ## QR de hoja de ruta — #19 / T09
 
-Consulta autorizada por UUID de hoja: `GET /api/hojas/{reference}`. Imagen protegida: `GET /api/hojas/{reference}/qr.svg`. El QR contiene la URL web `/hojas/{reference}` de la instancia; no concede permisos ni confirma recepción. Contrato, origen de dependencias y evidencia en [QR de hoja de ruta](qr-hoja-ruta.md). Implementación local verificada, pendiente de revisión cruzada antes de integrar.
+Consulta autorizada por UUID de hoja: `GET /api/hojas/{reference}`. Imagen protegida: `GET /api/hojas/{reference}/qr.svg`. El QR contiene la URL web `/hojas/{reference}` de la instancia; no concede permisos ni confirma recepción. Contrato, origen de dependencias y evidencia en [QR de hoja de ruta](qr-hoja-ruta.md). QR aprobado por RazzellRC e integrado mediante PR #25; su aceptación es independiente del historial #20.
+
+## Historial documental — #20 / T10
+
+`GET /api/documentos/{id}/historial` devuelve documento, hoja, total y movimientos persistidos ordenados por fecha e identificador, con actor y unidades. Exige autenticación y el mismo alcance de acceso del documento. La vista web usa el mismo servicio; consultar no confirma recepción ni modifica el historial. Contrato, límites y evidencia en [Historial documental](historial-documental.md). Implementación local con QR integrado; revisión cruzada del #20 pendiente.
