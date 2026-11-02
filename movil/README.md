@@ -127,3 +127,7 @@ sin cerrar la sesión. Pruebas de regresión en `test/retroceso_test.dart`.
 Adaptación móvil de Sakai / PrimeVue con iconos originales PrimeIcons.
 Fuente, licencias y alcance: [DISENO_SAKAI.md](DISENO_SAKAI.md).
 Comandos usados y estado local: [GUIA_GIT_DISENO.md](GUIA_GIT_DISENO.md).
+
+## Cámara de documentos
+
+Captura, subida autenticada, listado y apertura de adjuntos del issue #21, conectados al backend del PR #23. Contrato, pruebas y ejecución local en [CAMARA_DOCUMENTOS.md](CAMARA_DOCUMENTOS.md). La comprobación física completa en el teléfono y la revisión cruzada siguen pendientes.
