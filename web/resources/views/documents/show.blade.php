@@ -17,18 +17,27 @@
                 'version' => $payload['hoja']['version'],
                 'responsible' => $actorNames[$payload['hoja']['responsable_id']] ?? 'No disponible',
             ],
-  'movements' => collect($history['data'])->map(fn ($event) => [
-    'id' => $event['id'],
-    'action' => $event['accion'],
-    'actor' => $event['actor']['nombre'] ?? 'No disponible',
-    'originUnit' => $event['unidad_origen']['nombre'] ?? 'No registrada',
-    'destinationUnit' => $event['unidad_destino']['nombre'] ?? 'No registrada',
-    'date' => \Carbon\CarbonImmutable::parse($event['fecha'])
-        ->timezone('America/La_Paz')
-        ->format('d/m/Y H:i:s'),
-    'state' => $event['estado_resultante'],
-    'reason' => $event['motivo'] ?? '—',
-])->values()->all(),
+            'movements' => collect($history['data'])->map(fn ($event) => [
+                'id' => $event['id'],
+                'action' => $event['accion'],
+                'actor' => $event['actor']['nombre'] ?? 'No disponible',
+                'originUnit' => $event['unidad_origen']['nombre'] ?? 'No registrada',
+                'destinationUnit' => $event['unidad_destino']['nombre'] ?? 'No registrada',
+                'date' => \Carbon\CarbonImmutable::parse($event['fecha'])
+                    ->timezone('America/La_Paz')
+                    ->format('d/m/Y H:i:s'),
+                'state' => $event['estado_resultante'],
+                'reason' => $event['motivo'] ?? '—',
+            ])->values()->all(),
+            'qr' => [
+                'imageUrl' => route('route-sheets.qr', [
+                    'reference' => $payload['hoja']['id'],
+                ]),
+                'consultUrl' => route('route-sheets.show', [
+                    'reference' => $payload['hoja']['id'],
+                ]),
+            ],
+            'indexUrl' => route('documents.index'),
         ];
     @endphp
     <div id="document-detail" data-props="{{ json_encode($detailProps, JSON_UNESCAPED_SLASHES) }}"></div>

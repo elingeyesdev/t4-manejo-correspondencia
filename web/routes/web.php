@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AttachmentWebController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\RouteSheetQrController;
 use App\Http\Controllers\SessionController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,12 @@ Route::middleware(['auth', 'operational'])->group(function () {
     Route::get('/documentos/{id}/adjuntos/{adjunto}/ver', [AttachmentWebController::class, 'view'])->whereUuid('id')->whereUuid('adjunto')->name('attachments.view');
     Route::get('/documentos/{id}/adjuntos/{adjunto}/descarga', [AttachmentWebController::class, 'download'])->whereUuid('id')->whereUuid('adjunto')->name('attachments.download');
     Route::get('/administracion', [AdminController::class, 'index'])->name('admin');
+    Route::get('/hojas/{reference}', [RouteSheetQrController::class, 'show'])
+        ->whereUuid('reference')
+        ->name('route-sheets.show');
+    Route::get('/hojas/{reference}/qr.svg', [RouteSheetQrController::class, 'image'])
+        ->whereUuid('reference')
+        ->name('route-sheets.qr');
     foreach (['unidades' => 'unit', 'catalogos' => 'catalog', 'usuarios' => 'user'] as $path => $method) {
         Route::post('/administracion/'.$path, [AdminController::class, $method]);
         Route::put('/administracion/'.$path.'/{id}', [AdminController::class, $method]);

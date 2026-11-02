@@ -3,13 +3,16 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import { ref } from 'vue';
 
 defineProps({
     document: { type: Object, required: true },
     sheet: { type: Object, required: true },
     movements: { type: Array, required: true },
     indexUrl: { type: String, required: true },
+    qr: { type: Object, required: true },
 });
+const qrFailed = ref(false);
 </script>
 
 <template>
@@ -46,39 +49,82 @@ defineProps({
         </section>
     </div>
 
-   <section class="card">
-    <h2 class="text-xl font-semibold mt-0 mb-3">
-        Historial documental
-    </h2>
+    <section class="card" aria-label="QR de la hoja de ruta">
+        <h2 class="text-xl font-semibold mt-0 mb-5">
+            QR de la hoja de ruta
+        </h2>
 
-    <p class="text-muted-color mb-5">
-        Se muestran únicamente los movimientos registrados.
-        El registro inicial no acredita derivaciones, recepciones ni cierre.
-    </p>
+        <div class="flex flex-col sm:flex-row items-start gap-6">
+            <img
+                v-if="!qrFailed"
+                :src="qr.imageUrl"
+                :alt="`Código QR de la hoja ${sheet.code}`"
+                width="320"
+                height="320"
+                loading="lazy"
+                class="w-full max-w-xs h-auto"
+                @error="qrFailed = true"
+            />
 
-    <DataTable
-        :value="movements"
-        dataKey="id"
-        stripedRows
-        tableStyle="min-width: 65rem"
-    >
-        <template #empty>
-            No hay movimientos registrados para este documento.
-        </template>
+            <div class="min-w-0">
+                <p class="mt-0">
+                    Escanea el código para consultar esta hoja de ruta.
+                </p>
 
-        <Column field="action" header="Acción" />
-        <Column field="actor" header="Realizado por" />
-        <Column field="originUnit" header="Unidad de origen" />
-        <Column field="destinationUnit" header="Unidad de destino" />
-        <Column field="date" header="Fecha y hora · Bolivia" />
+                <p class="text-muted-color">
+                    Se requiere iniciar sesión y tener acceso al documento.
+                    Consultarlo no confirma recepción ni cambia su estado.
+                </p>
 
-        <Column header="Estado resultante">
-            <template #body="{ data }">
-                <Tag :value="data.state" severity="info" />
+                <p v-if="qrFailed" role="alert" class="text-red-600">
+                    No se pudo cargar el QR. Actualiza la página para reintentar.
+                </p>
+
+                <Button
+                    as="a"
+                    :href="qr.consultUrl"
+                    label="Consultar hoja de ruta"
+                    icon="pi pi-external-link"
+                    severity="secondary"
+                    outlined
+                />
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2 class="text-xl font-semibold mt-0 mb-3">
+            Historial documental
+        </h2>
+
+        <p class="text-muted-color mb-5">
+            Se muestran únicamente los movimientos registrados.
+            El registro inicial no acredita derivaciones, recepciones ni cierre.
+        </p>
+
+        <DataTable
+            :value="movements"
+            dataKey="id"
+            stripedRows
+            tableStyle="min-width: 65rem"
+        >
+            <template #empty>
+                No hay movimientos registrados para este documento.
             </template>
-        </Column>
 
-        <Column field="reason" header="Motivo" />
-    </DataTable>
-</section>
+            <Column field="action" header="Acción" />
+            <Column field="actor" header="Realizado por" />
+            <Column field="originUnit" header="Unidad de origen" />
+            <Column field="destinationUnit" header="Unidad de destino" />
+            <Column field="date" header="Fecha y hora · Bolivia" />
+
+            <Column header="Estado resultante">
+                <template #body="{ data }">
+                    <Tag :value="data.state" severity="info" />
+                </template>
+            </Column>
+
+            <Column field="reason" header="Motivo" />
+        </DataTable>
+    </section>
 </template>
