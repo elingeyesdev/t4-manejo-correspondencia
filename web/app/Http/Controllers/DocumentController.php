@@ -7,6 +7,7 @@ use App\Models\Attachment;
 use App\Models\Catalog;
 use App\Models\Document;
 use App\Models\Unit;
+use App\Services\DocumentHistory;
 use App\Services\RegisterDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -51,11 +52,23 @@ class DocumentController extends Controller
             : redirect()->route('documents.show', $doc->id)->with('status', $created ? 'Correspondencia registrada.' : 'Solicitud ya registrada; se recuperó el mismo documento.');
     }
 
-    public function show(Request $r, string $id)
+    public function show(Request $r, string $id, DocumentHistory $historyService)
     {
         $doc = Document::visibleTo($r->user())->findOrFail($id);
 
-        return $r->is('api/*') ? response()->json($doc->payload()) : view('documents.show', ['document' => $doc, 'payload' => $doc->payload(), 'attachments' => Attachment::where('document_id', $doc->id)->latest()->orderBy('id')->paginate(15, ['*'], 'adjuntos_page')]);
+        if ($r->is('api/*')) {
+            return response()->json($doc->payload());
+        }
+
+        return view('documents.show', [
+            'document' => $doc,
+            'payload' => $doc->payload(),
+            'history' => $historyService->execute($r->user(), $id),
+            'attachments' => Attachment::where('document_id', $doc->id)
+                ->latest()
+                ->orderBy('id')
+                ->paginate(15, ['*'], 'adjuntos_page'),
+        ]);
     }
 
     public function guide(Request $r, string $guide)

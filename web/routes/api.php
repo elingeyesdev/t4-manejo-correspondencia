@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DocumentHistoryController;
 use App\Http\Controllers\RouteSheetQrController;
 use App\Http\Controllers\SessionController;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,8 @@ Route::middleware(['auth:sanctum', 'operational'])->group(function () {
         ->whereUuid('id')
         ->whereUuid('adjunto');
     Route::get('/administracion', [AdminController::class, 'index']);
+    Route::get('/documentos/{id}/historial', [DocumentHistoryController::class, 'show'])
+        ->whereUuid('id');
     Route::get('/hojas/{reference}', [RouteSheetQrController::class, 'show'])
         ->whereUuid('reference');
     Route::get('/hojas/{reference}/qr.svg', [RouteSheetQrController::class, 'image'])
