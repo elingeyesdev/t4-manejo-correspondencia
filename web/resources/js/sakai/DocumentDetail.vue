@@ -3,13 +3,16 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import { ref } from 'vue';
 
 defineProps({
     document: { type: Object, required: true },
     sheet: { type: Object, required: true },
     movements: { type: Array, required: true },
     indexUrl: { type: String, required: true },
+        qr: { type: Object, required: true },
 });
+const qrFailed = ref(false);
 </script>
 
 <template>
@@ -45,6 +48,49 @@ defineProps({
             <p class="text-muted-color mt-6 mb-0">Los identificadores se conservan durante todo el recorrido.</p>
         </section>
     </div>
+
+        <section class="card" aria-label="QR de la hoja de ruta">
+        <h2 class="text-xl font-semibold mt-0 mb-5">
+            QR de la hoja de ruta
+        </h2>
+
+        <div class="flex flex-col sm:flex-row items-start gap-6">
+            <img
+                v-if="!qrFailed"
+                :src="qr.imageUrl"
+                :alt="`Código QR de la hoja ${sheet.code}`"
+                width="320"
+                height="320"
+                loading="lazy"
+                class="w-full max-w-xs h-auto"
+                @error="qrFailed = true"
+            />
+
+            <div class="min-w-0">
+                <p class="mt-0">
+                    Escanea el código para consultar esta hoja de ruta.
+                </p>
+
+                <p class="text-muted-color">
+                    Se requiere iniciar sesión y tener acceso al documento.
+                    Consultarlo no confirma recepción ni cambia su estado.
+                </p>
+
+                <p v-if="qrFailed" role="alert" class="text-red-600">
+                    No se pudo cargar el QR. Actualiza la página para reintentar.
+                </p>
+
+                <Button
+                    as="a"
+                    :href="qr.consultUrl"
+                    label="Consultar hoja de ruta"
+                    icon="pi pi-external-link"
+                    severity="secondary"
+                    outlined
+                />
+            </div>
+        </div>
+    </section>
 
     <section class="card">
         <h2 class="text-xl font-semibold mt-0 mb-5">Historial inicial</h2>

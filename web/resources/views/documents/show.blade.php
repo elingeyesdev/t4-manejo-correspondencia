@@ -23,6 +23,14 @@
                 'date' => $event->occurred_at->timezone('America/La_Paz')->format('d/m/Y H:i:s'),
                 'state' => $event->resulting_state,
             ])->values()->all(),
+                        'qr' => [
+                'imageUrl' => route('route-sheets.qr', [
+                    'reference' => $payload['hoja']['id'],
+                ]),
+                'consultUrl' => route('route-sheets.show', [
+                    'reference' => $payload['hoja']['id'],
+                ]),
+            ],
             'indexUrl' => route('documents.index'),
         ];
     @endphp

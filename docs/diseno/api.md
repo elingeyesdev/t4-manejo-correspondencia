@@ -44,3 +44,7 @@ Pruebas: `ConfiguracionMovilTest`. Ampliación al núcleo del PR #12 incluida en
 ## Adjuntos — incremento #18 / T08
 
 Esta rama incorpora carga, listado y descarga autenticados de adjuntos. Consultar [contrato de adjuntos y evidencia](adjuntos.md) para rutas, multipart, permisos, respuestas, cifrado, límites y recuperación. Implementación local verificada; revisión cruzada e integración Android pendientes. El contrato anterior conserva el alcance del núcleo de semana 2.
+
+## QR de hoja de ruta — #19 / T09
+
+Consulta autorizada por UUID de hoja: `GET /api/hojas/{reference}`. Imagen protegida: `GET /api/hojas/{reference}/qr.svg`. El QR contiene la URL web `/hojas/{reference}` de la instancia; no concede permisos ni confirma recepción. Contrato, origen de dependencias y evidencia en [QR de hoja de ruta](qr-hoja-ruta.md). Implementación local verificada, pendiente de revisión cruzada antes de integrar.

@@ -16,4 +16,9 @@ class RouteSheet extends Model
     {
         return $this->hasMany(Movement::class)->orderBy('occurred_at')->orderBy('id');
     }
+
+    public function document()
+    {
+        return $this->belongsTo(Document::class);
+    }
 }
