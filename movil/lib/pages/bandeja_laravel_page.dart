@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../services/laravel_api.dart';
+import '../services/camara_documento.dart';
 import '../theme/sakai_theme.dart';
 import '../widgets/sakai_widgets.dart';
+import '../widgets/adjuntos_documento.dart';
 
 class BandejaLaravelPage extends StatefulWidget {
-  const BandejaLaravelPage({super.key, required this.api});
+  const BandejaLaravelPage({
+    super.key,
+    required this.api,
+    this.puedeAdjuntar = true,
+  });
+  final bool puedeAdjuntar;
   final ApiLaravel api;
   @override
   State<BandejaLaravelPage> createState() => _BandejaLaravelPageState();
@@ -142,6 +149,7 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
                     builder: (_) => DetalleLaravelPage(
                       api: widget.api,
                       id: d['id'] as String,
+                      puedeAdjuntar: widget.puedeAdjuntar,
                     ),
                   ),
                 ),
@@ -219,7 +227,15 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
 }
 
 class DetalleLaravelPage extends StatefulWidget {
-  const DetalleLaravelPage({super.key, required this.api, required this.id});
+  const DetalleLaravelPage({
+    super.key,
+    required this.api,
+    required this.id,
+    this.crearCamara,
+    this.puedeAdjuntar = true,
+  });
+  final bool puedeAdjuntar;
+  final CamaraDocumento Function()? crearCamara;
   final ApiLaravel api;
   final String id;
   @override
@@ -228,6 +244,47 @@ class DetalleLaravelPage extends StatefulWidget {
 
 class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
   late Future<Map<String, dynamic>> _documento;
+  bool _fotoPendiente = false;
+  bool _subiendo = false;
+  bool _saliendo = false;
+
+  Future<void> _volver() async {
+    if (_saliendo) return;
+    if (_subiendo) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Espera a que termine la subida.')),
+      );
+      return;
+    }
+    final salir =
+        !_fotoPendiente ||
+        await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('¿Descartar la foto pendiente?'),
+                content: const Text(
+                  'La foto no se ha subido. Si sales de este documento, se descartará.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Seguir aquí'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Descartar y salir'),
+                  ),
+                ],
+              ),
+            ) ==
+            true;
+    if (!salir || !mounted) return;
+    setState(() => _saliendo = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -237,164 +294,191 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
   Future<Map<String, dynamic>> _cargar() =>
       widget.api.enviar('GET', 'documentos/${Uri.encodeComponent(widget.id)}');
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Detalle de correspondencia')),
-    body: FutureBuilder<Map<String, dynamic>>(
-      future: _documento,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    snapshot.error is ErrorLaravel
-                        ? (snapshot.error as ErrorLaravel).mensaje
-                        : 'No se pudo abrir el documento.',
-                  ),
-                  TextButton(
-                    onPressed: () => setState(() => _documento = _cargar()),
-                    child: const Text('Reintentar'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final d = snapshot.data!;
-        final movimientos = d['movimientos'] as List? ?? [];
-
-        final hoja = d['hoja'] as Map?;
-        return ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SakaiIcon(PrimeIcons.file, size: 52),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        d['asunto'] as String? ?? '',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 6),
-                      SelectableText(
-                        '${d['codigo'] ?? ''}',
-                        style: const TextStyle(color: Sakai.muted),
-                      ),
-                      const SizedBox(height: 10),
-                      if (d['estado'] != null) SakaiStatus('${d['estado']}'),
-                    ],
-                  ),
+  Widget build(BuildContext context) => PopScope(
+    canPop: (!_fotoPendiente && !_subiendo) || _saliendo,
+    onPopInvokedWithResult: (didPop, result) {
+      if (!didPop) _volver();
+    },
+    child: Scaffold(
+      appBar: AppBar(
+        title: const Text('Detalle de correspondencia'),
+        leading: BackButton(onPressed: _volver),
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _documento,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      snapshot.error is ErrorLaravel
+                          ? (snapshot.error as ErrorLaravel).mensaje
+                          : 'No se pudo abrir el documento.',
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _documento = _cargar()),
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SakaiSection(
-              title: 'Información del documento',
-              icon: PrimeIcons.file,
-              child: Column(
-                children: [
-                  SakaiField('Guía', d['guia']),
-                  const Divider(),
-                  SakaiField('Remitente', d['remitente']),
-                  SakaiField('Fecha', sakaiDate(d['fecha'])),
-                  SakaiField('Tipo', (d['tipo'] as Map?)?['name']),
-                  SakaiField('Prioridad', (d['prioridad'] as Map?)?['name']),
-                  SakaiField('Unidad', (d['unidad'] as Map?)?['name']),
-                ],
               ),
-            ),
-            const SizedBox(height: 16),
-            SakaiSection(
-              title: 'Hoja de ruta',
-              icon: PrimeIcons.folder,
-              color: Sakai.violet,
-              background: Sakai.violetLight,
-              child: Column(
+            );
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final d = snapshot.data!;
+          final movimientos = d['movimientos'] as List? ?? [];
+
+          final hoja = d['hoja'] as Map?;
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SakaiField('Código', hoja?['codigo']),
-                  // Solo mostramos el responsable cuando la API lo proporciona.
-                  if (hoja?['responsable'] != null)
-                    SakaiField(
-                      'Responsable actual',
-                      hoja!['responsable'] is Map
-                          ? (hoja['responsable'] as Map)['name']
-                          : hoja['responsable'],
+                  const SakaiIcon(PrimeIcons.file, size: 52),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          d['asunto'] as String? ?? '',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 6),
+                        SelectableText(
+                          '${d['codigo'] ?? ''}',
+                          style: const TextStyle(color: Sakai.muted),
+                        ),
+                        const SizedBox(height: 10),
+                        if (d['estado'] != null) SakaiStatus('${d['estado']}'),
+                      ],
                     ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 16),
-            SakaiSection(
-              title: 'Historial',
-              icon: PrimeIcons.clock,
-              color: Sakai.amber,
-              background: Sakai.amberLight,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (movimientos.isEmpty)
-                    const Text('Sin movimientos disponibles.'),
-                  for (final m in movimientos.whereType<Map>())
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 5),
-                            child: Icon(
-                              Icons.circle,
-                              size: 10,
-                              color: Sakai.green,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${m['action'] ?? ''}',
-                                  style: Theme.of(context).textTheme.titleSmall,
-                                ),
-                                if (m['actor'] is Map)
-                                  Text(
-                                    '${(m['actor'] as Map)['name'] ?? ''}',
-                                    style: const TextStyle(color: Sakai.muted),
-                                  ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  sakaiDate(m['occurred_at']),
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+              const SizedBox(height: 20),
+              SakaiSection(
+                title: 'Información del documento',
+                icon: PrimeIcons.file,
+                child: Column(
+                  children: [
+                    SakaiField('Guía', d['guia']),
+                    const Divider(),
+                    SakaiField('Remitente', d['remitente']),
+                    SakaiField('Fecha', sakaiDate(d['fecha'])),
+                    SakaiField('Tipo', (d['tipo'] as Map?)?['name']),
+                    SakaiField('Prioridad', (d['prioridad'] as Map?)?['name']),
+                    SakaiField('Unidad', (d['unidad'] as Map?)?['name']),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SakaiSection(
+                title: 'Hoja de ruta',
+                icon: PrimeIcons.folder,
+                color: Sakai.violet,
+                background: Sakai.violetLight,
+                child: Column(
+                  children: [
+                    SakaiField('Código', hoja?['codigo']),
+                    // Solo mostramos el responsable cuando la API lo proporciona.
+                    if (hoja?['responsable'] != null)
+                      SakaiField(
+                        'Responsable actual',
+                        hoja!['responsable'] is Map
+                            ? (hoja['responsable'] as Map)['name']
+                            : hoja['responsable'],
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Volver a mi bandeja'),
-            ),
-          ],
-        );
-      },
+              const SizedBox(height: 16),
+              AdjuntosDocumento(
+                api: widget.api,
+                documentoId: widget.id,
+                puedeAdjuntar: widget.puedeAdjuntar,
+                alOcuparse: (ocupada) => setState(() => _subiendo = ocupada),
+                key: ValueKey(widget.id),
+                crearCamara: widget.crearCamara,
+                codigo: '${d['codigo'] ?? d['guia'] ?? ''}',
+                alCambiar: (pendiente) =>
+                    setState(() => _fotoPendiente = pendiente),
+              ),
+              const SizedBox(height: 16),
+              SakaiSection(
+                title: 'Historial',
+                icon: PrimeIcons.clock,
+                color: Sakai.amber,
+                background: Sakai.amberLight,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (movimientos.isEmpty)
+                      const Text('Sin movimientos disponibles.'),
+                    for (final m in movimientos.whereType<Map>())
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 5),
+                              child: Icon(
+                                Icons.circle,
+                                size: 10,
+                                color: Sakai.green,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${m['action'] ?? ''}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall,
+                                  ),
+                                  if (m['actor'] is Map)
+                                    Text(
+                                      '${(m['actor'] as Map)['name'] ?? ''}',
+                                      style: const TextStyle(
+                                        color: Sakai.muted,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    sakaiDate(m['occurred_at']),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              OutlinedButton(
+                onPressed: _volver,
+                child: const Text('Volver a mi bandeja'),
+              ),
+            ],
+          );
+        },
+      ),
     ),
   );
 }

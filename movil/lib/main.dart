@@ -285,7 +285,10 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
           : const SizedBox.shrink(),
     3 =>
       _visitadas.contains(3)
-          ? BandejaLaravelPage(api: widget.sesion!.api)
+          ? BandejaLaravelPage(
+              api: widget.sesion!.api,
+              puedeAdjuntar: widget.sesion!.puedeRegistrar,
+            )
           : const SizedBox.shrink(),
     4 => _cuenta(),
     _ => const SizedBox.shrink(),
