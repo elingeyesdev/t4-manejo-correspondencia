@@ -1,12 +1,12 @@
 # Adjuntos cifrados — #18 / T08
 
-## Estado
+## Estado — 03/11/2026
 
-Implementación local en la rama `feature/18-adjuntos-cifrados`.
+La carga cifrada y descarga autorizada se integraron mediante PR #23, aprobado por RazzellRC; Android y el panel web se integraron mediante PR #24. Se conserva la aclaración de que la revisión formal del PR #24 fue posterior a su merge.
 
-Validación observada en las salidas compartidas por Mathew: suite configurada con SQLite en memoria, 46 pruebas aprobadas y 237 aserciones. Incluye cifrado, almacenamiento, permisos, formatos y recuperación simulada.
+Mathew completó la restauración operativa local: respaldo y recuperación de 19 tablas y 2 adjuntos con sus claves originales, seguidos por descargas HTTP autenticadas en el entorno aislado con SHA-256 coincidente. Contrato operativo, comandos, límites y evidencia en [Recuperación operativa de adjuntos](recuperacion-adjuntos.md).
 
-Pendientes: comprobación con PostgreSQL y servidor local, integración Android, revisión cruzada y PR hacia `develop`. Este registro no acredita aceptación docente.
+Esta continuación está pendiente de publicación y revisión cruzada antes de cerrar #18. Los apartados de verificación posteriores conservan el registro histórico de estados y pendientes de cada momento; este resumen refleja el estado actual. No se acredita aceptación docente ni aprobación de la recuperación por el compañero todavía.
 
 ## Contrato para Android — #21
 
@@ -54,7 +54,7 @@ Para recuperar: restaurar los metadatos, los archivos cifrados en sus mismas ubi
 
 Generar otra clave bajo el mismo nombre no recupera los archivos anteriores. Una rotación futura debe conservar las claves antiguas bajo sus versiones.
 
-La prueba automatizada verifica pérdida y restauración simuladas de clave/archivo. El procedimiento operativo de respaldo y restauración con PostgreSQL sigue pendiente de comprobación.
+La prueba automatizada verifica pérdida y restauración simuladas de clave/archivo. La restauración operativa local con PostgreSQL quedó comprobada el 03/11/2026; consultar el [procedimiento y evidencia](recuperacion-adjuntos.md). La revisión de esta continuación sigue pendiente.
 
 Si falla el registro tras escribir el archivo, se intenta eliminarlo. Un fallo de limpieza queda registrado y requiere conciliación; la base de datos y el almacenamiento no forman una transacción única.
 
