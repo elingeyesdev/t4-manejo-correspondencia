@@ -2,9 +2,11 @@
 
 ## Alcance y estado
 
-Iteración 03, corte aprobado: 05/11/2026. Responsable web/API: Xmathewbruk; revisión cruzada prevista: RazzellRC.
+Iteración 03, corte aprobado: 05/11/2026. Responsable web/API: Xmathewbruk; revisión cruzada: RazzellRC.
 
-Implementación local en `feature/20-historial-documental`: consulta de movimientos persistidos, sin crear ni modificar operaciones de negocio. Commit funcional `a64ac63`; incorporación del QR ya aprobado desde develop mediante `dd3fec0`. Implementación y verificación local acreditadas según la evidencia inferior. El #20 permanece pendiente de publicación y revisión cruzada; esta documentación no acredita aprobación.
+Estado actualizado al 03/11/2026: #20 completado mediante [PR #26](https://github.com/elingeyesdev/t4-manejo-correspondencia/pull/26), aprobado por RazzellRC e integrado en `develop` el 02/11/2026, merge `69e4b06b1da69c0838478fb3b90d36cc35401317`. La [aprobación](https://github.com/elingeyesdev/t4-manejo-correspondencia/pull/26#pullrequestreview-5744910677) precede al merge y registra que el recorrido visual automático no pudo completarse por un problema del navegador. El alcance aprobado consulta movimientos persistidos, sin crear ni modificar operaciones de negocio.
+
+El desarrollo se realizó en `feature/20-historial-documental`: commit funcional `a64ac63`; incorporación del QR ya aprobado mediante `dd3fec0`; head revisado `b35c73cae7d44f5e03360d292c615348131aa801`. La evidencia inferior conserva los ejecutores y resultados del desarrollo; esta actualización documental no repite las pruebas.
 
 ## Consulta y autorización
 
@@ -55,11 +57,11 @@ La tabla muestra un mensaje cuando no hay movimientos y aclara que el registro i
 | Pint y compilación Vite tras resolver conflictos | Aprobados | Codex |
 | PostgreSQL aislado y concurrencia tras la combinación | 76 pruebas, 401 aserciones; concurrencia: 1 prueba, 13 aserciones | Mathew, salida compartida |
 | Revisión visual del historial combinado | Capturas con QR, tabla de historial, REGISTRO, ejecutor, unidades, fecha/hora Bolivia, estado y motivo disponibles | Mathew, capturas inspeccionadas por Codex |
-| Revisión cruzada del #20 | Pendiente, mediante PR hacia develop | RazzellRC |
+| Revisión cruzada del #20 | PR #26 aprobado e integrado; la limitación del recorrido visual automático consta en la revisión | RazzellRC, con asistencia de Codex |
 
 Las pruebas cubren autenticación, acceso propio/ajeno, evento real de registro, ausencia de mutaciones, coherencia web/API, historial vacío, UUID inexistente/mal formado, cuenta/unidad deshabilitadas, orden por fecha/UUID y unidades enviadas al componente. Los movimientos adicionales para probar orden son datos sintéticos solo de la base aislada, sin atribuirles una operación de negocio ejecutada.
 
-Mathew ejecutó el desarrollo manual guiado y los commits. Codex corrigió declaraciones duplicadas en pruebas, resolvió los tres conflictos al incorporar el QR y preparó esta documentación. No se acredita sesión de programación en pareja ni revisión del compañero para #20.
+Mathew ejecutó el desarrollo manual guiado y los commits. Codex corrigió declaraciones duplicadas en pruebas, resolvió los tres conflictos al incorporar el QR y preparó esta documentación. No se acredita sesión de programación en pareja. La revisión posterior del compañero se registra por separado en el PR #26.
 
 ## Comandos de verificación
 
@@ -77,4 +79,5 @@ git diff --check
 
 El script PostgreSQL usa la base separada `correspondencia_test` y toma la conexión local sin imprimir las credenciales. No versionar .env, claves, bases, archivos subidos, dependencias ni compilados.
 
-Siguientes pasos: commit de documentación, publicación de la rama, PR hacia develop y revisión de RazzellRC antes de integrar y cerrar #20. No contar el PR como otro entregable en el mismo milestone.
+#20 está cerrado tras la aprobación y la integración. El PR es evidencia del issue y no lleva el mismo milestone para evitar doble conteo. La consulta no implementa las operaciones futuras de derivación, recepción ni cierre documental.
+

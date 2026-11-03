@@ -1,28 +1,24 @@
-## Problema y cambio
+## Cambio y alcance
 
-Issue relacionado:
-Historia y criterios cubiertos:
+Issue e historia:
+Criterios cubiertos y pendientes:
+Rama desde `develop` actualizado:
+Base del PR: `develop`
 
-## Cómo revisar
+## Cómo comprobar
 
-Pasos reproducibles:
-Resultado esperado:
-
-## Validación realizada
-
-Comandos y resultados reales (o indicar no ejecutado y motivo):
-Evidencias:
-
-## Coordinación web/API y móvil
-
-Cambios en rutas, campos, estados, autenticación o errores:
-Impacto en el cliente y pruebas de integración:
+Pasos reproducibles y resultado esperado:
+Comandos, resultados reales, entorno y ejecutor:
+Evidencia; pruebas omitidas y motivo:
+Impacto en web/API y Android (rutas, datos, estados o errores):
 
 ## Revisión cruzada
 
-Autor/conductor:
-Copiloto (si hubo sesión en pareja):
+Autor y tareas realizadas:
+Asistencia de Codex u otras herramientas:
+Conductor/copiloto (solo si hubo sesión real):
 Revisor distinto del autor:
-Observaciones pendientes:
+Observaciones y correcciones pendientes:
 
-La aprobación debe registrarla el revisor en GitHub. Esta plantilla no acredita revisión ni autoriza cerrar trabajo pendiente.
+Flujo acordado: issue y criterios → rama → PR a `develop` → pruebas reales → revisión del otro integrante → correcciones → aprobación del revisor en GitHub → merge. Mathew revisa el móvil de Russel; Russel revisa la web/API de Mathew. Esta plantilla no acredita aprobación ni cierre de criterios pendientes. Registrar ejecutores reales y conservar `.env`, claves, tokens y datos reales fuera de Git.
+

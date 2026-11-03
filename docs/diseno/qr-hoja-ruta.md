@@ -4,7 +4,7 @@
 
 Iteración 03, responsable Xmathewbruk. Rama `feature/19-qr-hoja-ruta`, desde develop actualizado a b2eec25. Generación de QR y consulta autorizada de una hoja existente. No implementa confirmación de recepción, derivación ni cambios del historial.
 
-Implementado y verificado localmente. Mathew confirmó en el chat que el QR escaneado desde el teléfono abre el documento mediante la dirección Wi-Fi del servidor. Pendiente: revisión cruzada de RazzellRC antes del merge. No acredita aceptación docente ni cierre de toda la iteración.
+Estado actualizado al 03/11/2026: #19 completado. [PR #25](https://github.com/elingeyesdev/t4-manejo-correspondencia/pull/25) aprobado por RazzellRC e integrado en `develop` el 02/11/2026, merge `8e9d87fba06acd122670a42ee1a395d6077e386e`. La [aprobación](https://github.com/elingeyesdev/t4-manejo-correspondencia/pull/25#pullrequestreview-5743923932) precede al merge. Mathew confirmó que el QR escaneado desde el teléfono abre el documento mediante la dirección Wi-Fi del servidor. La evidencia de desarrollo inferior conserva sus ejecutores originales; esta actualización documental no repite esas pruebas ni acredita aceptación docente o cierre de toda la iteración.
 
 ## Referencia y contenido
 
@@ -75,3 +75,4 @@ php ..\scripts\test-postgres.php
 ```
 
 Codex realizó lecturas para orientar los cambios, levantó los servidores locales por solicitud del usuario y preparó esta documentación. Los comandos y sus resultados no se atribuyen a un integrante distinto de su ejecutor real.
+
