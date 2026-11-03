@@ -43,7 +43,7 @@ Pruebas: `ConfiguracionMovilTest`. Ampliación al núcleo del PR #12 incluida en
 
 ## Adjuntos — incremento #18 / T08
 
-Esta rama incorpora carga, listado y descarga autenticados de adjuntos. Consultar [contrato de adjuntos y evidencia](adjuntos.md) para rutas, multipart, permisos, respuestas, cifrado, límites y recuperación. Implementación local verificada; revisión cruzada e integración Android pendientes. El contrato anterior conserva el alcance del núcleo de semana 2.
+Carga, listado y descarga autenticados de adjuntos integrados mediante PR #23; Android y el panel web mediante PR #24. Consultar [contrato de adjuntos y evidencia](adjuntos.md) para rutas, multipart, permisos, respuestas, cifrado y límites. La [recuperación operativa local](recuperacion-adjuntos.md) de PostgreSQL, claves y archivos fue comprobada el 03/11/2026; esta continuación del #18 está pendiente de revisión cruzada. El contrato anterior conserva el alcance del núcleo de semana 2.
 
 ## QR de hoja de ruta — #19 / T09
 
