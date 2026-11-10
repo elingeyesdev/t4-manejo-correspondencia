@@ -43,6 +43,23 @@ La visibilidad temporal por unidad pendiente termina al recibir. El nuevo respon
 
 Para HU-07, la foto es opcional y se autoriza la carga al responsable activo durante `RECIBIDA` o `EN_ATENCION`, además del permiso de carga que ya tienen recepción y administración sobre expedientes accesibles. Cada descarga se autoriza de nuevo y el archivo debe pertenecer al documento solicitado. Para una hoja `CERRADA` se conserva el acceso autorizado a los archivos existentes y se bloquea la carga. La ruta de adjuntos y su contrato de recuperación de subidas inciertas siguen los acuerdos de #21. [Permiso de carga actual](https://github.com/elingeyesdev/t4-manejo-correspondencia/blob/develop/web/app/Http/Requests/StoreAttachmentRequest.php) · [Integración de adjuntos](https://github.com/elingeyesdev/t4-manejo-correspondencia/issues/21)
 
+## Ejemplo de configuración de cuentas
+
+Un administrador habilitado configura las unidades y asigna a cada cuenta el rol y la unidad en Administración. El sistema conserva los roles del núcleo. El rol se registra en `role`, la unidad en `unit_id` y la habilitación en `enabled`. Laravel comprueba la cuenta, su rol, su unidad y el expediente en cada operación. [Administración del núcleo](api.md#operaciones-implementadas)
+
+| Cuenta de ejemplo | Rol y unidad | Resultado en el recorrido |
+| --- | --- | --- |
+| Ana | `recepcion`, Mesa de Partes (1), habilitada | Registra la carta y puede derivarla mientras sea la responsable activa. |
+| Bruno | `funcionario`, Asesoría Jurídica (2), habilitado | Puede recibir cuando la hoja está pendiente para su unidad. Al confirmar pasa a ser responsable. |
+| Carla | `funcionario`, Contabilidad (3), habilitada | Carece de acceso a esta hoja. |
+| Diego | `funcionario`, Asesoría Jurídica (2), deshabilitado | Carece de acceso aunque pertenezca a la unidad de destino. |
+
+## Atención y subida de foto
+
+Laravel confirma primero la observación y su movimiento. La foto opcional se sube aparte a `POST /api/documentos/{id}/adjuntos`. Si la foto falla, la atención permanece guardada. La interfaz indica «Atención guardada. Foto pendiente» y el reintento se limita al adjunto, con la captura conservada durante el flujo. El reintento de foto no vuelve a enviar la observación ni genera otro movimiento de atención.
+
+Ante un rechazo confirmado de la carga, se puede corregir el problema y reenviar solo la foto. Si el resultado es incierto por pérdida de conexión o de respuesta, Android debe comprobar los adjuntos del documento antes de decidir. Busca la foto por nombre, MIME y tamaño y confirma que sus bytes coinciden. Si la encuentra, recupera su ID y muestra la foto como guardada. Si el resultado sigue incierto, conserva la foto pendiente y permite volver a comprobar. La carga existente carece de una clave de idempotencia. La comprobación y el bloqueo del reenvío mientras el resultado sea incierto son criterios del #33. [Adjuntos compartidos](adjuntos-web-movil.md)
+
 ## Operaciones y transiciones
 
 Las rutas de hoja reciben el UUID de la hoja. La ruta de respuestas recibe el UUID del documento original. La web conserva sesión y CSRF. Android utiliza el token de la API. La columna Entrada indica los campos JSON. En las escrituras también se envía la cabecera `Idempotency-Key`. El formulario web puede enviar el campo `request_key` de la misma forma que el registro existente.
@@ -56,9 +73,100 @@ Las rutas de hoja reciben el UUID de la hoja. La ruta de respuestas recibe el UU
 | `POST /api/documentos/{id}/respuestas` | `remitente`, `asunto`, `fecha` en formato `YYYY-MM-DD`, `tipo_id`, `prioridad_id`, `version` de la hoja original | Operación de web para el responsable activo desde `RECIBIDA` o `EN_ATENCION`. Laravel determina la unidad y crea la respuesta con ID propio, vínculo y evento en una transacción. Confirma `201`. Conserva el estado de la hoja e incrementa su versión. |
 | `POST /api/hojas/{id}/cierre` | `motivo` obligatorio, `version` entera | Operación de web para el responsable activo desde `RECIBIDA` o `EN_ATENCION`, sin recepción pendiente. La interfaz solicita confirmación. Laravel devuelve `200` y la hoja queda `CERRADA`. |
 
-Las versiones son enteros positivos y los textos obligatorios se validan después de quitar espacios externos. Se reutilizan los campos y validaciones del [registro existente](api.md) para el alta de la respuesta. El servidor genera actor, hora, movimiento y estado. Las lecturas conservan los campos vigentes. El detalle agrega `acciones_permitidas`, una lista de acciones aplicables al usuario y al estado. Usa los valores `derivar`, `recibir`, `atender`, `responder` y `cerrar`. Android presenta las tres primeras cuando correspondan. Respuesta y cierre se operan desde web. La API valida de nuevo el permiso al escribir.
+Las versiones son enteros positivos. El `motivo` de derivación y cierre admite de 1 a 500 caracteres. La `observacion` de atención admite de 1 a 2 000 caracteres. Web, Flutter y Laravel quitan espacios, tabulaciones y saltos de línea al principio y al final, y cuentan puntos de código Unicode en el texto resultante. Un campo vacío o que excede el límite devuelve `422` con el error del campo. Se reutilizan los campos y validaciones del [registro existente](api.md) para el alta de la respuesta. El servidor genera actor, hora, movimiento y estado. Las lecturas conservan los campos vigentes. El detalle agrega `acciones_permitidas`, una lista de acciones aplicables al usuario y al estado. Usa los valores `derivar`, `recibir`, `atender`, `responder` y `cerrar`. Android presenta las tres primeras cuando correspondan. Respuesta y cierre se operan desde web. La API valida de nuevo el permiso al escribir.
 
 Entre las operaciones del recorrido, con `PENDIENTE_RECEPCION` solo procede confirmar recepción. El responsable puede cerrar sin respuesta vinculada cuando el trámite no la requiere. Con `CERRADA`, el expediente y su historial permanecen consultables según permisos. Una solicitud posterior de cierre por el responsable autorizado devuelve el cierre existente con `200` y conserva el motivo y evento originales.
+
+## Consulta del detalle para web y Android
+
+`GET /api/documentos/{id}` recibe el UUID del documento. La consulta por QR usa `GET /api/hojas/{referencia}` con el UUID de la hoja y devuelve la misma forma de detalle. Laravel conserva los campos existentes de lectura y añade la unidad vigente, el nombre del responsable y las acciones calculadas para el usuario autenticado. El QR no cambia el estado.
+
+Este es un ejemplo completo de respuesta `200` que recibe Bruno al abrir la hoja pendiente. `unidad` conserva la unidad de registro. `hoja.unidad_vigente` identifica la unidad que todavía tiene la responsabilidad y `hoja.responsable` identifica a la persona. Los campos `responsable_id` y `unidad_vigente_id` coinciden con los IDs de sus objetos. `acciones_permitidas` está en la raíz del detalle y es una lista vacía cuando el usuario solo puede consultar. Los datos son ficticios.
+
+```json
+{
+  "id": "60702041-a32c-4237-a67c-d251eeb1ed31",
+  "codigo": "DOC-001",
+  "guia": "GUIA-001",
+  "remitente": "Persona de prueba",
+  "asunto": "Solicitud de revisión",
+  "fecha": "2026-11-09",
+  "unidad": {
+    "id": 1,
+    "institution_id": 1,
+    "code": "MESA",
+    "name": "Mesa de Partes",
+    "enabled": true,
+    "created_at": "2026-11-01T13:00:00.000000Z",
+    "updated_at": "2026-11-01T13:00:00.000000Z"
+  },
+  "tipo": {
+    "id": 4,
+    "kind": "tipo",
+    "code": "CARTA",
+    "name": "Carta",
+    "enabled": true,
+    "created_at": "2026-11-01T13:00:00.000000Z",
+    "updated_at": "2026-11-01T13:00:00.000000Z"
+  },
+  "prioridad": {
+    "id": 6,
+    "kind": "prioridad",
+    "code": "NORMAL",
+    "name": "Normal",
+    "enabled": true,
+    "created_at": "2026-11-01T13:00:00.000000Z",
+    "updated_at": "2026-11-01T13:00:00.000000Z"
+  },
+  "estado": "PENDIENTE_RECEPCION",
+  "fechaUltimoMovimiento": "2026-11-09T14:15:00.000000Z",
+  "hoja": {
+    "id": "b1e2b746-45b7-4b21-bf78-28d80db3ed6a",
+    "codigo": "HR-001",
+    "responsable_id": 12,
+    "responsable": {
+      "id": 12,
+      "nombre": "Ana"
+    },
+    "unidad_vigente_id": 1,
+    "unidad_vigente": {
+      "id": 1,
+      "nombre": "Mesa de Partes"
+    },
+    "destino_pendiente_id": 2,
+    "version": 2
+  },
+  "acciones_permitidas": [
+    "recibir"
+  ],
+  "movimientos": [
+    {
+      "id": "8c44dabb-3af8-4fdc-b148-e5318018d725",
+      "route_sheet_id": "b1e2b746-45b7-4b21-bf78-28d80db3ed6a",
+      "actor_id": 12,
+      "origin_unit_id": 1,
+      "destination_unit_id": 1,
+      "action": "REGISTRO",
+      "resulting_state": "REGISTRADA",
+      "reason": null,
+      "occurred_at": "2026-11-09T14:10:00.000000Z"
+    },
+    {
+      "id": "8c44dabb-3af8-4fdc-b148-e5318018d726",
+      "route_sheet_id": "b1e2b746-45b7-4b21-bf78-28d80db3ed6a",
+      "actor_id": 12,
+      "origin_unit_id": 1,
+      "destination_unit_id": 2,
+      "action": "DERIVACION",
+      "resulting_state": "PENDIENTE_RECEPCION",
+      "reason": "Revisión jurídica",
+      "occurred_at": "2026-11-09T14:15:00.000000Z"
+    }
+  ]
+}
+```
+
+En Android, `derivar` habilita **Derivar**, `recibir` habilita **Confirmar recepción** y `atender` habilita **Registrar atención**. Bruno solo ve **Confirmar recepción** antes de recibir. Tras confirmarla, debe refrescar el detalle. Ahora la unidad vigente es Asesoría Jurídica, el responsable es Bruno, el destino pendiente es `null` y el estado es `RECIBIDA`. El servidor vuelve a validar los permisos al guardar cualquier acción.
 
 ## Ejemplo de recepción para implementar y probar
 
@@ -129,6 +237,9 @@ En las rutas nuevas, el cuerpo de error incluye `codigo` y `message`, con `error
 | Enviar dos recepciones o dos derivaciones sobre la misma versión en PostgreSQL | Solo una operación cambia el expediente. La otra se rechaza. |
 | Intentar guardar una observación vacía, atender mientras se espera recepción o simular un fallo del historial | No se modifica el recorrido y la interfaz muestra el resultado real. |
 | Atender con observación válida, con y sin captura | Ambos casos registran atención. Si se adjunta una foto, queda accesible según permisos. |
+| Enviar motivo de 500 y 501 caracteres y observación de 2 000 y 2 001 | Se acepta el máximo y se rechaza el exceso con `422`. Un campo compuesto solo por espacios se rechaza. |
+| Guardar atención y provocar un fallo confirmado de la foto | La observación sigue guardada. Al reintentar solo la foto quedan una atención y un adjunto. |
+| Guardar la foto en el servidor y perder la respuesta | La comprobación recupera el mismo adjunto. No se reenvía la foto ni se repite la atención. |
 | Vincular una respuesta cuando corresponda y cerrar | El original y su respuesta se consultan por sus propios identificadores. Un trámite que no requiere respuesta puede cerrar sin adjuntarla. El cierre se registra una sola vez y bloquea cambios posteriores. |
 
 ## Preparación para la Iteración 05
