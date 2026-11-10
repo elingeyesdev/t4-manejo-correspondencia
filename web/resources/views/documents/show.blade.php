@@ -2,43 +2,61 @@
 @section('title', 'Detalle de correspondencia')
 @section('content')
     @php
-        $canDerive = in_array('derivar', $payload['acciones_permitidas'], true) && $destinations->isNotEmpty();
-        $canReceive = in_array('recibir', $payload['acciones_permitidas'], true);
-        $workflow = null;
+        $actions = $payload['acciones_permitidas'];
+        $workflows = [];
 
-        if ($canDerive || $canReceive) {
-            $formKey = $canDerive ? 'route-derive' : 'route-receive';
-            $requestKey = old('_form') === $formKey ? old('request_key') : null;
-            $reason = old('motivo');
-            $destination = old('destino_unidad_id');
+        $addWorkflow = function ($operation, $label, $submitLabel, $help, $fields = []) use (&$workflows, $payload, $errors) {
+            $formKey = 'route-'.$operation;
+            $submitted = old('_form') === $formKey;
+            $version = $payload['hoja']['version'];
+            $oldVersion = old('version');
+            $requestKey = $submitted && is_scalar($oldVersion) && (string) $oldVersion === (string) $version
+                ? old('request_key')
+                : null;
+            $initial = [];
+            foreach ($fields as $field) {
+                $value = $submitted ? old($field['name']) : null;
+                $initial[$field['name']] = is_scalar($value) ? (string) $value : '';
+            }
 
-            $workflow = [
-                'action' => route($canDerive ? 'route-sheets.derive' : 'route-sheets.receive', $payload['hoja']['id']),
+            $workflows[] = [
+                'action' => route('route-sheets.'.$operation, $payload['hoja']['id']),
                 'csrfToken' => csrf_token(),
                 'formKey' => $formKey,
-                'formLabel' => $canDerive ? 'Derivar hoja' : 'Confirmar recepción',
-                'submitLabel' => $canDerive ? 'Derivar' : 'Confirmar recepción',
-                'help' => $canDerive
-                    ? 'La responsabilidad actual se conserva hasta que la unidad de destino confirme la recepción.'
-                    : 'Al confirmar, quedas como responsable de la hoja en tu unidad.',
+                'formLabel' => $label,
+                'submitLabel' => $submitLabel,
+                'help' => $help,
                 'hidden' => [
-                    'version' => $payload['hoja']['version'],
+                    'version' => $version,
                     'request_key' => is_string($requestKey) && preg_match('/^[A-Za-z0-9_-]{16,100}$/D', $requestKey)
                         ? $requestKey
                         : (string) \Illuminate\Support\Str::uuid(),
                 ],
-                'initial' => [
-                    'motivo' => is_string($reason) ? $reason : '',
-                    'destino_unidad_id' => is_scalar($destination) ? (string) $destination : '',
-                ],
-                'errors' => (object) $errors->messages(),
-                'fields' => $canDerive ? [
+                'initial' => (object) $initial,
+                'errors' => (object) ($submitted ? $errors->messages() : []),
+                'fields' => $fields,
+            ];
+        };
+
+        if (in_array('atender', $actions, true)) {
+            $addWorkflow('attend', 'Registrar atención', 'Guardar atención',
+                'Cada observación se agrega al historial con tu nombre y la hora del servidor.', [
+                    ['name' => 'observacion', 'label' => 'Observación', 'type' => 'textarea', 'required' => true,
+                        'maxCodePoints' => 2000, 'help' => 'Hasta 2 000 caracteres.', 'wide' => true],
+                ]);
+        }
+        if (in_array('derivar', $actions, true) && $destinations->isNotEmpty()) {
+            $addWorkflow('derive', 'Derivar hoja', 'Derivar',
+                'La responsabilidad actual se conserva hasta que la unidad de destino confirme la recepción.', [
                     ['name' => 'destino_unidad_id', 'label' => 'Unidad de destino', 'type' => 'select', 'required' => true,
                         'options' => $destinations->map(fn ($unit) => ['value' => (string) $unit->id, 'label' => $unit->name])->all()],
                     ['name' => 'motivo', 'label' => 'Motivo', 'type' => 'textarea', 'required' => true,
                         'maxCodePoints' => 500, 'help' => 'Hasta 500 caracteres.', 'wide' => true],
-                ] : [],
-            ];
+                ]);
+        }
+        if (in_array('recibir', $actions, true)) {
+            $addWorkflow('receive', 'Confirmar recepción', 'Confirmar recepción',
+                'Al confirmar, quedas como responsable de la hoja en tu unidad.');
         }
         $detailProps = [
             'document' => [
@@ -75,7 +93,7 @@
                     'reference' => $payload['hoja']['id'],
                 ]),
             ],
-            'workflow' => $workflow,
+            'workflows' => $workflows,
             'indexUrl' => route('documents.index'),
         ];
     @endphp

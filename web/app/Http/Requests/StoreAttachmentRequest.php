@@ -17,9 +17,9 @@ class StoreAttachmentRequest extends FormRequest
             return false;
         }
 
-        Document::visibleTo($user)->findOrFail($this->route('id'));
+        $document = Document::visibleTo($user)->with('sheet')->findOrFail($this->route('id'));
 
-        return $user->canRegister();
+        return $document->sheet->canUploadAttachment($user);
     }
 
     public function rules(): array

@@ -25,6 +25,8 @@ class StoreAttachmentTest extends TestCase
 
     private Document $document;
 
+    private User $operator;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -44,13 +46,13 @@ class StoreAttachmentTest extends TestCase
 
         $unit = Unit::firstOrFail();
 
-        $user = User::factory()->create([
+        $this->operator = User::factory()->create([
             'role' => 'recepcion',
             'unit_id' => $unit->id,
             'enabled' => true,
         ]);
 
-        [$this->document] = app(RegisterDocument::class)->execute($user, [
+        [$this->document] = app(RegisterDocument::class)->execute($this->operator, [
             'remitente' => 'Prueba',
             'asunto' => 'Prueba de adjuntos',
             'fecha' => '2026-11-02',
@@ -75,7 +77,7 @@ class StoreAttachmentTest extends TestCase
         $original = file_get_contents($file->getRealPath());
 
         $attachment = app(StoreAttachment::class)
-            ->execute($this->document, $file);
+            ->execute($this->operator, $this->document->id, $file);
 
         $disk = Storage::disk('attachments');
         $disk->assertExists($attachment->storage_path);
@@ -110,7 +112,7 @@ class StoreAttachmentTest extends TestCase
         });
 
         try {
-            app(StoreAttachment::class)->execute($this->document, $this->file());
+            app(StoreAttachment::class)->execute($this->operator, $this->document->id, $this->file());
             $this->fail('La operacion debio fallar.');
         } catch (RuntimeException $error) {
             $this->assertSame('Fallo simulado de registro.', $error->getMessage());
@@ -132,7 +134,7 @@ class StoreAttachmentTest extends TestCase
             ->andReturn($disk);
 
         try {
-            app(StoreAttachment::class)->execute($this->document, $this->file());
+            app(StoreAttachment::class)->execute($this->operator, $this->document->id, $this->file());
             $this->fail('La escritura debio fallar.');
         } catch (RuntimeException $error) {
             $this->assertSame(

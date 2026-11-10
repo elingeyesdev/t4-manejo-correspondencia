@@ -28,6 +28,14 @@ class RouteSheetWorkflow
         ]);
     }
 
+    public function attend(User $actor, string $sheetId, array $data): array
+    {
+        return $this->transition($actor, $sheetId, 'atencion', $data['request_key'], [
+            'version' => (int) $data['version'],
+            'observacion' => $data['observacion'],
+        ]);
+    }
+
     private function transition(
         User $actor,
         string $sheetId,
@@ -68,6 +76,7 @@ class RouteSheetWorkflow
             $destinationUnitId = match ($operation) {
                 'derivacion' => $this->applyDerivation($actor, $sheet, $intent),
                 'recepcion' => $this->applyReception($actor, $sheet),
+                'atencion' => $this->applyAttention($actor, $sheet),
             };
 
             $instant = now();
@@ -82,7 +91,7 @@ class RouteSheetWorkflow
                 'action' => strtoupper($operation),
                 'resulting_state' => $sheet->state,
                 'sheet_version' => $sheet->version,
-                'reason' => $intent['motivo'] ?? null,
+                'reason' => $intent['motivo'] ?? $intent['observacion'] ?? null,
                 'occurred_at' => $instant,
             ]);
 
@@ -169,5 +178,15 @@ class RouteSheetWorkflow
         ]);
 
         return $destinationUnitId;
+    }
+
+    private function applyAttention(User $actor, RouteSheet $sheet): int
+    {
+        abort_unless($sheet->isResponsible($actor), 403, 'ACCION_NO_PERMITIDA');
+        abort_unless($sheet->canAttend($actor), 409, 'ESTADO_INCOMPATIBLE');
+
+        $sheet->state = 'EN_ATENCION';
+
+        return (int) $sheet->current_unit_id;
     }
 }

@@ -10,8 +10,11 @@ class RouteSheetActionRequest extends FormRequest
     {
         $data = ['request_key' => $this->header('Idempotency-Key', $this->input('request_key'))];
 
-        if (is_string($this->input('motivo'))) {
-            $data['motivo'] = trim($this->input('motivo'), " \t\r\n");
+        foreach (['motivo', 'observacion'] as $field) {
+            $value = $this->input($field);
+            if (is_string($value)) {
+                $data[$field] = trim($value, " \t\r\n");
+            }
         }
 
         $this->merge($data);
@@ -29,6 +32,19 @@ class RouteSheetActionRequest extends FormRequest
             $rules['motivo'] = ['required', 'string', 'max:500'];
         }
 
+        if ($this->routeIs('*.attend')) {
+            $rules['observacion'] = ['required', 'string', 'max:2000'];
+        }
+
         return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'observacion.required' => 'Escribe una observación.',
+            'observacion.string' => 'La observación debe ser texto.',
+            'observacion.max' => 'La observación debe tener hasta 2000 caracteres.',
+        ];
     }
 }
