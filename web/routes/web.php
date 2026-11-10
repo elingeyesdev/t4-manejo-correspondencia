@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AttachmentWebController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\RouteSheetController;
 use App\Http\Controllers\RouteSheetQrController;
 use App\Http\Controllers\SessionController;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,10 @@ Route::middleware(['auth', 'operational'])->group(function () {
     Route::get('/documentos/{id}/adjuntos/{adjunto}/ver', [AttachmentWebController::class, 'view'])->whereUuid('id')->whereUuid('adjunto')->name('attachments.view');
     Route::get('/documentos/{id}/adjuntos/{adjunto}/descarga', [AttachmentWebController::class, 'download'])->whereUuid('id')->whereUuid('adjunto')->name('attachments.download');
     Route::get('/administracion', [AdminController::class, 'index'])->name('admin');
+    Route::post('/hojas/{reference}/derivaciones', [RouteSheetController::class, 'derive'])
+        ->whereUuid('reference')->name('route-sheets.derive');
+    Route::post('/hojas/{reference}/recepciones', [RouteSheetController::class, 'receive'])
+        ->whereUuid('reference')->name('route-sheets.receive');
     Route::get('/hojas/{reference}', [RouteSheetQrController::class, 'show'])
         ->whereUuid('reference')
         ->name('route-sheets.show');

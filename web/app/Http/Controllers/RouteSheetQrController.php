@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\RouteSheet;
 use App\Services\RouteSheetQr;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class RouteSheetQrController extends Controller
@@ -16,7 +15,7 @@ class RouteSheetQrController extends Controller
 
         if ($request->is('api/*')) {
             return response()
-                ->json($document->payload())
+                ->json($document->detailPayload($request->user()))
                 ->header('Cache-Control', 'private, no-store');
         }
 
@@ -43,10 +42,7 @@ class RouteSheetQrController extends Controller
         Request $request,
         string $reference
     ): RouteSheet {
-        return RouteSheet::query()
-            ->whereHas('document', function (Builder $query) use ($request) {
-                $query->visibleTo($request->user());
-            })
+        return RouteSheet::visibleTo($request->user())
             ->with('document')
             ->findOrFail($reference);
     }

@@ -4,6 +4,7 @@ import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import { ref } from 'vue';
+import SakaiForm from './SakaiForm.vue';
 
 defineProps({
     document: { type: Object, required: true },
@@ -11,6 +12,7 @@ defineProps({
     movements: { type: Array, required: true },
     indexUrl: { type: String, required: true },
     qr: { type: Object, required: true },
+    workflow: { type: Object, default: null },
 });
 const qrFailed = ref(false);
 </script>
@@ -43,11 +45,18 @@ const qrFailed = ref(false);
                 <div><dt class="text-muted-color">Código</dt><dd class="m-0 font-medium break-all">{{ sheet.code }}</dd></div>
                 <div><dt class="text-muted-color">Responsable actual</dt><dd class="m-0">{{ sheet.responsible }}</dd></div>
                 <div><dt class="text-muted-color">Estado</dt><dd class="m-0">{{ sheet.state }}</dd></div>
+                <div><dt class="text-muted-color">Unidad vigente</dt><dd class="m-0">{{ sheet.currentUnit }}</dd></div>
+                <div v-if="sheet.pendingUnit"><dt class="text-muted-color">Destino pendiente</dt><dd class="m-0">{{ sheet.pendingUnit }}</dd></div>
                 <div><dt class="text-muted-color">Versión</dt><dd class="m-0">{{ sheet.version }}</dd></div>
             </dl>
             <p class="text-muted-color mt-6 mb-0">Los identificadores se conservan durante todo el recorrido.</p>
         </section>
     </div>
+
+    <section v-if="workflow" class="card">
+        <h2 class="text-xl font-semibold mt-0 mb-5">{{ workflow.formLabel }}</h2>
+        <SakaiForm v-bind="workflow" />
+    </section>
 
     <section class="card" aria-label="QR de la hoja de ruta">
         <h2 class="text-xl font-semibold mt-0 mb-5">

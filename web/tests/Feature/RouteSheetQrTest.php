@@ -60,6 +60,8 @@ class RouteSheetQrTest extends TestCase
     public function test_reference_does_not_grant_guest_access(): void
     {
         $this->getJson($this->apiUrl())->assertUnauthorized();
+        $this->postJson($this->apiUrl().'/recepciones')
+            ->assertUnauthorized()->assertJsonPath('codigo', 'SESION_REQUERIDA');
 
         $this->get('/hojas/'.$this->reference)
             ->assertRedirect(route('login'));
@@ -133,6 +135,132 @@ class RouteSheetQrTest extends TestCase
         $this->getJson($this->apiUrl())
             ->assertOk()
             ->assertJsonPath('hoja.id', $this->reference);
+    }
+
+    public function test_destination_officials_can_consult_only_while_pending_or_responsible(): void
+    {
+        $destination = Unit::create([
+            'institution_id' => $this->operator->unit->institution_id,
+            'code' => 'JURIDICA',
+            'name' => 'Asesoría Jurídica',
+            'enabled' => true,
+        ]);
+
+        [$recipient, $colleague] = User::factory()->count(2)->create([
+            'role' => 'funcionario',
+            'unit_id' => $destination->id,
+            'enabled' => true,
+        ])->all();
+
+        Sanctum::actingAs($this->operator);
+        $this->getJson($this->apiUrl().'/destinos')->assertOk()
+            ->assertJsonFragment(['id' => $destination->id, 'nombre' => $destination->name]);
+
+        $data = [
+            'destino_unidad_id' => $destination->id,
+            'motivo' => 'Revisión jurídica',
+            'version' => 1,
+            'request_key' => (string) Str::uuid(),
+        ];
+
+        $url = $this->apiUrl().'/derivaciones';
+        $this->postJson($url, array_replace($data, ['motivo' => str_repeat('á', 501)]))
+            ->assertUnprocessable()
+            ->assertJsonPath('codigo', 'VALIDACION_FALLIDA')
+            ->assertJsonValidationErrors('motivo');
+
+        $first = $this->postJson($url, $data)->assertCreated()
+            ->assertJsonPath('movimiento.accion', 'DERIVACION')->json();
+        $this->postJson($url, $data)->assertOk()->assertExactJson($first);
+        $this->postJson($url, array_replace($data, ['motivo' => 'Motivo distinto']))
+            ->assertConflict()->assertJsonPath('codigo', 'CLAVE_REUTILIZADA');
+        $this->assertDatabaseHas('route_sheets', [
+            'id' => $this->reference,
+            'state' => 'PENDIENTE_RECEPCION',
+            'version' => 2,
+            'responsible_id' => $this->operator->id,
+            'current_unit_id' => $this->operator->unit_id,
+            'pending_unit_id' => $destination->id,
+        ]);
+        $this->assertSame(1, $this->document->sheet->movements()->where('action', 'DERIVACION')->count());
+
+        Sanctum::actingAs($recipient);
+        $this->getJson($this->apiUrl())
+            ->assertOk()
+            ->assertJsonPath('estado', 'PENDIENTE_RECEPCION')
+            ->assertJsonPath('hoja.responsable_id', $this->operator->id)
+            ->assertJsonPath('hoja.responsable.nombre', $this->operator->name)
+            ->assertJsonPath('hoja.unidad_vigente.id', $this->operator->unit_id)
+            ->assertJsonPath('acciones_permitidas', ['recibir'])
+            ->assertJsonPath('movimientos.0.action', 'REGISTRO')
+            ->assertJsonPath('movimientos.1.action', 'DERIVACION');
+
+        $reception = [
+            'version' => 2,
+            'request_key' => (string) Str::uuid(),
+        ];
+
+        $url = $this->apiUrl().'/recepciones';
+        Sanctum::actingAs($this->operator);
+        $this->postJson($url, $reception)->assertForbidden()->assertJsonPath('codigo', 'ACCION_NO_PERMITIDA');
+
+        Sanctum::actingAs($recipient);
+        $received = $this->postJson($url, $reception)->assertCreated()
+            ->assertJsonPath('movimiento.accion', 'RECEPCION')->json();
+        $this->postJson($url, $reception)->assertOk()->assertExactJson($received);
+        $this->postJson($url, array_replace($reception, ['request_key' => (string) Str::uuid()]))
+            ->assertConflict()->assertJsonPath('codigo', 'VERSION_DESACTUALIZADA');
+        $this->assertDatabaseHas('route_sheets', [
+            'id' => $this->reference,
+            'state' => 'RECIBIDA',
+            'responsible_id' => $recipient->id,
+            'current_unit_id' => $destination->id,
+            'pending_unit_id' => null,
+            'version' => 3,
+        ]);
+        $this->assertSame(1, $this->document->sheet->movements()->where('action', 'RECEPCION')->count());
+
+        $this->getJson($this->apiUrl())->assertOk();
+
+        Sanctum::actingAs($colleague);
+        $this->getJson($this->apiUrl())->assertNotFound();
+        $this->postJson($url, $reception)->assertNotFound()->assertJsonPath('codigo', 'RECURSO_NO_DISPONIBLE');
+    }
+
+    public function test_web_can_derive_and_confirm_from_document_detail(): void
+    {
+        $destination = Unit::create([
+            'institution_id' => $this->operator->unit->institution_id,
+            'code' => 'JURIDICA',
+            'name' => 'Asesoría Jurídica',
+            'enabled' => true,
+        ]);
+        $recipient = User::factory()->create([
+            'role' => 'funcionario',
+            'unit_id' => $destination->id,
+            'enabled' => true,
+        ]);
+
+        $detail = route('documents.show', $this->document->id);
+        $this->actingAs($this->operator)->get($detail)
+            ->assertOk()->assertSee('route-derive')->assertDontSee('route-receive');
+
+        $this->post(route('route-sheets.derive', $this->reference), [
+            'destino_unidad_id' => $destination->id,
+            'motivo' => 'Revisión jurídica',
+            'version' => 1,
+            'request_key' => (string) Str::uuid(),
+        ])->assertRedirect($detail)->assertSessionHas('status', 'Hoja derivada.');
+
+        $this->actingAs($recipient)->get($detail)
+            ->assertOk()->assertSee('route-receive')->assertDontSee('route-derive');
+
+        $this->post(route('route-sheets.receive', $this->reference), [
+            'version' => 2,
+            'request_key' => (string) Str::uuid(),
+        ])->assertRedirect($detail)->assertSessionHas('status', 'Recepción confirmada.');
+
+        $this->get($detail)->assertOk()->assertViewHas('payload', fn (array $payload) => $payload['estado'] === 'RECIBIDA' && $payload['hoja']['unidad_vigente']['nombre'] === $destination->name);
     }
 
     public function test_missing_or_malformed_reference_is_rejected(): void

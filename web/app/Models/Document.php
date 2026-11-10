@@ -40,7 +40,47 @@ class Document extends Model
 
     public function scopeVisibleTo(Builder $q, User $user): Builder
     {
-        return $user->isAdmin() ? $q : $q->where('unit_id', $user->unit_id);
+        if ($user->isAdmin()) {
+            return $q;
+        }
+
+        return $q->where(function (Builder $documents) use ($user): void {
+            $documents->where('unit_id', $user->unit_id)
+                ->orWhereHas('sheet', function (Builder $sheets) use ($user): void {
+                    $sheets->where('responsible_id', $user->id);
+
+                    if ($user->role === 'funcionario') {
+                        $sheets->orWhere(function (Builder $pending) use ($user): void {
+                            $pending->where('state', 'PENDIENTE_RECEPCION')
+                                ->where('pending_unit_id', $user->unit_id);
+                        });
+                    }
+                });
+        });
+    }
+
+    public function detailPayload(User $actor): array
+    {
+        $payload = $this->payload();
+        $this->loadMissing('sheet.currentUnit', 'sheet.responsible');
+        $sheet = $this->sheet;
+
+        $payload['hoja']['unidad_vigente_id'] = $sheet->current_unit_id;
+        $payload['hoja']['unidad_vigente'] = [
+            'id' => $sheet->currentUnit->id,
+            'nombre' => $sheet->currentUnit->name,
+        ];
+        $payload['hoja']['responsable'] = [
+            'id' => $sheet->responsible->id,
+            'nombre' => $sheet->responsible->name,
+        ];
+        $payload['acciones_permitidas'] = match (true) {
+            $sheet->canDerive($actor) => ['derivar'],
+            $sheet->canReceive($actor) => ['recibir'],
+            default => [],
+        };
+
+        return $payload;
     }
 
     public function payload(): array
