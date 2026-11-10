@@ -56,13 +56,18 @@ class DocumentController extends Controller
     {
         $doc = Document::visibleTo($r->user())->findOrFail($id);
 
+        $payload = $doc->detailPayload($r->user());
+
         if ($r->is('api/*')) {
-            return response()->json($doc->payload());
+            return response()->json($payload);
         }
 
         return view('documents.show', [
             'document' => $doc,
-            'payload' => $doc->payload(),
+            'payload' => $payload,
+            'destinations' => in_array('derivar', $payload['acciones_permitidas'], true)
+                ? $doc->sheet->eligibleDestinations()->orderBy('name')->get(['id', 'name'])
+                : collect(),
             'history' => $historyService->execute($r->user(), $id),
             'attachments' => Attachment::where('document_id', $doc->id)
                 ->latest()
@@ -78,6 +83,6 @@ class DocumentController extends Controller
             return response()->json(['codigo' => 'GUIA_NO_ENCONTRADA', 'message' => 'No se encontró una guía accesible.'], 404);
         }
 
-        return response()->json($doc->payload());
+        return response()->json($doc->detailPayload($r->user()));
     }
 }

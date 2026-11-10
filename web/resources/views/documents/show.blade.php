@@ -2,8 +2,44 @@
 @section('title', 'Detalle de correspondencia')
 @section('content')
     @php
-        $actorIds = $document->sheet->movements->pluck('actor_id')->push($payload['hoja']['responsable_id'])->unique();
-        $actorNames = \App\Models\User::whereIn('id', $actorIds)->pluck('name', 'id');
+        $canDerive = in_array('derivar', $payload['acciones_permitidas'], true) && $destinations->isNotEmpty();
+        $canReceive = in_array('recibir', $payload['acciones_permitidas'], true);
+        $workflow = null;
+
+        if ($canDerive || $canReceive) {
+            $formKey = $canDerive ? 'route-derive' : 'route-receive';
+            $requestKey = old('_form') === $formKey ? old('request_key') : null;
+            $reason = old('motivo');
+            $destination = old('destino_unidad_id');
+
+            $workflow = [
+                'action' => route($canDerive ? 'route-sheets.derive' : 'route-sheets.receive', $payload['hoja']['id']),
+                'csrfToken' => csrf_token(),
+                'formKey' => $formKey,
+                'formLabel' => $canDerive ? 'Derivar hoja' : 'Confirmar recepción',
+                'submitLabel' => $canDerive ? 'Derivar' : 'Confirmar recepción',
+                'help' => $canDerive
+                    ? 'La responsabilidad actual se conserva hasta que la unidad de destino confirme la recepción.'
+                    : 'Al confirmar, quedas como responsable de la hoja en tu unidad.',
+                'hidden' => [
+                    'version' => $payload['hoja']['version'],
+                    'request_key' => is_string($requestKey) && preg_match('/^[A-Za-z0-9_-]{16,100}$/D', $requestKey)
+                        ? $requestKey
+                        : (string) \Illuminate\Support\Str::uuid(),
+                ],
+                'initial' => [
+                    'motivo' => is_string($reason) ? $reason : '',
+                    'destino_unidad_id' => is_scalar($destination) ? (string) $destination : '',
+                ],
+                'errors' => (object) $errors->messages(),
+                'fields' => $canDerive ? [
+                    ['name' => 'destino_unidad_id', 'label' => 'Unidad de destino', 'type' => 'select', 'required' => true,
+                        'options' => $destinations->map(fn ($unit) => ['value' => (string) $unit->id, 'label' => $unit->name])->all()],
+                    ['name' => 'motivo', 'label' => 'Motivo', 'type' => 'textarea', 'required' => true,
+                        'maxCodePoints' => 500, 'help' => 'Hasta 500 caracteres.', 'wide' => true],
+                ] : [],
+            ];
+        }
         $detailProps = [
             'document' => [
                 'code' => $document->code, 'guide' => $document->guide,
@@ -15,7 +51,9 @@
             'sheet' => [
                 'code' => $payload['hoja']['codigo'], 'state' => $payload['estado'],
                 'version' => $payload['hoja']['version'],
-                'responsible' => $actorNames[$payload['hoja']['responsable_id']] ?? 'No disponible',
+                'responsible' => $payload['hoja']['responsable']['nombre'],
+                'currentUnit' => $payload['hoja']['unidad_vigente']['nombre'],
+                'pendingUnit' => $document->sheet->pendingUnit?->name,
             ],
             'movements' => collect($history['data'])->map(fn ($event) => [
                 'id' => $event['id'],
@@ -37,6 +75,7 @@
                     'reference' => $payload['hoja']['id'],
                 ]),
             ],
+            'workflow' => $workflow,
             'indexUrl' => route('documents.index'),
         ];
     @endphp

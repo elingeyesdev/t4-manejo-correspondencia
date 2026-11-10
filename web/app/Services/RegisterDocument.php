@@ -47,10 +47,18 @@ class RegisterDocument
                 'guide' => 'COR-'.$instant->year.'-'.$suffix, 'sender' => $fields['remitente'], 'subject' => $fields['asunto'],
                 'received_on' => $fields['fecha'], 'type_id' => $fields['tipo_id'], 'priority_id' => $fields['prioridad_id'],
                 'unit_id' => $unit->id, 'created_by' => $actor->id]);
-            $sheet = RouteSheet::create(['id' => (string) Str::uuid(), 'code' => 'HR-'.$instant->year.'-'.$suffix,
-                'document_id' => $doc->id, 'state' => 'REGISTRADA', 'responsible_id' => $actor->id, 'version' => 1]);
+            $sheet = RouteSheet::create([
+                'id' => (string) Str::uuid(),
+                'code' => 'HR-'.$instant->year.'-'.$suffix,
+                'document_id' => $doc->id,
+                'state' => 'REGISTRADA',
+                'responsible_id' => $actor->id,
+                'current_unit_id' => $unit->id,
+                'version' => 1,
+            ]);
             Movement::create(['id' => (string) Str::uuid(), 'route_sheet_id' => $sheet->id, 'actor_id' => $actor->id,
-                'origin_unit_id' => $actor->unit_id, 'destination_unit_id' => $unit->id, 'action' => 'REGISTRO', 'resulting_state' => 'REGISTRADA', 'occurred_at' => $instant]);
+                'origin_unit_id' => $actor->unit_id, 'destination_unit_id' => $unit->id, 'action' => 'REGISTRO', 'resulting_state' => 'REGISTRADA',
+                'sheet_version' => $sheet->version, 'occurred_at' => $instant]);
             DB::table('requests')->insert(['actor_id' => $actor->id, 'operation' => 'registro', 'key' => $data['request_key'],
                 'fingerprint' => $fingerprint, 'document_id' => $doc->id, 'created_at' => $instant]);
             DB::table('audits')->insert(['actor_id' => $actor->id, 'action' => 'documento.registrar', 'resource' => $doc->id, 'occurred_at' => $instant]);

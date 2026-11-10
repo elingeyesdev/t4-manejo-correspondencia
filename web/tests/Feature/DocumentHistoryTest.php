@@ -236,7 +236,7 @@ class DocumentHistoryTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_history_is_ordered_by_date_then_id(): void
+    public function test_history_is_ordered_by_sheet_version_even_with_equal_timestamps(): void
     {
         Sanctum::actingAs($this->operator);
 
@@ -250,16 +250,17 @@ class DocumentHistoryTest extends TestCase
         $secondId = '00000000-0000-4000-8000-000000000002';
 
         // Movimientos sintéticos únicamente en la base aislada de pruebas.
-        // Se insertan en orden inverso para comprobar el desempate.
-        foreach ([$secondId, $firstId] as $id) {
+        // El orden de inserción y de UUID se oponen al orden de las versiones.
+        foreach ([$firstId => 3, $secondId => 2] as $id => $version) {
             $movement = $initial->replicate();
             $movement->id = $id;
+            $movement->sheet_version = $version;
             $movement->occurred_at = '2026-11-02 11:00:00';
             $movement->save();
         }
 
         $before = $this->snapshot();
-        $expectedIds = [$initial->id, $firstId, $secondId];
+        $expectedIds = [$initial->id, $secondId, $firstId];
 
         $response = $this->getJson($this->url())
             ->assertOk()

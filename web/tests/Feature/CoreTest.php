@@ -106,6 +106,7 @@ class CoreTest extends TestCase
         $this->assertNotSame($result->json('codigo'), $result->json('hoja.codigo'));
         $this->assertDatabaseCount('documents', 1);
         $this->assertDatabaseCount('route_sheets', 1);
+        $this->assertDatabaseHas('route_sheets', ['id' => $result->json('hoja.id'), 'current_unit_id' => $this->operator->unit_id]);
         $this->assertDatabaseCount('movements', 1);
         $this->assertSame($this->operator->id, $result->json('movimientos.0.actor_id'));
         $this->assertStringEndsWith('Z', $result->json('fechaUltimoMovimiento'));

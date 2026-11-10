@@ -35,6 +35,12 @@ async function submit(event) {
     for (const field of props.fields) {
         if (field.required && (values[field.name] === '' || values[field.name] == null)) {
             localErrors[field.name] = 'Completa ' + field.label.toLowerCase() + '.';
+        } else if (field.maxCodePoints) {
+            const text = String(values[field.name]).replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '');
+            const count = Array.from(text).length;
+            if (count === 0 || count > field.maxCodePoints) {
+                localErrors[field.name] = 'Escribe entre 1 y ' + field.maxCodePoints + ' caracteres.';
+            }
         }
     }
     if (values.password && values.password !== values.password_confirmation) {
