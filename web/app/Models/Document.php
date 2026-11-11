@@ -75,6 +75,7 @@ class Document extends Model
             'nombre' => $sheet->responsible->name,
         ];
         $payload['acciones_permitidas'] = match (true) {
+            $sheet->canAttend($actor) => ['derivar', 'atender'],
             $sheet->canDerive($actor) => ['derivar'],
             $sheet->canReceive($actor) => ['recibir'],
             default => [],

@@ -7,10 +7,12 @@ use App\Models\Attachment;
 use App\Models\Document;
 use App\Services\AttachmentCipher;
 use App\Services\StoreAttachment;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class AttachmentController extends Controller
@@ -34,13 +36,14 @@ class AttachmentController extends Controller
         string $id,
         StoreAttachment $service
     ) {
-        $document = Document::visibleTo($request->user())->findOrFail($id);
-
         try {
             $attachment = $service->execute(
-                $document,
+                $request->user(),
+                $id,
                 $request->file('archivo')
             );
+        } catch (ModelNotFoundException|HttpExceptionInterface $error) {
+            throw $error;
         } catch (Throwable $error) {
             report($error);
 

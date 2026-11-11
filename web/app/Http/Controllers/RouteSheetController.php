@@ -34,6 +34,13 @@ class RouteSheetController extends Controller
         return $this->respond($request, $result, $created, 'Recepción confirmada.');
     }
 
+    public function attend(RouteSheetActionRequest $request, string $reference, RouteSheetWorkflow $workflow)
+    {
+        [$result, $created] = $workflow->attend($request->user(), $reference, $request->validated());
+
+        return $this->respond($request, $result, $created, 'Atención registrada.');
+    }
+
     private function respond(Request $request, array $result, bool $created, string $message)
     {
         if ($request->routeIs('api.route-sheets.*')) {

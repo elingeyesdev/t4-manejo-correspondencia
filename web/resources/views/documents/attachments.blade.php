@@ -1,6 +1,6 @@
 @php
     $attachmentsProps = [
-        'canUpload' => auth()->user()->canRegister(),
+        'canUpload' => $document->sheet->canUploadAttachment(auth()->user()),
         'uploadUrl' => route('attachments.store', $document->id),
         'csrfToken' => csrf_token(),
         'total' => $attachments->total(),

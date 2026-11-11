@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Attachment;
 use App\Models\Document;
+use App\Models\RouteSheet;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +19,7 @@ class StoreAttachment
         private AttachmentCipher $cipher
     ) {}
 
-    public function execute(Document $document, UploadedFile $file): Attachment
+    public function execute(User $actor, string $documentId, UploadedFile $file): Attachment
     {
         $content = file_get_contents($file->getRealPath());
 
@@ -27,7 +29,7 @@ class StoreAttachment
 
         $encrypted = $this->cipher->encrypt($content);
         $id = (string) Str::uuid();
-        $path = $document->id.'/'.$id.'.enc';
+        $path = $documentId.'/'.$id.'.enc';
         $disk = Storage::disk(config('attachments.disk'));
 
         $name = preg_replace(
@@ -42,23 +44,34 @@ class StoreAttachment
             $name = 'adjunto';
         }
 
+        $writeStarted = false;
         try {
-            if (! $disk->put($path, $encrypted['content'])) {
-                throw new RuntimeException('No se pudo guardar el archivo cifrado.');
-            }
-
             return DB::transaction(function () use (
+                $actor,
                 $id,
-                $document,
+                $documentId,
                 $file,
                 $content,
                 $path,
                 $name,
-                $encrypted
+                $encrypted,
+                $disk,
+                &$writeStarted,
             ) {
+                $actor = User::query()->lockForUpdate()->findOrFail($actor->id);
+                abort_unless($actor->isOperational(), 403);
+                $sheet = RouteSheet::where('document_id', $documentId)->lockForUpdate()->firstOrFail();
+                Document::visibleTo($actor)->findOrFail($documentId);
+                abort_unless($sheet->canUploadAttachment($actor), 403);
+
+                $writeStarted = true;
+                if (! $disk->put($path, $encrypted['content'])) {
+                    throw new RuntimeException('No se pudo guardar el archivo cifrado.');
+                }
+
                 return Attachment::create([
                     'id' => $id,
-                    'document_id' => $document->id,
+                    'document_id' => $documentId,
                     'original_name' => $name,
                     'mime_type' => $file->getMimeType(),
                     'size_bytes' => strlen($content),
@@ -67,14 +80,16 @@ class StoreAttachment
                 ]);
             });
         } catch (Throwable $error) {
-            try {
-                if (! $disk->delete($path)) {
-                    throw new RuntimeException(
-                        'No se pudo limpiar el archivo de una carga fallida.'
-                    );
+            if ($writeStarted) {
+                try {
+                    if (! $disk->delete($path)) {
+                        throw new RuntimeException(
+                            'No se pudo limpiar el archivo de una carga fallida.'
+                        );
+                    }
+                } catch (Throwable $cleanupError) {
+                    report($cleanupError);
                 }
-            } catch (Throwable $cleanupError) {
-                report($cleanupError);
             }
 
             throw $error;

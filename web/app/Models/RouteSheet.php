@@ -63,6 +63,17 @@ class RouteSheet extends Model
             && (int) $actor->unit_id === (int) $this->pending_unit_id;
     }
 
+    public function canAttend(User $actor): bool
+    {
+        return $this->isResponsible($actor)
+            && in_array($this->state, ['RECIBIDA', 'EN_ATENCION'], true);
+    }
+
+    public function canUploadAttachment(User $actor): bool
+    {
+        return $this->state !== 'CERRADA' && ($actor->canRegister() || $this->canAttend($actor));
+    }
+
     public function eligibleDestinations(): Builder
     {
         return Unit::query()

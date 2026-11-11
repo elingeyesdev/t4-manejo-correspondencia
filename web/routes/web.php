@@ -27,6 +27,8 @@ Route::middleware(['auth', 'operational'])->group(function () {
         ->whereUuid('reference')->name('route-sheets.derive');
     Route::post('/hojas/{reference}/recepciones', [RouteSheetController::class, 'receive'])
         ->whereUuid('reference')->name('route-sheets.receive');
+    Route::post('/hojas/{reference}/atenciones', [RouteSheetController::class, 'attend'])
+        ->whereUuid('reference')->name('route-sheets.attend');
     Route::get('/hojas/{reference}', [RouteSheetQrController::class, 'show'])
         ->whereUuid('reference')
         ->name('route-sheets.show');

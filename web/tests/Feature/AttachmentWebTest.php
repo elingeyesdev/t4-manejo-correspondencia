@@ -82,7 +82,7 @@ class AttachmentWebTest extends TestCase
 
     public function test_official_can_read_but_cannot_upload_from_web(): void
     {
-        $a = app(StoreAttachment::class)->execute($this->document, $this->photo());
+        $a = app(StoreAttachment::class)->execute($this->operator, $this->document->id, $this->photo());
         $official = User::factory()->create(['role' => 'funcionario', 'unit_id' => $this->operator->unit_id, 'enabled' => true]);
         $response = $this->actingAs($official)->get(route('documents.show', $this->document->id))->assertOk();
         $this->assertFalse($this->props($response->getContent())['canUpload']);
@@ -93,7 +93,7 @@ class AttachmentWebTest extends TestCase
 
     public function test_other_units_and_unrelated_documents_cannot_download_the_file(): void
     {
-        $a = app(StoreAttachment::class)->execute($this->document, $this->photo());
+        $a = app(StoreAttachment::class)->execute($this->operator, $this->document->id, $this->photo());
         $second = $this->document();
         $this->actingAs($this->operator)->get(route('attachments.view', [$second->id, $a->id]))->assertNotFound();
         $unit = Unit::create(['institution_id' => $this->operator->unit->institution_id, 'code' => 'OTRA', 'name' => 'Otra unidad', 'enabled' => true]);
@@ -123,7 +123,7 @@ class AttachmentWebTest extends TestCase
     public function test_panel_paginates_and_escapes_file_names(): void
     {
         for ($i = 0; $i < 16; $i++) {
-            app(StoreAttachment::class)->execute($this->document, $this->photo('carta-'.$i.'.jpg'));
+            app(StoreAttachment::class)->execute($this->operator, $this->document->id, $this->photo('carta-'.$i.'.jpg'));
         }
         $url = route('documents.show', $this->document->id);
         $response = $this->actingAs($this->operator)->get($url.'?adjuntos_page=2')->assertOk();
@@ -131,7 +131,7 @@ class AttachmentWebTest extends TestCase
         $this->assertSame(2, $panel['currentPage']);
         $this->assertSame(16, $panel['total']);
         $this->assertCount(1, $panel['records']);
-        app(StoreAttachment::class)->execute($this->document, $this->photo('<script>alert(1)</script>.jpg'));
+        app(StoreAttachment::class)->execute($this->operator, $this->document->id, $this->photo('<script>alert(1)</script>.jpg'));
         $this->get($url)->assertDontSee('<script>alert(1)</script>', false);
     }
 

@@ -52,3 +52,11 @@ Consulta autorizada por UUID de hoja: `GET /api/hojas/{reference}`. Imagen prote
 ## Historial documental — #20 / T10
 
 `GET /api/documentos/{id}/historial` devuelve documento, hoja, total y movimientos persistidos ordenados por fecha e identificador, con actor y unidades. Exige autenticación y el mismo alcance de acceso del documento. La vista web usa el mismo servicio; consultar no confirma recepción ni modifica el historial. Contrato, límites y evidencia en [Historial documental](historial-documental.md). Implementación local con QR integrado; revisión cruzada del #20 pendiente.
+
+## Atención documental (#31 / T14)
+
+`POST /api/hojas/{uuid}/atenciones` recibe el UUID de la hoja, `version` entera positiva, `observacion` de 1 a 2 000 puntos de código y la cabecera `Idempotency-Key`. El responsable activo puede registrar atención en `RECIBIDA` o `EN_ATENCION`. El detalle ofrece `atender` en `acciones_permitidas` cuando corresponde.
+
+La operación devuelve `201` con `documento_id`, `hoja` en estado `EN_ATENCION` y `movimiento.accion` igual a `ATENCION`. La versión sube una unidad y el historial conserva el autor, la fecha del servidor y la observación en `data[].motivo`. El reintento con el mismo cuerpo y clave devuelve `200` con el resultado anterior. Una corrección usa una clave nueva y la versión vigente. Consultar los códigos de error en el [contrato del recorrido](contrato-recorrido.md#reintentos-conflictos-y-errores).
+
+La foto opcional se envía por la ruta de adjuntos del documento. Si falla la carga, la atención queda guardada y se reintenta solo la foto. El responsable activo puede cargarla con la hoja recibida o en atención. En una hoja cerrada, los archivos existentes siguen disponibles para usuarios autorizados.

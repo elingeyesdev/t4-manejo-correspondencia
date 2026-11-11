@@ -12,7 +12,7 @@ defineProps({
     movements: { type: Array, required: true },
     indexUrl: { type: String, required: true },
     qr: { type: Object, required: true },
-    workflow: { type: Object, default: null },
+    workflows: { type: Array, default: () => [] },
 });
 const qrFailed = ref(false);
 </script>
@@ -53,7 +53,7 @@ const qrFailed = ref(false);
         </section>
     </div>
 
-    <section v-if="workflow" class="card">
+    <section v-for="workflow in workflows" :key="workflow.formKey" class="card">
         <h2 class="text-xl font-semibold mt-0 mb-5">{{ workflow.formLabel }}</h2>
         <SakaiForm v-bind="workflow" />
     </section>
@@ -107,8 +107,7 @@ const qrFailed = ref(false);
         </h2>
 
         <p class="text-muted-color mb-5">
-            Se muestran únicamente los movimientos registrados.
-            El registro inicial no acredita derivaciones, recepciones ni cierre.
+            Cada fila muestra un movimiento registrado en el expediente.
         </p>
 
         <DataTable
@@ -133,7 +132,11 @@ const qrFailed = ref(false);
                 </template>
             </Column>
 
-            <Column field="reason" header="Motivo" />
+            <Column header="Motivo u observación">
+                <template #body="{ data }">
+                    <div class="max-w-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{{ data.reason }}</div>
+                </template>
+            </Column>
         </DataTable>
     </section>
 </template>

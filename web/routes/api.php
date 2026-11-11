@@ -35,6 +35,8 @@ Route::middleware(['auth:sanctum', 'operational'])->group(function () {
         ->whereUuid('reference')->name('api.route-sheets.derive');
     Route::post('/hojas/{reference}/recepciones', [RouteSheetController::class, 'receive'])
         ->whereUuid('reference')->name('api.route-sheets.receive');
+    Route::post('/hojas/{reference}/atenciones', [RouteSheetController::class, 'attend'])
+        ->whereUuid('reference')->name('api.route-sheets.attend');
     Route::get('/hojas/{reference}', [RouteSheetQrController::class, 'show'])
         ->whereUuid('reference');
     Route::get('/hojas/{reference}/qr.svg', [RouteSheetQrController::class, 'image'])
