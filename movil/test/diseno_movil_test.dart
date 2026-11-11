@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:t4_movil/main.dart';
-import 'package:t4_movil/pages/diseno_movil_page.dart';
-import 'package:t4_movil/services/consulta_envio_service.dart';
-import 'package:t4_movil/models/envio_consulta.dart';
+import 'package:t4_movil/funciones/bocetos/diseno_movil_page.dart';
+import 'package:t4_movil/funciones/consultar_envio/consulta_envio_service.dart';
+import 'package:t4_movil/funciones/consultar_envio/envio_consulta.dart';
 
 class _SinConsultas implements ConsultaEnvioService {
   int llamadas = 0;

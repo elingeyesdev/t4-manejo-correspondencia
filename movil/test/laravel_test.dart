@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:t4_movil/main.dart';
-import 'package:t4_movil/pages/registro_laravel_page.dart';
-import 'package:t4_movil/services/consulta_envio_service.dart';
-import 'package:t4_movil/services/laravel_api.dart';
-import 'package:t4_movil/services/sesion_controller.dart';
+import 'package:t4_movil/funciones/nueva_correspondencia/registro_laravel_page.dart';
+import 'package:t4_movil/funciones/consultar_envio/consulta_envio_service.dart';
+import 'package:t4_movil/compartido/api/laravel_api.dart';
+import 'package:t4_movil/funciones/iniciar_sesion/sesion_controller.dart';
 
 class AlmacenMemoria implements AlmacenSesion {
   String? valor;

@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:t4_movil/pages/registro_laravel_page.dart';
-import 'package:t4_movil/services/camara_documento.dart';
-import 'package:t4_movil/services/laravel_api.dart';
-import 'package:t4_movil/theme/sakai_theme.dart';
+import 'package:t4_movil/funciones/nueva_correspondencia/registro_laravel_page.dart';
+import 'package:t4_movil/funciones/camara/camara_documento.dart';
+import 'package:t4_movil/compartido/api/laravel_api.dart';
+import 'package:t4_movil/compartido/diseno/sakai_theme.dart';
 
 import 'soporte/camara_falsa.dart';
 

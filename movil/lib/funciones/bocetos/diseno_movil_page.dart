@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/sakai_theme.dart';
+import '../../compartido/diseno/sakai_theme.dart';
 
 enum PantallaDiseno {
   acceso('Inicio de sesión'),

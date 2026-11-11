@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:t4_movil/pages/captura_documento_page.dart';
-import 'package:t4_movil/pages/bandeja_laravel_page.dart';
-import 'package:t4_movil/services/camara_documento.dart';
-import 'package:t4_movil/services/laravel_api.dart';
-import 'package:t4_movil/theme/sakai_theme.dart';
+import 'package:t4_movil/funciones/camara/captura_documento_page.dart';
+import 'package:t4_movil/funciones/mi_bandeja/bandeja_laravel_page.dart';
+import 'package:t4_movil/funciones/camara/camara_documento.dart';
+import 'package:t4_movil/compartido/api/laravel_api.dart';
+import 'package:t4_movil/compartido/diseno/sakai_theme.dart';
 
 import 'soporte/camara_falsa.dart';
 
@@ -149,7 +149,11 @@ void main() {
             );
           }
           return http.Response(
-            jsonEncode({'codigo': 'DOC-001', 'asunto': 'Carta de prueba'}),
+            jsonEncode({
+              'id': 'id-001',
+              'codigo': 'DOC-001',
+              'asunto': 'Carta de prueba',
+            }),
             200,
           );
         }),

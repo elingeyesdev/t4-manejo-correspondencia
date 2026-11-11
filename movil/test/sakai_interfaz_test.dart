@@ -9,8 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:t4_movil/main.dart';
-import 'package:t4_movil/services/laravel_api.dart';
-import 'package:t4_movil/services/sesion_controller.dart';
+import 'package:t4_movil/compartido/api/laravel_api.dart';
+import 'package:t4_movil/funciones/iniciar_sesion/sesion_controller.dart';
 
 class _Memoria implements AlmacenSesion {
   String? dato;

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:t4_movil/pages/bandeja_laravel_page.dart';
-import 'package:t4_movil/services/laravel_api.dart';
+import 'package:t4_movil/funciones/mi_bandeja/bandeja_laravel_page.dart';
+import 'package:t4_movil/compartido/api/laravel_api.dart';
 
 Map<String, dynamic> _documento(String id, String asunto) => {
   'id': id,

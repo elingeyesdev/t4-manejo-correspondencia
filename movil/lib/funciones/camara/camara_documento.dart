@@ -26,7 +26,6 @@ class FotoDocumento {
   }
 }
 
-/// Separa el dispositivo de la pantalla para probar cancelaciones y permisos.
 abstract class CamaraDocumento {
   Future<void> iniciar({required bool solicitarPermiso});
   Widget vista();

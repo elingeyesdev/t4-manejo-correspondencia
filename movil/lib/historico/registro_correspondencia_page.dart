@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../models/correspondencia.dart';
-import '../services/correspondencia_api.dart';
+import 'correspondencia.dart';
+import 'correspondencia_api.dart';
 
 class RegistroCorrespondenciaPage extends StatefulWidget {
   const RegistroCorrespondenciaPage({super.key, required this.api});

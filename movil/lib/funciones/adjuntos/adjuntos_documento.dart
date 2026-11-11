@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../pages/adjunto_page.dart';
-import '../pages/captura_documento_page.dart';
-import '../services/adjuntos_api.dart';
-import '../services/camara_documento.dart';
-import '../services/laravel_api.dart';
-import '../theme/sakai_theme.dart';
-import 'sakai_widgets.dart';
+import 'adjunto_page.dart';
+import '../camara/captura_documento_page.dart';
+import 'adjuntos_api.dart';
+import '../camara/camara_documento.dart';
+import '../../compartido/api/laravel_api.dart';
+import '../../compartido/diseno/sakai_theme.dart';
+import '../../compartido/diseno/sakai_widgets.dart';
 
 class AdjuntosDocumento extends StatefulWidget {
   const AdjuntosDocumento({
@@ -206,7 +206,7 @@ class _AdjuntosDocumentoState extends State<AdjuntosDocumento>
         await _confirmar(r);
       } else {
         setState(
-          () => _error = 'La foto todavía no aparece en los adjuntos. Espera un momento y vuelve a comprobar antes de enviarla otra vez.',
+          () => _error = 'La foto todavía no aparece en los adjuntos. Espera un momento y vuelve a comprobar.',
         );
       }
       if (mounted) await _cargar(reiniciar: true);
@@ -220,32 +220,6 @@ class _AdjuntosDocumentoState extends State<AdjuntosDocumento>
       }
     } finally {
       if (mounted) _ocupacion(false);
-    }
-  }
-
-  Future<void> _reenviar() async {
-    final aceptar = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Volver a enviar la foto?'),
-        content: const Text(
-          'Si el primer envío se guardó pero su respuesta se perdió, podrías crear un duplicado. Comprueba primero los adjuntos.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Volver a enviar'),
-          ),
-        ],
-      ),
-    );
-    if (aceptar == true && mounted) {
-      setState(() => _incierta = false);
-      await _subir();
     }
   }
 
@@ -293,7 +267,10 @@ class _AdjuntosDocumentoState extends State<AdjuntosDocumento>
             const Text('Fotografía la hoja y guárdala junto a este documento.'),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: _abriendo || _enviando ? null : _capturar,
+              onPressed:
+                  _abriendo || _enviando || _incierta || !widget.puedeAdjuntar
+                  ? null
+                  : _capturar,
               icon: const Icon(Icons.add_a_photo_outlined),
               label: const Text('Adjuntar foto'),
             ),
@@ -315,7 +292,7 @@ class _AdjuntosDocumentoState extends State<AdjuntosDocumento>
             const SizedBox(height: 12),
             if (!_incierta)
               FilledButton.icon(
-                onPressed: _enviando ? null : _subir,
+                onPressed: _enviando || !widget.puedeAdjuntar ? null : _subir,
                 icon: const Icon(Icons.cloud_upload_outlined),
                 label: const Text('Subir foto'),
               ),
@@ -325,13 +302,12 @@ class _AdjuntosDocumentoState extends State<AdjuntosDocumento>
                 icon: const Icon(Icons.refresh),
                 label: const Text('Comprobar subida'),
               ),
-              TextButton(
-                onPressed: _enviando ? null : _reenviar,
-                child: const Text('Volver a enviar'),
-              ),
             ],
             OutlinedButton.icon(
-              onPressed: _abriendo || _enviando ? null : _capturar,
+              onPressed:
+                  _abriendo || _enviando || _incierta || !widget.puedeAdjuntar
+                  ? null
+                  : _capturar,
               icon: const Icon(Icons.photo_camera_outlined),
               label: const Text('Cambiar foto'),
             ),

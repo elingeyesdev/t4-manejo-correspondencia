@@ -4,9 +4,9 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/io_client.dart';
-import 'package:t4_movil/services/adjuntos_api.dart';
-import 'package:t4_movil/services/camara_documento.dart';
-import 'package:t4_movil/services/laravel_api.dart';
+import 'package:t4_movil/funciones/adjuntos/adjuntos_api.dart';
+import 'package:t4_movil/funciones/camara/camara_documento.dart';
+import 'package:t4_movil/compartido/api/laravel_api.dart';
 
 class _HttpReal extends HttpOverrides {}
 

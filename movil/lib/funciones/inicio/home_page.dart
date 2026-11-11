@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/sakai_theme.dart';
-import '../widgets/sakai_widgets.dart';
+import '../../compartido/diseno/sakai_theme.dart';
+import '../../compartido/diseno/sakai_widgets.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({

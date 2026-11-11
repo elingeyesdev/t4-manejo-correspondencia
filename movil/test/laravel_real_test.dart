@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/io_client.dart';
 import 'package:t4_movil/main.dart';
-import 'package:t4_movil/services/laravel_api.dart';
-import 'package:t4_movil/services/consulta_envio_service.dart';
-import 'package:t4_movil/services/sesion_controller.dart';
+import 'package:t4_movil/compartido/api/laravel_api.dart';
+import 'package:t4_movil/funciones/consultar_envio/consulta_envio_service.dart';
+import 'package:t4_movil/funciones/iniciar_sesion/sesion_controller.dart';
 
 class _HttpReal extends HttpOverrides {}
 
@@ -172,7 +172,17 @@ void main() {
           'GET',
           'documentos/${guardado['id']}',
         );
-        expect(detalle, guardado);
+        for (final entry in guardado.entries) {
+          if (entry.key == 'hoja') {
+            for (final campo in (entry.value as Map).entries) {
+              expect(detalle['hoja'], containsPair(campo.key, campo.value));
+            }
+          } else {
+            expect(detalle[entry.key], entry.value);
+          }
+        }
+        expect(detalle['acciones_permitidas'], contains('derivar'));
+        expect(detalle['hoja']['unidad_vigente_id'], guardado['unidad']['id']);
       });
       await tester.pumpWidget(CorrespondenciaApp(sesion: sesion));
       await tester.pumpAndSettle();
@@ -181,7 +191,12 @@ void main() {
       await tester.enterText(find.byType(TextFormField), guia);
       await tester.runAsync(() async {
         await tester.tap(find.text('Consultar'));
-        await (api as _ObservadorApi).pendiente;
+        for (var intento = 0; intento < 6; intento++) {
+          final pendiente = (api as _ObservadorApi).pendiente;
+          await pendiente;
+          await tester.pump();
+          if (identical(pendiente, (api as _ObservadorApi).pendiente)) break;
+        }
       });
       await tester.pumpAndSettle();
       expect(find.text('REGISTRADA'), findsOneWidget);
@@ -191,14 +206,24 @@ void main() {
       await tester.runAsync(() async {
         await tester.tap(find.text('Mi bandeja'));
         await tester.pump();
-        await (api as _ObservadorApi).pendiente;
+        for (var intento = 0; intento < 6; intento++) {
+          final pendiente = (api as _ObservadorApi).pendiente;
+          await pendiente;
+          await tester.pump();
+          if (identical(pendiente, (api as _ObservadorApi).pendiente)) break;
+        }
       });
       await tester.pumpAndSettle();
       expect(find.text('Consulta móvil contra Laravel'), findsOneWidget);
       await tester.runAsync(() async {
         await tester.tap(find.text('Consulta móvil contra Laravel'));
         await tester.pump();
-        await (api as _ObservadorApi).pendiente;
+        for (var intento = 0; intento < 6; intento++) {
+          final pendiente = (api as _ObservadorApi).pendiente;
+          await pendiente;
+          await tester.pump();
+          if (identical(pendiente, (api as _ObservadorApi).pendiente)) break;
+        }
       });
       await tester.pumpAndSettle();
       expect(find.text('Detalle de correspondencia'), findsOneWidget);

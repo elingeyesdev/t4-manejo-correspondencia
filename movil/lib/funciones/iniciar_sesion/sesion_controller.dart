@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'laravel_api.dart';
+import '../../compartido/api/laravel_api.dart';
 
 abstract interface class AlmacenSesion {
   Future<String?> leer();
