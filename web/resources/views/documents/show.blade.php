@@ -5,7 +5,7 @@
         $actions = $payload['acciones_permitidas'];
         $workflows = [];
 
-        $addWorkflow = function ($operation, $label, $submitLabel, $help, $fields = []) use (&$workflows, $payload, $errors) {
+        $addWorkflow = function ($operation, $label, $submitLabel, $help, $fields = [], $action = null) use (&$workflows, $payload, $errors) {
             $formKey = 'route-'.$operation;
             $submitted = old('_form') === $formKey;
             $version = $payload['hoja']['version'];
@@ -20,7 +20,7 @@
             }
 
             $workflows[] = [
-                'action' => route('route-sheets.'.$operation, $payload['hoja']['id']),
+                'action' => $action ?? route('route-sheets.'.$operation, $payload['hoja']['id']),
                 'csrfToken' => csrf_token(),
                 'formKey' => $formKey,
                 'formLabel' => $label,
@@ -45,6 +45,19 @@
                         'maxCodePoints' => 2000, 'help' => 'Hasta 2 000 caracteres.', 'wide' => true],
                 ]);
         }
+        if (in_array('responder', $actions, true)) {
+            $catalogOptions = fn ($kind) => $responseCatalogs->get($kind, collect())
+                ->map(fn ($item) => ['value' => (string) $item->id, 'label' => $item->name])->all();
+
+            $addWorkflow('respond', 'Vincular respuesta', 'Guardar respuesta',
+                'La respuesta se incorpora a este expediente con su propio código.', [
+                    ['name' => 'remitente', 'label' => 'Remitente', 'required' => true, 'maxLength' => 150],
+                    ['name' => 'fecha', 'label' => 'Fecha del documento', 'type' => 'date', 'required' => true],
+                    ['name' => 'asunto', 'label' => 'Asunto', 'type' => 'textarea', 'required' => true, 'maxLength' => 500, 'wide' => true],
+                    ['name' => 'tipo_id', 'label' => 'Tipo de documento', 'type' => 'select', 'required' => true, 'options' => $catalogOptions('tipo')],
+                    ['name' => 'prioridad_id', 'label' => 'Prioridad', 'type' => 'select', 'required' => true, 'options' => $catalogOptions('prioridad')],
+                ], route('documents.responses.store', $document->id));
+        }
         if (in_array('derivar', $actions, true) && $destinations->isNotEmpty()) {
             $addWorkflow('derive', 'Derivar hoja', 'Derivar',
                 'La responsabilidad actual se conserva hasta que la unidad de destino confirme la recepción.', [
@@ -57,6 +70,15 @@
         if (in_array('recibir', $actions, true)) {
             $addWorkflow('receive', 'Confirmar recepción', 'Confirmar recepción',
                 'Al confirmar, quedas como responsable de la hoja en tu unidad.');
+        }
+        if (in_array('cerrar', $actions, true)) {
+            $addWorkflow('close', 'Cerrar expediente', 'Cerrar expediente',
+                'El expediente cerrado y su historial seguirán disponibles para consulta.', [
+                    ['name' => 'motivo', 'label' => 'Motivo del cierre', 'type' => 'textarea', 'required' => true,
+                        'maxCodePoints' => 500, 'help' => 'Hasta 500 caracteres.', 'wide' => true],
+                    ['name' => 'confirmar', 'label' => 'Confirmo el cierre de este expediente', 'type' => 'checkbox',
+                        'required' => true, 'wide' => true],
+                ]);
         }
         $detailProps = [
             'document' => [
@@ -71,7 +93,7 @@
                 'version' => $payload['hoja']['version'],
                 'responsible' => $payload['hoja']['responsable']['nombre'],
                 'currentUnit' => $payload['hoja']['unidad_vigente']['nombre'],
-                'pendingUnit' => $document->sheet->pendingUnit?->name,
+                'pendingUnit' => $document->rootDocument()->sheet->pendingUnit?->name,
             ],
             'movements' => collect($history['data'])->map(fn ($event) => [
                 'id' => $event['id'],
@@ -98,5 +120,28 @@
         ];
     @endphp
     <div id="document-detail" data-props="{{ json_encode($detailProps, JSON_UNESCAPED_SLASHES) }}"></div>
-    @include('documents.attachments')
+    @if ($payload['documento_original'])
+        <section class="card">
+            <h2 class="text-xl font-semibold mt-0 mb-4">Documento original</h2>
+            <a class="text-primary underline" href="{{ route('documents.show', $payload['documento_original']['id']) }}">
+                {{ $payload['documento_original']['codigo'] }} · {{ $payload['documento_original']['asunto'] }}
+            </a>
+        </section>
+    @elseif ($payload['respuestas'])
+        <section class="card">
+            <h2 class="text-xl font-semibold mt-0 mb-4">Respuestas vinculadas</h2>
+            <ul class="list-disc pl-5 space-y-2">
+                @foreach ($payload['respuestas'] as $response)
+                    <li>
+                        <a class="text-primary underline" href="{{ route('documents.show', $response['id']) }}">
+                            {{ $response['codigo'] }} · {{ $response['asunto'] }}
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+    @if ($document->response_to_id === null)
+        @include('documents.attachments')
+    @endif
 @endsection

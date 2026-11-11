@@ -60,3 +60,10 @@ Consulta autorizada por UUID de hoja: `GET /api/hojas/{reference}`. Imagen prote
 La operación devuelve `201` con `documento_id`, `hoja` en estado `EN_ATENCION` y `movimiento.accion` igual a `ATENCION`. La versión sube una unidad y el historial conserva el autor, la fecha del servidor y la observación en `data[].motivo`. El reintento con el mismo cuerpo y clave devuelve `200` con el resultado anterior. Una corrección usa una clave nueva y la versión vigente. Consultar los códigos de error en el [contrato del recorrido](contrato-recorrido.md#reintentos-conflictos-y-errores).
 
 La foto opcional se envía por la ruta de adjuntos del documento. Si falla la carga, la atención queda guardada y se reintenta solo la foto. El responsable activo puede cargarla con la hoja recibida o en atención. En una hoja cerrada, los archivos existentes siguen disponibles para usuarios autorizados.
+
+## Respuesta y cierre (#32 / T15)
+
+- `POST /api/documentos/{uuid}/respuestas` recibe el UUID del original, `remitente`, `asunto`, `fecha`, `tipo_id`, `prioridad_id` y `version`. El responsable activo obtiene `201` con `respuesta_id`. La hoja conserva su estado y aumenta su versión. La unidad de la respuesta se toma de la hoja.
+- `POST /api/hojas/{uuid}/cierre` recibe el UUID de la hoja, `motivo` de 1 a 500 puntos de código y `version`. El responsable activo puede cerrar desde `RECIBIDA` o `EN_ATENCION` sin recepción pendiente. Devuelve `200` con la hoja `CERRADA` y el movimiento `CIERRE`, incluido `movimiento.motivo`. Un segundo cierre autorizado devuelve el resultado original.
+- Ambas rutas usan `Idempotency-Key`. Los formularios web usan sesión, CSRF y `request_key`. Sakai exige una confirmación explícita al cerrar.
+- El detalle del original incluye `respuestas`. El detalle de cada respuesta incluye `documento_original`. Las dos consultas respetan el acceso al expediente original y comparten la hoja y el historial. El cierre conserva la consulta autorizada y bloquea nuevas operaciones de recorrido.

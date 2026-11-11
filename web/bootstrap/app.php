@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(web: __DIR__.'/../routes/web.php', api: __DIR__.'/../routes/api.php', commands: __DIR__.'/../routes/console.php', health: '/up')
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias(['operational' => EnsureOperational::class]);
-        $middleware->trimStrings(except: ['observacion']);
+        $middleware->trimStrings(except: ['motivo', 'observacion']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthenticationException $error, Request $request) {
@@ -37,10 +37,16 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (HttpExceptionInterface $error, Request $request) {
             $status = $error->getStatusCode();
-            if ($status === 409 && $request->routeIs('route-sheets.derive', 'route-sheets.receive', 'route-sheets.attend')) {
+            if ($status === 409 && $request->routeIs('documents.responses.store')) {
+                return redirect()->route('documents.show', $request->route('id'))
+                    ->withErrors(['recorrido' => 'La respuesta no se guardó. Revisa el estado del expediente.'])
+                    ->withInput($request->only('_form', 'remitente', 'asunto', 'fecha', 'tipo_id', 'prioridad_id'));
+            }
+
+            if ($status === 409 && $request->routeIs('route-sheets.derive', 'route-sheets.receive', 'route-sheets.attend', 'route-sheets.close')) {
                 return redirect()->route('route-sheets.show', $request->route('reference'))
                     ->withErrors(['recorrido' => 'La operación no se guardó. Revisa el estado y vuelve a intentarlo si corresponde.'])
-                    ->withInput($request->only('_form', 'observacion'));
+                    ->withInput($request->only('_form', 'observacion', 'motivo'));
             }
 
             if (! $request->routeIs('api.route-sheets.*')) {

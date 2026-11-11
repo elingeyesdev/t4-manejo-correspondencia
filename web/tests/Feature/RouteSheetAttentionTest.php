@@ -91,7 +91,7 @@ class RouteSheetAttentionTest extends TestCase
         $this->postAttention(4, 'Versión anterior')->assertConflict()->assertJsonPath('codigo', 'VERSION_DESACTUALIZADA');
 
         $this->getJson('/api/hojas/'.$this->reference)->assertOk()
-            ->assertJsonPath('acciones_permitidas', ['derivar', 'atender'])
+            ->assertJsonPath('acciones_permitidas', ['derivar', 'atender', 'responder', 'cerrar'])
             ->assertJsonPath('movimientos.3.reason', 'Se revisó la solicitud.')
             ->assertJsonPath('movimientos.4.reason', 'Se corrigió la referencia.');
         $this->getJson('/api/documentos/'.$this->document->id.'/historial')->assertOk()
