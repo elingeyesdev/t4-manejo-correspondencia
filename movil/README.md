@@ -18,9 +18,9 @@ La app no se conecta directamente a PostgreSQL ni al servidor histórico de Node
   la misma clave de idempotencia; no crea otro registro.
 
 Los permisos se verifican en Laravel. Funcionario no dispone de registro.
-La sección Gestión documental conserva el diseño de operaciones futuras;
-sus pantallas de cámara, QR, recepción, atención y derivación no envían operaciones.
-Ver [DISENO_MOVIL.md](DISENO_MOVIL.md).
+La sección Gestión documental conserva los bocetos de diseño. Las acciones reales
+están en Mi bandeja y el detalle: QR, derivación, recepción, atención y adjuntos.
+Ver [RECORRIDO_MOVIL.md](RECORRIDO_MOVIL.md).
 
 ## Preparar el backend
 
@@ -131,3 +131,14 @@ Comandos usados y estado local: [GUIA_GIT_DISENO.md](GUIA_GIT_DISENO.md).
 ## Cámara de documentos
 
 Captura, subida autenticada, listado y apertura de adjuntos del issue #21, conectados al backend del PR #23. Contrato, pruebas y ejecución local en [CAMARA_DOCUMENTOS.md](CAMARA_DOCUMENTOS.md). La comprobación física completa en el teléfono y la revisión cruzada siguen pendientes.
+
+
+## Organización del código móvil
+
+En `lib/funciones/` cada carpeta reúne la pantalla y la lógica de una función: inicio, iniciar_sesion, mi_bandeja, nueva_correspondencia, consultar_envio, camara, adjuntos y bocetos. `lib/compartido/` contiene la conexión a Laravel y el diseño Sakai común. `lib/historico/` conserva el formulario previo y sus pruebas de compatibilidad. `main.dart` inicia la app y coordina la navegación.
+
+## Recorrido entre unidades — #33
+
+Desde **Mi bandeja**, abre una correspondencia o utiliza **Escanear QR de hoja de ruta**. El detalle ofrece derivar, confirmar recepción y registrar atención según los permisos que devuelve Laravel. Actualiza responsable, unidad, estado e historial y permite adjuntar fotos al responsable recibido.
+
+La [guía del recorrido](RECORRIDO_MOVIL.md) explica el uso, los reintentos y la comprobación en teléfono. Las acciones y formularios están en lib/funciones/recorrido; el lector QR está en lib/funciones/qr.
