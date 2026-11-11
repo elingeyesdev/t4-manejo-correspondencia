@@ -16,7 +16,12 @@ class DocumentController extends Controller
 {
     public function index(Request $r)
     {
-        $docs = Document::visibleTo($r->user())->with(['sheet', 'unit'])->latest()->orderBy('id')->paginate(15);
+        $docs = Document::visibleTo($r->user())
+            ->whereNull('response_to_id')
+            ->with(['sheet', 'unit'])
+            ->latest()
+            ->orderBy('id')
+            ->paginate(15);
         if ($r->is('api/*')) {
             return response()->json($docs->through(fn ($d) => $d->payload()));
         }
@@ -67,6 +72,10 @@ class DocumentController extends Controller
             'payload' => $payload,
             'destinations' => in_array('derivar', $payload['acciones_permitidas'], true)
                 ? $doc->sheet->eligibleDestinations()->orderBy('name')->get(['id', 'name'])
+                : collect(),
+            'responseCatalogs' => in_array('responder', $payload['acciones_permitidas'], true)
+                ? Catalog::where('enabled', true)->whereIn('kind', ['tipo', 'prioridad'])
+                    ->orderBy('name')->get(['id', 'kind', 'name'])->groupBy('kind')
                 : collect(),
             'history' => $historyService->execute($r->user(), $id),
             'attachments' => Attachment::where('document_id', $doc->id)

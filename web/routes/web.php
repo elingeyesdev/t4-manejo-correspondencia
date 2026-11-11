@@ -19,6 +19,8 @@ Route::middleware(['auth', 'operational'])->group(function () {
     Route::get('/documentos/nuevo', [DocumentController::class, 'create'])->name('documents.create');
     Route::post('/documentos', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('/documentos/{id}', [DocumentController::class, 'show'])->whereUuid('id')->name('documents.show');
+    Route::post('/documentos/{id}/respuestas', [RouteSheetController::class, 'storeResponse'])
+        ->whereUuid('id')->name('documents.responses.store');
     Route::post('/documentos/{id}/adjuntos', [AttachmentWebController::class, 'store'])->whereUuid('id')->name('attachments.store');
     Route::get('/documentos/{id}/adjuntos/{adjunto}/ver', [AttachmentWebController::class, 'view'])->whereUuid('id')->whereUuid('adjunto')->name('attachments.view');
     Route::get('/documentos/{id}/adjuntos/{adjunto}/descarga', [AttachmentWebController::class, 'download'])->whereUuid('id')->whereUuid('adjunto')->name('attachments.download');
@@ -29,6 +31,8 @@ Route::middleware(['auth', 'operational'])->group(function () {
         ->whereUuid('reference')->name('route-sheets.receive');
     Route::post('/hojas/{reference}/atenciones', [RouteSheetController::class, 'attend'])
         ->whereUuid('reference')->name('route-sheets.attend');
+    Route::post('/hojas/{reference}/cierre', [RouteSheetController::class, 'close'])
+        ->whereUuid('reference')->name('route-sheets.close');
     Route::get('/hojas/{reference}', [RouteSheetQrController::class, 'show'])
         ->whereUuid('reference')
         ->name('route-sheets.show');

@@ -13,7 +13,7 @@ class DocumentHistory
         abort_unless($user->isOperational(), 403);
 
         $document = Document::visibleTo($user)->findOrFail($documentId);
-        $sheet = $document->sheet()->firstOrFail();
+        $sheet = $document->rootDocument()->sheet()->firstOrFail();
 
         $movements = $sheet->movements()
             ->with([

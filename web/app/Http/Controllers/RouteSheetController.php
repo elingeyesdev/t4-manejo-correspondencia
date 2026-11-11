@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RouteSheetActionRequest;
+use App\Http\Requests\StoreDocumentResponseRequest;
 use App\Models\RouteSheet;
 use App\Services\RouteSheetWorkflow;
 use Illuminate\Http\Request;
@@ -41,10 +42,27 @@ class RouteSheetController extends Controller
         return $this->respond($request, $result, $created, 'Atención registrada.');
     }
 
-    private function respond(Request $request, array $result, bool $created, string $message)
+    public function storeResponse(
+        StoreDocumentResponseRequest $request,
+        string $id,
+        RouteSheetWorkflow $workflow,
+    ) {
+        [$result, $created] = $workflow->respond($request->user(), $id, $request->validated());
+
+        return $this->respond($request, $result, $created, 'Respuesta vinculada.');
+    }
+
+    public function close(RouteSheetActionRequest $request, string $reference, RouteSheetWorkflow $workflow)
+    {
+        [$result, $created] = $workflow->close($request->user(), $reference, $request->validated());
+
+        return $this->respond($request, $result, $created, 'Expediente cerrado.', 200);
+    }
+
+    private function respond(Request $request, array $result, bool $created, string $message, int $createdStatus = 201)
     {
         if ($request->routeIs('api.route-sheets.*')) {
-            return response()->json($result, $created ? 201 : 200);
+            return response()->json($result, $created ? $createdStatus : 200);
         }
 
         return redirect()->route('documents.show', $result['documento_id'])

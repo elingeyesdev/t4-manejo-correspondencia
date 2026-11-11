@@ -29,7 +29,14 @@ class RouteSheetActionRequest extends FormRequest
 
         if ($this->routeIs('*.derive')) {
             $rules['destino_unidad_id'] = ['required', 'integer', 'min:1'];
+        }
+
+        if ($this->routeIs('*.derive', '*.close')) {
             $rules['motivo'] = ['required', 'string', 'max:500'];
+        }
+
+        if ($this->routeIs('route-sheets.close')) {
+            $rules['confirmar'] = ['accepted'];
         }
 
         if ($this->routeIs('*.attend')) {
@@ -42,6 +49,7 @@ class RouteSheetActionRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'confirmar.accepted' => 'Confirma que quieres cerrar el expediente.',
             'observacion.required' => 'Escribe una observación.',
             'observacion.string' => 'La observación debe ser texto.',
             'observacion.max' => 'La observación debe tener hasta 2000 caracteres.',

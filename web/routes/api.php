@@ -16,6 +16,8 @@ Route::middleware(['auth:sanctum', 'operational'])->group(function () {
     Route::get('/documentos', [DocumentController::class, 'index']);
     Route::post('/documentos', [DocumentController::class, 'store']);
     Route::get('/documentos/{id}', [DocumentController::class, 'show'])->whereUuid('id');
+    Route::post('/documentos/{id}/respuestas', [RouteSheetController::class, 'storeResponse'])
+        ->whereUuid('id')->name('api.route-sheets.respond');
     Route::get('/correspondencia/guia/{guide}', [DocumentController::class, 'guide']);
     Route::post('/documentos/{id}/adjuntos', [AttachmentController::class, 'store'])
         ->whereUuid('id');
@@ -37,6 +39,8 @@ Route::middleware(['auth:sanctum', 'operational'])->group(function () {
         ->whereUuid('reference')->name('api.route-sheets.receive');
     Route::post('/hojas/{reference}/atenciones', [RouteSheetController::class, 'attend'])
         ->whereUuid('reference')->name('api.route-sheets.attend');
+    Route::post('/hojas/{reference}/cierre', [RouteSheetController::class, 'close'])
+        ->whereUuid('reference')->name('api.route-sheets.close');
     Route::get('/hojas/{reference}', [RouteSheetQrController::class, 'show'])
         ->whereUuid('reference');
     Route::get('/hojas/{reference}/qr.svg', [RouteSheetQrController::class, 'image'])

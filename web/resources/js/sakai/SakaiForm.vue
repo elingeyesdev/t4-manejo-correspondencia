@@ -23,7 +23,7 @@ const props = defineProps({
 
 const values = reactive(Object.fromEntries(props.fields.map((field) => [
     field.name,
-    field.type === 'password' ? '' : (props.initial[field.name] ?? ''),
+    field.type === 'checkbox' ? false : (field.type === 'password' ? '' : (props.initial[field.name] ?? '')),
 ])));
 const localErrors = reactive({});
 const submitting = ref(false);
@@ -33,7 +33,7 @@ const errorFor = (field) => localErrors[field.name] || props.errors[field.name]?
 async function submit(event) {
     Object.keys(localErrors).forEach((key) => delete localErrors[key]);
     for (const field of props.fields) {
-        if (field.required && (values[field.name] === '' || values[field.name] == null)) {
+        if (field.required && (values[field.name] === '' || values[field.name] == null || values[field.name] === false)) {
             localErrors[field.name] = 'Completa ' + field.label.toLowerCase() + '.';
         } else if (field.maxCodePoints) {
             const text = String(values[field.name]).replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '');
@@ -71,11 +71,18 @@ async function submit(event) {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div v-for="field in fields" :key="field.name"
                 class="flex flex-col gap-2 min-w-0" :class="{ 'md:col-span-2': field.wide }">
-                <label :for="fieldId(field)" class="font-medium">
+                <label v-if="field.type !== 'checkbox'" :for="fieldId(field)" class="font-medium">
                     {{ field.label }}<span v-if="field.required" aria-hidden="true"> *</span>
                 </label>
 
-                <template v-if="field.type === 'select'">
+                <label v-if="field.type === 'checkbox'" :for="fieldId(field)" class="flex items-start gap-3 font-medium">
+                    <input v-model="values[field.name]" :id="fieldId(field)" :name="field.name" type="checkbox"
+                        value="1" :required="field.required" class="mt-1 h-4 w-4"
+                        :aria-describedby="errorFor(field) ? fieldId(field) + '-error' : undefined">
+                    <span>{{ field.label }}</span>
+                </label>
+
+                <template v-else-if="field.type === 'select'">
                     <Select v-model="values[field.name]" :inputId="fieldId(field)"
                         :options="field.options" optionLabel="label" optionValue="value"
                         :aria-label="field.label" placeholder="Selecciona una opción"

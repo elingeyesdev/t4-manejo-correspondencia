@@ -19,7 +19,7 @@ class StoreAttachmentRequest extends FormRequest
 
         $document = Document::visibleTo($user)->with('sheet')->findOrFail($this->route('id'));
 
-        return $document->sheet->canUploadAttachment($user);
+        return $document->sheet?->canUploadAttachment($user) ?? false;
     }
 
     public function rules(): array
