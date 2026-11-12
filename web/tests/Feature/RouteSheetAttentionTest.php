@@ -152,7 +152,8 @@ class RouteSheetAttentionTest extends TestCase
             'observacion' => 'Atención desde el detalle.',
             'request_key' => (string) Str::uuid(),
         ])->assertRedirect($detail)->assertSessionHas('status', 'Atención registrada.');
-        $this->get($detail)->assertOk()->assertSee('EN_ATENCION')->assertSee(json_encode('Atención desde el detalle.'));
+        $this->get($detail)->assertOk()->assertSee('EN_ATENCION')->assertSee(json_encode('Atención desde el detalle.'))
+            ->assertSee('"statusMessage":'.json_encode('Atención registrada.'));
 
         config(['attachments.active_key_version' => 'v1', 'attachments.keys' => ['v1' => 'base64:'.base64_encode(random_bytes(32))]]);
         Storage::fake(config('attachments.disk'));

@@ -21,6 +21,7 @@
             'adminUrl' => route('admin'),
             'logoutUrl' => route('logout'),
             'csrfToken' => csrf_token(),
+            'statusMessage' => session('status'),
         ];
     @endphp
 
@@ -32,6 +33,7 @@
     <main id="laravel-content" class="w-full">
         @if(session('status'))
             <div
+                id="operation-status"
                 class="notice mb-4 p-4 rounded-border bg-primary-50 text-primary-900"
                 role="status"
             >

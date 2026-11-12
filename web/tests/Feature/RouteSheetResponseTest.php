@@ -218,7 +218,8 @@ class RouteSheetResponseTest extends TestCase
         $this->from($detail)->post($url, $draft)
             ->assertRedirect($detail)->assertSessionHas('status', 'Respuesta vinculada.');
         $response = $this->document->responses()->sole();
-        $this->get($detail)->assertOk()->assertSee(route('documents.show', $response->id));
+        $this->get($detail)->assertOk()->assertSee(route('documents.show', $response->id))
+            ->assertSee('"statusMessage":'.json_encode('Respuesta vinculada.'));
         $this->get(route('documents.show', $response->id))->assertOk()->assertDontSee('route-respond');
     }
 
@@ -266,11 +267,13 @@ class RouteSheetResponseTest extends TestCase
         ];
         $this->from($detail)->post($closeUrl, $closure)
             ->assertRedirect($detail)->assertSessionHasErrors('confirmar');
+        $this->get($detail)->assertOk()->assertSee('"statusMessage":null');
         $this->assertDatabaseHas('route_sheets', ['id' => $this->document->sheet->id, 'version' => 4, 'state' => 'RECIBIDA']);
 
         $this->post($closeUrl, $closure + ['confirmar' => '1'])
             ->assertRedirect($detail)->assertSessionHas('status', 'Expediente cerrado.');
         $this->get($detail)->assertOk()->assertSee('CERRADA')
+            ->assertSee('"statusMessage":'.json_encode('Expediente cerrado.'))
             ->assertSee(route('documents.show', $response->id))
             ->assertDontSee('route-close')->assertDontSee('route-respond')->assertDontSee('route-attend');
         $this->get(route('documents.show', $response->id))

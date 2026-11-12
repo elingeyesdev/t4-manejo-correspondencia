@@ -1,5 +1,6 @@
 import { createApp } from 'vue';
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
 import Aura from '@primeuix/themes/aura';
 
 export function createSakaiApp(component, props) {
@@ -10,5 +11,6 @@ export function createSakaiApp(component, props) {
             options: { darkModeSelector: '.app-dark' },
         },
     });
+    app.use(ToastService);
     return app;
 }
