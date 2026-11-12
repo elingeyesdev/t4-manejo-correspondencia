@@ -18,8 +18,8 @@ La app no se conecta directamente a PostgreSQL ni al servidor histórico de Node
   la misma clave de idempotencia; no crea otro registro.
 
 Los permisos se verifican en Laravel. Funcionario no dispone de registro.
-La sección Gestión documental conserva los bocetos de diseño. Las acciones reales
-están en Mi bandeja y el detalle: QR, derivación, recepción, atención y adjuntos.
+Las operaciones documentales están en Mi bandeja y el detalle: QR, derivación,
+recepción, atención y adjuntos. El acceso a bocetos ya no forma parte de la app.
 Ver [RECORRIDO_MOVIL.md](RECORRIDO_MOVIL.md).
 
 ## Preparar el backend
@@ -119,8 +119,7 @@ Dependencias, configuración local, credenciales y artefactos generados no se pu
 
 Desde Consulta, Nueva correspondencia o Mi bandeja vuelve a Inicio y conserva
 los campos de la sección. Si el menú está abierto, primero lo cierra.
-Desde un detalle regresa a la bandeja. En Gestión documental retrocede por las
-pantallas del diseño. Desde Inicio pide confirmación; solo Salir cierra la app,
+Desde un detalle regresa a la bandeja. Desde Inicio pide confirmación; solo Salir cierra la app,
 sin cerrar la sesión. Pruebas de regresión en `test/retroceso_test.dart`.
 ## Apariencia Sakai
 
@@ -135,7 +134,7 @@ Captura, subida autenticada, listado y apertura de adjuntos del issue #21, conec
 
 ## Organización del código móvil
 
-En `lib/funciones/` cada carpeta reúne la pantalla y la lógica de una función: inicio, iniciar_sesion, mi_bandeja, nueva_correspondencia, consultar_envio, camara, adjuntos y bocetos. `lib/compartido/` contiene la conexión a Laravel y el diseño Sakai común. `lib/historico/` conserva el formulario previo y sus pruebas de compatibilidad. `main.dart` inicia la app y coordina la navegación.
+En `lib/funciones/` cada carpeta reúne la pantalla y la lógica de una función: inicio, iniciar_sesion, mi_bandeja, nueva_correspondencia, consultar_envio, camara, adjuntos, qr y recorrido. `lib/compartido/` contiene la conexión a Laravel y el diseño Sakai común. `lib/historico/` conserva el formulario previo y sus pruebas de compatibilidad. `main.dart` inicia la app y coordina la navegación.
 
 ## Recorrido entre unidades — #33
 

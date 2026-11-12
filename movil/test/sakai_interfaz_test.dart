@@ -180,10 +180,12 @@ void main() {
     expect(find.text('Hola, Russell'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
-    expect(find.text('Diseño de próximas pantallas'), findsOneWidget);
+    expect(find.text('Gestión documental'), findsNothing);
+    expect(find.text('Diseño de próximas pantallas'), findsNothing);
+    expect(find.text('Cerrar sesión'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.text('Diseño de próximas pantallas'), findsNothing);
+    expect(find.text('Cerrar sesión'), findsNothing);
   });
   testWidgets('barra inferior conserva la consulta y Atrás retorna a Inicio', (
     tester,

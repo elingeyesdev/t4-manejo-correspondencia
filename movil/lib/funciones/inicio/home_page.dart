@@ -7,7 +7,6 @@ class HomePage extends StatelessWidget {
   const HomePage({
     super.key,
     required this.onConsultar,
-    required this.onVerDiseno,
     required this.onNuevoRegistro,
     this.onBandeja,
     this.puedeRegistrar = true,
@@ -16,7 +15,7 @@ class HomePage extends StatelessWidget {
   final bool puedeRegistrar;
   final String nombre;
   final VoidCallback? onBandeja;
-  final VoidCallback onConsultar, onVerDiseno, onNuevoRegistro;
+  final VoidCallback onConsultar, onNuevoRegistro;
 
   Widget _acceso(
     BuildContext context, {
@@ -144,15 +143,6 @@ class HomePage extends StatelessWidget {
                 descripcion: 'Documentos de tu unidad',
                 onTap: onBandeja!,
               ),
-            _acceso(
-              context,
-              icono: PrimeIcons.folder,
-              titulo: 'Gestión documental',
-              descripcion: 'Diseño de recepción y atención',
-              onTap: onVerDiseno,
-              color: Sakai.violet,
-              fondo: Sakai.violetLight,
-            ),
             const SizedBox(height: 8),
           ],
         ),

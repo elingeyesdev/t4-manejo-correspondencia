@@ -160,6 +160,14 @@ class _RecorridoDocumentoState extends State<RecorridoDocumento>
             'Atención guardada. Puedes adjuntar una foto si corresponde.',
         };
       });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(_aviso!),
+            duration: const Duration(seconds: 6),
+          ),
+        );
       await widget.alConfirmar(resultado);
     } on ErrorLaravel catch (e) {
       if (!mounted) return;
@@ -214,6 +222,13 @@ class _RecorridoDocumentoState extends State<RecorridoDocumento>
               const Text(
                 'Puedes consultar el expediente. No tienes acciones disponibles en su estado actual.',
               )
+            else if (_aviso != null)
+              OutlinedButton(
+                onPressed: bloqueado
+                    ? null
+                    : () => setState(() => _aviso = null),
+                child: const Text('Realizar otra acción'),
+              )
             else
               for (final accion in OperacionRecorrido.values)
                 if (_acciones.contains(accion.name))
@@ -221,7 +236,12 @@ class _RecorridoDocumentoState extends State<RecorridoDocumento>
                     padding: const EdgeInsets.only(top: 8),
                     child: OutlinedButton(
                       onPressed: bloqueado ? null : () => _elegir(accion),
-                      child: Text(accion.titulo),
+                      child: Text(
+                        accion == OperacionRecorrido.atender &&
+                                widget.documento['estado'] == 'EN_ATENCION'
+                            ? 'Agregar otra atención'
+                            : accion.titulo,
+                      ),
                     ),
                   ),
           if (operacion != null)

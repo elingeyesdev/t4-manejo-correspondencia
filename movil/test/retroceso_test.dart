@@ -165,20 +165,4 @@ void main() {
       expect(llamadas.where((m) => m == 'SystemNavigator.pop'), hasLength(1));
     },
   );
-  testWidgets('Atrás recorre el diseño antes de regresar a la app principal', (
-    tester,
-  ) async {
-    await _iniciar(tester);
-    await tester.ensureVisible(find.text('Gestión documental'));
-    await tester.tap(find.text('Gestión documental'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Abrir bandeja'));
-    await tester.tap(find.text('Abrir bandeja'));
-    await tester.pumpAndSettle();
-    await _atras(tester);
-    expect(find.text('Abrir bandeja'), findsOneWidget);
-    await _atras(tester);
-    expect(find.text('Hola, Recepción'), findsOneWidget);
-    expect(find.text('¿Salir de Correspondencia?'), findsNothing);
-  });
 }

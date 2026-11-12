@@ -219,6 +219,7 @@ void main() {
       await tester.tap(find.text('Guardar atención'));
       await tester.pumpAndSettle();
       expect(find.text('Reintentar confirmación'), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
       expect(tester.widget<TextField>(find.byType(TextField)).readOnly, isTrue);
       await tester.tap(find.text('Reintentar confirmación'));
       await tester.pumpAndSettle();
@@ -229,7 +230,13 @@ void main() {
         peticiones[1].headers['Idempotency-Key'],
       );
       expect(resultado?['hoja']['estado'], 'EN_ATENCION');
-      expect(find.textContaining('Atención guardada'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(SnackBar),
+          matching: find.textContaining('Atención guardada'),
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -316,6 +323,13 @@ void main() {
     await tester.tap(find.text('Confirmar recepción').last);
     await tester.pumpAndSettle();
     expect(posts, 1);
+    expect(
+      find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.textContaining('Recepción confirmada'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets(

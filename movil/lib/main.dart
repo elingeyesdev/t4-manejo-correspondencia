@@ -6,7 +6,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'compartido/diseno/sakai_theme.dart';
 import 'compartido/diseno/sakai_widgets.dart';
 import 'funciones/consultar_envio/consulta_envio_page.dart';
-import 'funciones/bocetos/diseno_movil_page.dart';
 import 'funciones/inicio/home_page.dart';
 import 'funciones/iniciar_sesion/acceso_laravel_page.dart';
 import 'funciones/mi_bandeja/bandeja_laravel_page.dart';
@@ -273,7 +272,6 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     0 => HomePage(
       nombre: widget.sesion?.nombre ?? '',
       onConsultar: () => _mostrar(1),
-      onVerDiseno: _verDiseno,
       onNuevoRegistro: () => _mostrar(2),
       puedeRegistrar: _puedeRegistrar,
       onBandeja: widget.sesion == null ? null : () => _mostrar(3),
@@ -292,11 +290,6 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     4 => _cuenta(),
     _ => const SizedBox.shrink(),
   };
-
-  void _verDiseno() {
-    Navigator.of(context)
-        .push<void>(MaterialPageRoute(builder: (_) => const DisenoMovilPage()));
-  }
 
   @override
   Widget build(BuildContext context) => PopScope<Object?>(
@@ -405,16 +398,6 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                   selected: _pagina == 3,
                   onTap: () => _navegar(3),
                 ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.design_services_outlined),
-                title: const Text('Gestión documental'),
-                subtitle: const Text('Diseño de próximas pantallas'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _verDiseno();
-                },
-              ),
               if (widget.sesion != null) ...[
                 const Divider(),
                 ListTile(

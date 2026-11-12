@@ -53,3 +53,9 @@ Si el refresco del documento o de su historial devuelve 403 o 404, se limpian lo
 `test/detalle_acceso_test.dart` abre un expediente, comprueba sus datos e historial, provoca cada una de las cuatro denegaciones (documento/historial, 403/404) y verifica que no quede contenido anterior visible, incluso después de reintentar. Las cuatro pruebas fallaron antes de la corrección y pasaron después. El SDK de este equipo es Dart 3.13.5, compatible con el requisito del proyecto; Dart 3.13.4 no lo satisface.
 
 Verificación posterior a esta corrección: flutter analyze sin observaciones, 112 pruebas aprobadas (incluidas las integraciones HTTP/Laravel/PostgreSQL local aislado) y APK debug compilado correctamente.
+
+## Confirmaciones y navegación operativa
+
+La app ya no incluye el menú de bocetos ni sus pantallas simuladas. El recorrido real se abre desde Mi bandeja. Al guardar una operación, muestra confirmación visible y reserva la continuación para Realizar otra acción. Si la hoja ya está en atención, la opción se llama Agregar otra atención; pulsar Realizar otra acción no escribe ni repite un movimiento.
+
+Las pruebas exclusivas del recorrido simulado se retiraron con ese código. La suite vigente contiene 108 pruebas. La prueba de recepción/atención verifica la actualización sin salir de la pantalla, la confirmación visible y la ausencia de un nuevo POST al desplegar las opciones. Los cuatro casos de acceso retirado se mantienen.
