@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:t4_movil/config/api_config.dart';
-import 'package:t4_movil/models/correspondencia.dart';
-import 'package:t4_movil/services/correspondencia_api.dart';
+import 'package:t4_movil/compartido/api/api_config.dart';
+import 'package:t4_movil/historico/correspondencia.dart';
+import 'package:t4_movil/historico/correspondencia_api.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';

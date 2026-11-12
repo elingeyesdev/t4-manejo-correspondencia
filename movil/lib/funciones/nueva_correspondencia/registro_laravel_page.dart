@@ -3,14 +3,14 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../theme/sakai_theme.dart';
-import '../widgets/sakai_widgets.dart';
+import '../../compartido/diseno/sakai_theme.dart';
+import '../../compartido/diseno/sakai_widgets.dart';
 
-import '../services/laravel_api.dart';
-import '../services/adjuntos_api.dart';
-import '../services/camara_documento.dart';
-import '../widgets/adjuntos_documento.dart';
-import 'captura_documento_page.dart';
+import '../../compartido/api/laravel_api.dart';
+import '../adjuntos/adjuntos_api.dart';
+import '../camara/camara_documento.dart';
+import '../adjuntos/adjuntos_documento.dart';
+import '../camara/captura_documento_page.dart';
 
 class RegistroLaravelPage extends StatefulWidget {
   const RegistroLaravelPage({super.key, required this.api, this.crearCamara});

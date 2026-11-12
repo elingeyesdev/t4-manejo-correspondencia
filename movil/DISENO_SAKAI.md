@@ -49,9 +49,9 @@ como diseños aislados. La apariencia no implementa esas operaciones.
 
 ## Archivos para explicar el cambio
 
-- `lib/theme/sakai_theme.dart`: colores, estilos compartidos y glifos originales.
-- `lib/widgets/sakai_widgets.dart`: tarjetas, iconos, estados, campos y fechas.
-- `lib/pages/`: adaptación de las pantallas existentes.
+- `lib/compartido/diseno/sakai_theme.dart`: colores, estilos compartidos y glifos originales.
+- `lib/compartido/diseno/sakai_widgets.dart`: tarjetas, iconos, estados, campos y fechas.
+- `lib/funciones/`: pantallas agrupadas por función.
 - `lib/main.dart`: tema global, navegación y cuenta.
 - `test/sakai_interfaz_test.dart`: navegación, espacio reducido y búsqueda local.
 

@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:t4_movil/main.dart';
-import 'package:t4_movil/pages/registro_correspondencia_page.dart';
-import 'package:t4_movil/services/correspondencia_api.dart';
+import 'package:t4_movil/historico/registro_correspondencia_page.dart';
+import 'package:t4_movil/historico/correspondencia_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';

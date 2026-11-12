@@ -3,8 +3,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../config/api_config.dart';
-import '../models/correspondencia.dart';
+import '../compartido/api/api_config.dart';
+import 'correspondencia.dart';
 
 class ApiException implements Exception {
   const ApiException(this.mensaje, {this.errores = const {}});

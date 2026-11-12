@@ -1,6 +1,7 @@
 <script setup>
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
+import Message from 'primevue/message';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import { ref } from 'vue';
@@ -18,6 +19,10 @@ const qrFailed = ref(false);
 </script>
 
 <template>
+    <Message v-if="sheet.state === 'CERRADA'" severity="success" class="mb-6" role="status">
+        <strong>Expediente cerrado.</strong>
+        El trámite finalizó. Sus datos, archivos e historial siguen disponibles para consulta.
+    </Message>
     <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div class="min-w-0">
             <Tag :value="sheet.state" severity="info" class="mb-3" />

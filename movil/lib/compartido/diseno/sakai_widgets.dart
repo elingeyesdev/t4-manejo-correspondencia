@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/sakai_theme.dart';
+import 'sakai_theme.dart';
 
 class SakaiIcon extends StatelessWidget {
   const SakaiIcon(

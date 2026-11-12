@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
-import 'camara_documento.dart';
-import 'laravel_api.dart';
+import '../camara/camara_documento.dart';
+import '../../compartido/api/laravel_api.dart';
 
 const limiteAdjunto = 10 * 1024 * 1024;
 const tiposAdjunto = ['image/jpeg', 'image/png', 'application/pdf'];

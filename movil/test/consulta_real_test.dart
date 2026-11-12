@@ -9,8 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/io_client.dart';
 import 'package:t4_movil/main.dart';
-import 'package:t4_movil/models/envio_consulta.dart';
-import 'package:t4_movil/services/consulta_envio_service.dart';
+import 'package:t4_movil/funciones/consultar_envio/envio_consulta.dart';
+import 'package:t4_movil/funciones/consultar_envio/consulta_envio_service.dart';
 
 // Solo evita el HTTP simulado por el harness de widgets: usa sockets reales.
 class _HttpReal extends HttpOverrides {}

@@ -9,8 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:t4_movil/main.dart';
-import 'package:t4_movil/services/laravel_api.dart';
-import 'package:t4_movil/services/sesion_controller.dart';
+import 'package:t4_movil/compartido/api/laravel_api.dart';
+import 'package:t4_movil/funciones/iniciar_sesion/sesion_controller.dart';
 
 class _Memoria implements AlmacenSesion {
   String? dato;
@@ -180,10 +180,12 @@ void main() {
     expect(find.text('Hola, Russell'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
-    expect(find.text('Diseño de próximas pantallas'), findsOneWidget);
+    expect(find.text('Gestión documental'), findsNothing);
+    expect(find.text('Diseño de próximas pantallas'), findsNothing);
+    expect(find.text('Cerrar sesión'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.text('Diseño de próximas pantallas'), findsNothing);
+    expect(find.text('Cerrar sesión'), findsNothing);
   });
   testWidgets('barra inferior conserva la consulta y Atrás retorna a Inicio', (
     tester,

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../theme/sakai_theme.dart';
+import '../../compartido/diseno/sakai_theme.dart';
 
-import '../models/envio_consulta.dart';
-import '../services/consulta_envio_service.dart';
+import 'envio_consulta.dart';
+import 'consulta_envio_service.dart';
 
 class ConsultaEnvioPage extends StatefulWidget {
   const ConsultaEnvioPage({super.key, required this.servicio});

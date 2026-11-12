@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:t4_movil/services/consulta_envio_service.dart';
+import 'package:t4_movil/funciones/consultar_envio/consulta_envio_service.dart';
 
 void main() {
   const guia = 'COR-2026-000001';

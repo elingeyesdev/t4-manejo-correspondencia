@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:t4_movil/services/camara_documento.dart';
+import 'package:t4_movil/funciones/camara/camara_documento.dart';
 
 class CamaraPrueba extends CamaraDocumento {
   ErrorCamara? error;

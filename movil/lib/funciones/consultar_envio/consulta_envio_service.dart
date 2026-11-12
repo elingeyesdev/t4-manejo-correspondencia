@@ -3,9 +3,9 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../config/api_config.dart';
-import 'laravel_api.dart';
-import '../models/envio_consulta.dart';
+import '../../compartido/api/api_config.dart';
+import '../../compartido/api/laravel_api.dart';
+import 'envio_consulta.dart';
 
 abstract interface class ConsultaEnvioService {
   Future<EnvioConsulta?> consultar(String numeroGuia);

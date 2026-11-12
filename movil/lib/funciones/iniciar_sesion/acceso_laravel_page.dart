@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../theme/sakai_theme.dart';
-import '../widgets/sakai_widgets.dart';
+import '../../compartido/diseno/sakai_theme.dart';
+import '../../compartido/diseno/sakai_widgets.dart';
 
-import '../services/sesion_controller.dart';
+import 'sesion_controller.dart';
 
 class AccesoLaravelPage extends StatefulWidget {
   const AccesoLaravelPage({super.key, required this.sesion});

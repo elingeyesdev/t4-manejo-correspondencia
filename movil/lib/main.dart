@@ -3,19 +3,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'theme/sakai_theme.dart';
-import 'widgets/sakai_widgets.dart';
-import 'pages/consulta_envio_page.dart';
-import 'pages/diseno_movil_page.dart';
-import 'pages/home_page.dart';
-import 'pages/acceso_laravel_page.dart';
-import 'pages/bandeja_laravel_page.dart';
-import 'pages/registro_laravel_page.dart';
-import 'services/laravel_api.dart';
-import 'services/sesion_controller.dart';
-import 'pages/registro_correspondencia_page.dart';
-import 'services/consulta_envio_service.dart';
-import 'services/correspondencia_api.dart';
+import 'compartido/diseno/sakai_theme.dart';
+import 'compartido/diseno/sakai_widgets.dart';
+import 'funciones/consultar_envio/consulta_envio_page.dart';
+import 'funciones/inicio/home_page.dart';
+import 'funciones/iniciar_sesion/acceso_laravel_page.dart';
+import 'funciones/mi_bandeja/bandeja_laravel_page.dart';
+import 'funciones/nueva_correspondencia/registro_laravel_page.dart';
+import 'compartido/api/laravel_api.dart';
+import 'funciones/iniciar_sesion/sesion_controller.dart';
+import 'historico/registro_correspondencia_page.dart';
+import 'funciones/consultar_envio/consulta_envio_service.dart';
+import 'historico/correspondencia_api.dart';
 
 void main() {
   LicenseRegistry.addLicense(() async* {
@@ -168,7 +167,6 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
       _visitadas.add(pagina);
     });
     if (widget.sesion != null && pagina != 2 && _deslizador.hasClients) {
-      // Los botones saltan directamente sin cargar pestañas intermedias.
       _deslizador.jumpToPage(_ordenPestanas.indexOf(pagina));
     }
   }
@@ -274,7 +272,6 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     0 => HomePage(
       nombre: widget.sesion?.nombre ?? '',
       onConsultar: () => _mostrar(1),
-      onVerDiseno: _verDiseno,
       onNuevoRegistro: () => _mostrar(2),
       puedeRegistrar: _puedeRegistrar,
       onBandeja: widget.sesion == null ? null : () => _mostrar(3),
@@ -293,11 +290,6 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     4 => _cuenta(),
     _ => const SizedBox.shrink(),
   };
-
-  void _verDiseno() {
-    Navigator.of(context)
-        .push<void>(MaterialPageRoute(builder: (_) => const DisenoMovilPage()));
-  }
 
   @override
   Widget build(BuildContext context) => PopScope<Object?>(
@@ -406,16 +398,6 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                   selected: _pagina == 3,
                   onTap: () => _navegar(3),
                 ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.design_services_outlined),
-                title: const Text('Gestión documental'),
-                subtitle: const Text('Diseño de próximas pantallas'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _verDiseno();
-                },
-              ),
               if (widget.sesion != null) ...[
                 const Divider(),
                 ListTile(

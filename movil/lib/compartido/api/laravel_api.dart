@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
-import '../config/api_config.dart';
+import 'api_config.dart';
 
 class ErrorLaravel implements Exception {
   const ErrorLaravel(
@@ -54,7 +54,9 @@ class ApiLaravel {
     };
     http.Response response;
     try {
-      final request = http.Request(metodo, uri)..headers.addAll(headers);
+      final request = http.Request(metodo, uri)
+        ..followRedirects = false
+        ..headers.addAll(headers);
       if (datos != null) request.body = jsonEncode(datos);
       response = await _client
           .send(request)
@@ -68,6 +70,15 @@ class ApiLaravel {
       throw const ErrorLaravel(
         'No se pudo conectar con el servidor. Revisa la conexión.',
       );
+    }
+    if (autenticado && token != tokenEnviado) {
+      throw const ErrorLaravel(
+        'Tu sesión cambió. Vuelve a abrir el documento.',
+        estado: 401,
+      );
+    }
+    if (response.statusCode >= 300 && response.statusCode < 400) {
+      throw const ErrorLaravel('El servidor intentó redirigir la operación.');
     }
     return await _interpretar(response, tokenEnviado, autenticado);
   }

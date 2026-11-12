@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../services/adjuntos_api.dart';
-import '../services/laravel_api.dart';
-import '../theme/sakai_theme.dart';
+import 'adjuntos_api.dart';
+import '../../compartido/api/laravel_api.dart';
+import '../../compartido/diseno/sakai_theme.dart';
 
 class AdjuntoPage extends StatefulWidget {
   const AdjuntoPage({super.key, required this.servicio, required this.adjunto});

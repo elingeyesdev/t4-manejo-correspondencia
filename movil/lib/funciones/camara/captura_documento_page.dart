@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../services/camara_documento.dart';
-import '../theme/sakai_theme.dart';
-import '../widgets/sakai_widgets.dart';
+import 'camara_documento.dart';
+import '../../compartido/diseno/sakai_theme.dart';
+import '../../compartido/diseno/sakai_widgets.dart';
 
 class CapturaDocumentoPage extends StatefulWidget {
   const CapturaDocumentoPage({
