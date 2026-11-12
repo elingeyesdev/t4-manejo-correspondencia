@@ -78,7 +78,19 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
         setState(() => _historial = historia['data'] as List);
       }
     } on ErrorLaravel catch (e) {
-      if (mounted) setState(() => _error = e.mensaje);
+      if (mounted) {
+        setState(() {
+          _error = e.mensaje;
+          if (e.estado == 403 || e.estado == 404) {
+            _datos = null;
+            _historial = null;
+            _fotoPendiente = false;
+            _subiendo = false;
+            _operando = false;
+            _solicitudPendiente = false;
+          }
+        });
+      }
     } finally {
       if (mounted) setState(() => _cargando = false);
     }

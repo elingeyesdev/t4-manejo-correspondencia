@@ -45,3 +45,11 @@ Las pruebas reales requieren LARAVEL_TEST_PHP y LARAVEL_ADJUNTOS_BACKEND. Solo u
 - El usuario confirmó la recepción en su teléfono y posteriormente informó haber realizado las pruebas del teléfono. Esta confirmación no equivale a una observación independiente de cada escenario; no se adjuntaron capturas de esa sesión.
 - La suite de 108 pruebas volvió a pasar contra el backend integrado del PR #39 (feb6011), junto con flutter analyze sin observaciones.
 - Rama feature/33-recorrido-android. Mathew debe revisar los criterios y registrar su aprobación antes de integrar y cerrar el issue.
+
+## Corrección de revisión del PR #40
+
+Si el refresco del documento o de su historial devuelve 403 o 404, se limpian los datos y el historial de la pantalla, se retiran acciones y adjuntos y se muestra el rechazo con Reintentar. Los errores temporales de conexión no se tratan como una revocación de acceso.
+
+`test/detalle_acceso_test.dart` abre un expediente, comprueba sus datos e historial, provoca cada una de las cuatro denegaciones (documento/historial, 403/404) y verifica que no quede contenido anterior visible, incluso después de reintentar. Las cuatro pruebas fallaron antes de la corrección y pasaron después. El SDK de este equipo es Dart 3.13.5, compatible con el requisito del proyecto; Dart 3.13.4 no lo satisface.
+
+Verificación posterior a esta corrección: flutter analyze sin observaciones, 112 pruebas aprobadas (incluidas las integraciones HTTP/Laravel/PostgreSQL local aislado) y APK debug compilado correctamente.
