@@ -12,7 +12,7 @@ class NotaInternaEngine
 {
     private const PROCESS_ID = 'nota_interna';
 
-    /** @param list<string> $reviewers Identificadores de los revisores en orden de V├ìA. */
+    /** @param list<string> $reviewers Identificadores de los revisores en orden de VÍA. */
     public function start(string $noteId, array $reviewers): string
     {
         $response = $this->client()->post('process-instances', [
@@ -32,7 +32,7 @@ class NotaInternaEngine
         ])->throw()->json('items');
 
         if (! is_array($items) || count($items) > 1) {
-            throw new UnexpectedValueException('Camunda no devolvi├│ una b├║squeda inequ├¡voca de la nota.');
+            throw new UnexpectedValueException('Camunda no devolvió una búsqueda inequívoca de la nota.');
         }
 
         return $items === [] ? null : $this->instanceKey($items[0]['processInstanceKey'] ?? null);
@@ -51,7 +51,7 @@ class NotaInternaEngine
         ])->throw()->json('items');
 
         if (! is_array($items) || count($items) > 1) {
-            throw new UnexpectedValueException('Camunda no devolvi├│ una tarea de revisi├│n inequ├¡voca.');
+            throw new UnexpectedValueException('Camunda no devolvió una tarea de revisión inequívoca.');
         }
 
         return $items === [] ? null : $this->instanceKey($items[0]['userTaskKey'] ?? null);
@@ -91,7 +91,7 @@ class NotaInternaEngine
     private function instanceKey(mixed $key): string
     {
         if (! is_string($key) || ! ctype_digit($key)) {
-            throw new UnexpectedValueException('Camunda devolvi├│ una clave de instancia inv├ílida.');
+            throw new UnexpectedValueException('Camunda devolvió una clave de instancia inválida.');
         }
 
         return $key;
