@@ -45,11 +45,64 @@ Las pruebas usan personas, unidades, textos, adjuntos y CITE ficticios. Los docu
 | Emitir | POST /api/notas-internas/{id}/emision | version, Idempotency-Key |
 | Dar conformidad VÍA | POST /api/notas-internas/{id}/conformidades | version, Idempotency-Key |
 | Confirmar primera recepción | POST /api/notas-internas/{id}/recepciones | version, Idempotency-Key. Devuelve la referencia de la hoja al confirmar. |
-| Consultar bandeja y detalle | GET /api/notas-internas y GET /api/notas-internas/{id} | Filtros y paginación para bandeja. La API comprueba el acceso al detalle. |
+| Consultar bandeja | `GET /api/notas-internas` | `bandeja`, `page` y `per_page`. |
+| Consultar detalle | `GET /api/notas-internas/{id}` | La API verifica los permisos y devuelve el detalle actualizado. |
 
 Después de la primera recepción, usar las rutas de hoja y las operaciones de historial, adjuntos y respuesta del #29, conforme a sus contratos. En el detalle devolver id, cite, asunto, estado, version, fecha_ultimo_movimiento, unidad_actual, destino_pendiente cuando aplique, hoja_id y acciones_permitidas. La visibilidad depende del actor autenticado. No enviar identificadores de Camunda al cliente.
 
 Camunda determina la siguiente tarea del proceso. Laravel valida la identidad y el permiso, conserva las constancias y presenta el estado confirmado. Un reintento con la misma clave y los mismos datos recupera el resultado. Datos distintos con la misma clave o una versión desactualizada devuelven 409. Ante una respuesta perdida, conservar la clave y evitar presentar éxito hasta confirmar el resultado. El #43 debe comprobar la reconciliación contra el motor real.
+
+### Bandejas Android · propuesta para revisión
+
+`GET /api/notas-internas?bandeja=por_recibir&page=1&per_page=15` usa el usuario autenticado. Laravel filtra por sus permisos. La página empieza en 1, el tamaño admite de 1 a 50 y toma 15 por defecto. Ordenar por último movimiento descendente y por ID como desempate. Parámetros inválidos devuelven `422`.
+
+| Bandeja | Registros |
+|---|---|
+| `por_revisar` | Notas pendientes para la VÍA activa del usuario. |
+| `por_recibir` | Primera recepción o recepción de una derivación pendiente para la unidad de destino, según permisos. |
+| `por_atender` | Notas recibidas o en atención asignadas al responsable que puede actuar. |
+| `copias` | Notas visibles como copia según la regla de CC. El momento exacto de visibilidad queda pendiente. |
+
+Ejemplo de respuesta `200` con datos ficticios. Si la bandeja está vacía, se devuelve `data: []` con la misma estructura de paginación.
+
+```json
+{
+  "data": [
+    {
+      "id": "30000000-0000-4000-8000-000000000001",
+      "cite": "DEMO-ALFA-001",
+      "asunto": "Solicitud ficticia de inventario",
+      "unidad_origen": {"id": 1, "nombre": "Unidad Alfa"},
+      "unidad_actual": {"id": 1, "nombre": "Unidad Alfa"},
+      "destino_pendiente": {"id": 2, "nombre": "Unidad Beta"},
+      "estado": "pendiente_recepcion",
+      "version": 3,
+      "fecha_ultimo_movimiento": "2026-11-18T16:00:00Z",
+      "documento_id": null,
+      "hoja_id": null,
+      "acciones_permitidas": ["confirmar_primera_recepcion"]
+    }
+  ],
+  "meta": {"current_page": 1, "per_page": 15, "total": 1, "last_page": 1}
+}
+```
+
+Estados propuestos: `borrador`, `pendiente_revision`, `pendiente_recepcion`, `recibida`, `en_atencion` y `cerrada`. La lista de acciones puede incluir `dar_conformidad`, `confirmar_primera_recepcion`, `confirmar_recepcion_derivacion` o `registrar_atencion`. Puede estar vacía, por ejemplo en Copias. Android refresca bandeja y detalle al confirmar una acción. Laravel vuelve a comprobar el permiso al ejecutarla.
+
+### Relación con fotos, historial y hoja de ruta
+
+El `id` identifica la nota. La primera recepción devuelve `200` con el detalle actualizado, `documento_id` y `hoja_id`. Un reintento con la misma clave devuelve los mismos identificadores. Antes de la vinculación ambos son `null`. El detalle incluye los eventos previos autorizados en `movimientos_nota` con `id`, `accion`, `actor`, `fecha` y `estado_resultante`. La carga de fotos antes de la primera recepción queda pendiente de definición.
+
+- Con `documento_id`, reutilizar `GET /api/documentos/{documento_id}/adjuntos` y `GET /api/documentos/{documento_id}/historial`. La carga usa `POST /api/documentos/{documento_id}/adjuntos` con el campo multipart `archivo` y los permisos existentes.
+- Con `hoja_id`, consultar `GET /api/hojas/{hoja_id}` y usar la versión de la hoja en sus acciones. La primera recepción aparece una sola vez, como inicio de la hoja. El historial previo de la nota permanece disponible para quienes tengan permiso.
+- Laravel comprueba el acceso a cada recurso por separado. El vínculo con la nota no concede permiso para ver, cargar ni descargar adjuntos.
+
+### Firma, sello y notificaciones · propuesta para la demo
+
+- **Firma en pantalla.** Mostrar la acción y la versión del documento antes de firmar. Permitir borrar y volver a dibujar el trazo antes de confirmar. Laravel registra el usuario autenticado, el cargo o unidad, la acción, la versión y la hora del servidor. El trazo queda protegido y asociado a esa constancia. Una versión posterior requiere su propia constancia si la acción tiene firma habilitada.
+- **Sello de recepción.** Generar una constancia visual al confirmar la recepción, con CITE, unidad receptora, fecha y hora del servidor e identificador de constancia. Mostrar **RECIBIDO · DEMOSTRACIÓN** en el detalle o PDF de prueba. La marca se genera con datos del registro confirmado y es de solo lectura. Mostrarla una sola vez si se repite la operación con la misma clave. La demo usa identidad y marca ficticias.
+- **Notificaciones.** Proponer un aviso dentro de la app cuando se habilite una tarea de revisión, recepción o atención. El aviso abre el detalle con verificación de permisos y se registra una vez por transición y destinatario. El canal push y los eventos y destinatarios definitivos, incluido CC, quedan pendientes.
+- **Validación institucional.** Confirmar qué acciones exigen firma, quién puede firmar o sellar, la plantilla aprobada y si el Concejo requiere firma digital certificada u otro mecanismo oficial. En el prototipo, el trazo y el sello visual se presentan como evidencia del flujo. Ver [Ley N.º 164, art. 78](https://plantilla-gob-bo.aads.upat.agetic.gob.bo/wp-content/uploads/2024/04/ley-n-164-comprimido.pdf).
 
 ## Interfaz institucional
 
@@ -66,7 +119,9 @@ Usar el template institucional compartido definido en #48. Las pantallas web de 
 2. **Con VÍA y CC.** Unidad Alfa emite «Solicitud de revisión de formulario» con dos autoridades ficticias en secuencia, A en Unidad Beta y CC en Unidad Gamma. La segunda VÍA no actúa antes de la primera. A recibe solo tras la segunda conformidad. CC consulta sin alterar el flujo. Beta deriva a Unidad Delta, que recibe, atiende y registra respuesta cuando corresponda. La autorización de cierre se comprueba según la regla acordada.
 3. **Controles comunes.** Un usuario de Unidad Épsilon queda fuera del expediente y sus adjuntos. Web y Android muestran el mismo estado confirmado. Una pérdida de respuesta no produce una segunda constancia. Cada evidencia indica ejecutor, versión y resultado.
 
+4. **Firma, sello y aviso.** Confirmar una acción ficticia con firma habilitada y verificar actor y versión. Confirmar recepción, consultar su sello y repetir la acción con la misma clave. Debe conservarse una sola constancia y un solo aviso por destinatario. Probar que un usuario sin permiso no puede abrir el detalle desde el aviso.
+
 ## Decisiones pendientes
 
-- **Con el docente o el Concejo:** serie y momento del CITE, reglas de conformidad o devolución por VÍA, facultad de recepción por unidad, alcance y momento de CC, responsable del cierre y mecanismo aceptado para las constancias oficiales. La auditoría del prototipo registra actor, versión y hora del servidor. La aceptación institucional de ese mecanismo queda pendiente.
+- **Con el docente o el Concejo:** serie y momento del CITE, reglas de conformidad o devolución por VÍA, facultad de recepción por unidad, alcance y momento de CC, responsable del cierre, acciones que requieren firma, responsables y formato del sello, mecanismo aceptado para las constancias oficiales y reglas definitivas de notificación. La auditoría del prototipo registra actor, versión y hora del servidor. La aceptación institucional de ese mecanismo queda pendiente.
 - **Con Russel:** confirmar endpoints y nombres, matriz de acciones por canal, modelo de errores y casos de prueba. Registrar la revisión cruzada antes de dar por acordado el contrato.
