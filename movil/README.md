@@ -141,3 +141,11 @@ En `lib/funciones/` cada carpeta reúne la pantalla y la lógica de una función
 Desde **Mi bandeja**, abre una correspondencia o utiliza **Escanear QR de hoja de ruta**. El detalle ofrece derivar, confirmar recepción y registrar atención según los permisos que devuelve Laravel. Actualiza responsable, unidad, estado e historial y permite adjuntar fotos al responsable recibido.
 
 La [guía del recorrido](RECORRIDO_MOVIL.md) explica el uso, los reintentos y la comprobación en teléfono. Las acciones y formularios están en lib/funciones/recorrido; el lector QR está en lib/funciones/qr.
+
+## Notas internas — #46
+
+Desde **Mi bandeja → Notas internas**, consultar Por revisar, Por recibir, Por atender
+y Copias. La [guía de notas internas](NOTAS_INTERNAS.md) describe las acciones,
+los reintentos y las comprobaciones que dependen del servidor. Bandeja y detalle
+aplican el diseño institucional verde; falta compararlo con la web del #48 y
+realizar la prueba conjunta del #47.

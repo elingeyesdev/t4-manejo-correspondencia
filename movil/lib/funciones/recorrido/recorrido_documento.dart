@@ -13,12 +13,14 @@ class RecorridoDocumento extends StatefulWidget {
     required this.alOcuparse,
     required this.alPendiente,
     this.bloqueado = false,
+    this.institucional = false,
   });
   final ApiLaravel api;
   final Map<String, dynamic> documento;
   final Future<void> Function(Map<String, dynamic>? resultado) alConfirmar;
   final ValueChanged<bool> alOcuparse, alPendiente;
   final bool bloqueado;
+  final bool institucional;
 
   @override
   State<RecorridoDocumento> createState() => _RecorridoDocumentoState();
@@ -201,10 +203,8 @@ class _RecorridoDocumentoState extends State<RecorridoDocumento>
     if (!_valida) return const SizedBox.shrink();
     final bloqueado = _ocupada || widget.bloqueado;
     final operacion = _operacion;
-    return SakaiSection(
-      title: 'Acciones de la hoja',
-      icon: Icons.route_outlined,
-      child: Column(
+    return _seccion(
+      Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (_aviso != null) Text(_aviso!, semanticsLabel: _aviso),
@@ -353,4 +353,22 @@ class _RecorridoDocumentoState extends State<RecorridoDocumento>
       ),
     );
   }
+
+  Widget _seccion(Widget child) => widget.institucional
+      ? Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Acciones de la hoja',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        )
+      : SakaiSection(
+          title: 'Acciones de la hoja',
+          icon: Icons.route_outlined,
+          child: child,
+        );
 }

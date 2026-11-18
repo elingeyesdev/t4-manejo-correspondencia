@@ -10,3 +10,11 @@ La implementación vigente se abre desde Mi bandeja y el detalle del documento. 
 - Código: lib/funciones/mi_bandeja, lib/funciones/recorrido y lib/funciones/qr.
 
 La apariencia Sakai y sus licencias permanecen en la app. Esta limpieza retira la navegación simulada, no las funciones reales.
+
+## Nota interna — Iteración 05
+
+Las nuevas pantallas de Notas Internas usan una interfaz institucional propia en
+Flutter: cabecera #20B72C, fondo blanco, filas y bordes finos. La referencia para
+comparar con la web está en [referencia-institucional.md](../docs/diseno/referencia-institucional.md).
+Su alcance es la bandeja, el detalle y las acciones de nota interna. La procedencia
+y las licencias del diseño histórico y PrimeIcons se conservan por separado.
