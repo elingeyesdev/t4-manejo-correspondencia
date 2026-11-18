@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Services\Camunda\StartNotaInterna;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -18,6 +19,14 @@ class StartNotaInternaTest extends TestCase
     {
         parent::setUp();
 
+        config([
+            'database.default' => 'sqlite',
+            'database.connections.sqlite.database' => ':memory:',
+            'database.connections.sqlite.url' => null,
+            'camunda.url' => self::BASE_URL,
+        ]);
+        DB::purge('sqlite');
+
         foreach ([
             '2026_11_18_000001_create_note_workflow_instances_table.php',
             '2026_11_18_000002_add_retry_at_to_note_workflow_instances_table.php',
@@ -26,7 +35,6 @@ class StartNotaInternaTest extends TestCase
             $migration->up();
         }
 
-        config(['camunda.url' => self::BASE_URL]);
         Http::preventStrayRequests();
         $this->freezeSecond();
     }
