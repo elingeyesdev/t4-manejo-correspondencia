@@ -39,9 +39,9 @@ class InternalNote extends Model
     {
         return match ($this->state) {
             self::DRAFT => 'Borrador',
-            self::EMITTING => 'Emisi├│n pendiente',
-            self::REVIEW => 'Pendiente de revisi├│n',
-            self::RECEIVE => 'Pendiente de recepci├│n',
+            self::EMITTING => 'Emisión pendiente',
+            self::REVIEW => 'Pendiente de revisión',
+            self::RECEIVE => 'Pendiente de recepción',
         };
     }
 
