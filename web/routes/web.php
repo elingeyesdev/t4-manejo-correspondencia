@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AttachmentWebController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\InternalNoteController;
 use App\Http\Controllers\RouteSheetController;
 use App\Http\Controllers\RouteSheetQrController;
 use App\Http\Controllers\SessionController;
@@ -15,6 +16,16 @@ Route::middleware('guest')->group(function () {
 });
 Route::post('/salir', [SessionController::class, 'destroy'])->middleware('auth')->name('logout');
 Route::middleware(['auth', 'operational'])->group(function () {
+    Route::prefix('notas-internas')->name('notes.')->controller(InternalNoteController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/nueva', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereUuid('id')->name('show');
+        Route::get('/{id}/editar', 'edit')->whereUuid('id')->name('edit');
+        Route::patch('/{id}', 'update')->whereUuid('id')->name('update');
+        Route::post('/{id}/emision', 'emit')->whereUuid('id')->name('emit');
+        Route::post('/{id}/conformidades', 'approve')->whereUuid('id')->name('approve');
+    });
     Route::get('/documentos', [DocumentController::class, 'index'])->name('documents.index');
     Route::get('/documentos/nuevo', [DocumentController::class, 'create'])->name('documents.create');
     Route::post('/documentos', [DocumentController::class, 'store'])->name('documents.store');

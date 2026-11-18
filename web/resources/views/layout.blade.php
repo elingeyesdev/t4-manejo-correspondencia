@@ -17,6 +17,7 @@
             'isAdmin' => auth()->user()?->isAdmin() ?? false,
             'canRegister' => auth()->user()?->canRegister() ?? false,
             'documentsUrl' => route('documents.index'),
+            'notesUrl' => route('notes.index'),
             'createUrl' => route('documents.create'),
             'adminUrl' => route('admin'),
             'logoutUrl' => route('logout'),

@@ -2,6 +2,7 @@
 
 namespace App\Services\Camunda;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use LogicException;
@@ -35,6 +36,45 @@ class NotaInternaEngine
         }
 
         return $items === [] ? null : $this->instanceKey($items[0]['processInstanceKey'] ?? null);
+    }
+
+    public function activeReviewTask(string $instance, string $reviewer): ?string
+    {
+        $items = $this->client()->post('user-tasks/search', [
+            'filter' => [
+                'processInstanceKey' => $instance,
+                'elementId' => 'RevisarVia',
+                'state' => 'CREATED',
+                'assignee' => $reviewer,
+            ],
+            'page' => ['limit' => 2],
+        ])->throw()->json('items');
+
+        if (! is_array($items) || count($items) > 1) {
+            throw new UnexpectedValueException('Camunda no devolvió una tarea de revisión inequívoca.');
+        }
+
+        return $items === [] ? null : $this->instanceKey($items[0]['userTaskKey'] ?? null);
+    }
+
+    public function completeReviewTask(string $key): bool
+    {
+        $task = $this->client()->get("user-tasks/{$key}");
+        if (! $task->notFound() && $task->throw()->json('state') === 'COMPLETED') {
+            return true;
+        }
+
+        try {
+            $response = $this->client()->post("user-tasks/{$key}/completion", ['variables' => (object) []]);
+        } catch (ConnectionException) {
+            return false;
+        }
+
+        if (in_array($response->status(), [404, 409, 503, 504], true)) {
+            return false;
+        }
+
+        return $response->throw()->noContent();
     }
 
     private function client(): PendingRequest
