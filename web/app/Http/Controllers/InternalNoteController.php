@@ -33,7 +33,7 @@ class InternalNoteController extends Controller
             'por_recibir' => $query->where('state', InternalNote::RECEIVE)->where('recipient_unit_id', $actor->unit_id),
             'copias' => $query->where('state', InternalNote::RECEIVE)
                 ->whereHas('participants', fn ($cc) => $cc->where('role', 'cc')->where('user_id', $actor->id)),
-            'por_atender' => $query->whereRaw('1 = 0'), // La atenci├│n empieza con la hoja de ruta del #45.
+            'por_atender' => $query->whereRaw('1 = 0'), // La atención empieza con la hoja de ruta del #45.
         };
 
         $notes = $query->orderByDesc('updated_at')->orderByDesc('id')->paginate($filters['per_page'] ?? 15)->withQueryString();
@@ -101,7 +101,7 @@ class InternalNoteController extends Controller
         $note = $workflow->emit($request->user(), $this->find($request->user(), $id), (int) $data['version'], $data['request_key']);
         $pending = $note->state === InternalNote::EMITTING;
 
-        return $this->result($request, $note, $pending ? 'Emisi├│n pendiente. Puedes reintentar desde esta nota.' : 'Nota emitida.', $pending ? 202 : 200);
+        return $this->result($request, $note, $pending ? 'Emisión pendiente. Puedes reintentar desde esta nota.' : 'Nota emitida.', $pending ? 202 : 200);
     }
 
     public function approve(Request $request, string $id, InternalNoteWorkflow $workflow)
