@@ -15,9 +15,9 @@ class StartNotaInterna
     public function __construct(private readonly NotaInternaEngine $engine) {}
 
     /**
-     * null indica que la emisión está reservada y sigue pendiente de confirmación.
+     * null indica que la emisi├│n est├í reservada y sigue pendiente de confirmaci├│n.
      *
-     * @param list<string> $reviewers Identificadores de VÍA en orden.
+     * @param  list<string>  $reviewers  Identificadores de V├ìA en orden.
      */
     public function execute(string $noteId, array $reviewers): ?string
     {
@@ -26,7 +26,7 @@ class StartNotaInterna
         }
 
         if (DB::transactionLevel() !== 0) {
-            throw new LogicException('Inicia el flujo después de confirmar la transacción de la nota.');
+            throw new LogicException('Inicia el flujo despu├⌐s de confirmar la transacci├│n de la nota.');
         }
 
         $noteId = strtolower($noteId);
@@ -39,7 +39,7 @@ class StartNotaInterna
         $row = DB::table('note_workflow_instances')->where('note_id', $noteId);
         $record = $row->first();
         if ($record === null || ! hash_equals($record->reviewers_fingerprint, $fingerprint)) {
-            throw new LogicException('La emisión está reservada con otra secuencia de VÍA o está cambiando.');
+            throw new LogicException('La emisi├│n est├í reservada con otra secuencia de V├ìA o est├í cambiando.');
         }
         if ($record->instance_key !== null) {
             return $record->instance_key;
