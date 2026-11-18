@@ -37,7 +37,7 @@ class InternalNoteFlowTest extends TestCase
         DB::purge('sqlite');
         $this->artisan('migrate', ['--force' => true])->assertSuccessful();
 
-        $institution = DB::table('institutions')->insertGetId(['code' => 'DEMO', 'name' => 'Instituci├│n ficticia']);
+        $institution = DB::table('institutions')->insertGetId(['code' => 'DEMO', 'name' => 'Institución ficticia']);
         $unit = fn (string $code): Unit => Unit::create(['institution_id' => $institution, 'code' => $code, 'name' => 'Unidad '.$code]);
         $this->author = $this->account($unit('ALFA'));
         $this->recipient = $this->account($unit('BETA'));
