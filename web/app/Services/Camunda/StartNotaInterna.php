@@ -12,6 +12,8 @@ use UnexpectedValueException;
 
 class StartNotaInterna
 {
+    private const RETRY_DELAY_SECONDS = 2;
+
     public function __construct(private readonly NotaInternaEngine $engine) {}
 
     /**
@@ -45,6 +47,17 @@ class StartNotaInterna
             return $record->instance_key;
         }
 
+        if ($record->retry_at !== null) {
+            // Solo el primer solicitante que reclama el intento puede volver a crear.
+            $reserved = (clone $row)->whereNull('instance_key')
+                ->where('retry_at', '<=', now())
+                ->update(['retry_at' => null]);
+
+            if (! $reserved) {
+                return $row->value('instance_key');
+            }
+        }
+
         $key = $reserved ? $this->startReservedInstance($noteId, $reviewers) : $this->engine->findInstance($noteId);
         if ($key === null) {
             return $row->value('instance_key');
@@ -67,6 +80,14 @@ class StartNotaInterna
         } catch (ConnectionException|UnexpectedValueException) {
             return $this->engine->findInstance($noteId);
         } catch (RequestException $error) {
+            $title = $error->response->json('title');
+            if ($error->response->status() === 503 && is_string($title) && str_contains($title, 'RESOURCE_EXHAUSTED')) {
+                DB::table('note_workflow_instances')->where('note_id', $noteId)->whereNull('instance_key')
+                    ->update(['retry_at' => now()->addSeconds(self::RETRY_DELAY_SECONDS)]);
+
+                return null;
+            }
+
             if (! in_array($error->response->status(), [400, 401, 403, 404], true)) {
                 return $this->engine->findInstance($noteId);
             }
