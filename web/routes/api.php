@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentHistoryController;
+use App\Http\Controllers\InternalNoteController;
 use App\Http\Controllers\RouteSheetController;
 use App\Http\Controllers\RouteSheetQrController;
 use App\Http\Controllers\SessionController;
@@ -11,6 +12,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/sesiones', [SessionController::class, 'token'])->middleware('throttle:5,1');
 Route::middleware(['auth:sanctum', 'operational'])->group(function () {
+    Route::prefix('notas-internas')->controller(InternalNoteController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::get('/{id}', 'show')->whereUuid('id');
+        Route::patch('/{id}', 'update')->whereUuid('id');
+        Route::post('/{id}/emision', 'emit')->whereUuid('id');
+        Route::post('/{id}/conformidades', 'approve')->whereUuid('id');
+    });
     Route::delete('/sesiones/actual', [SessionController::class, 'revoke']);
     Route::get('/configuracion-registro', [DocumentController::class, 'configuration']);
     Route::get('/documentos', [DocumentController::class, 'index']);
