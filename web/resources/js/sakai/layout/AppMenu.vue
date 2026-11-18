@@ -14,6 +14,10 @@ const model = computed(() => [
                 url: context.documentsUrl,
             },
             {
+                label: 'Nota Interna',
+                url: context.notesUrl,
+            },
+            {
                 label: 'Nueva correspondencia',
                 icon: 'pi pi-fw pi-file-plus',
                 url: context.createUrl,
