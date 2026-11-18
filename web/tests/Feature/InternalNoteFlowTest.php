@@ -115,6 +115,96 @@ class InternalNoteFlowTest extends TestCase
         $this->getJson($uri)->assertNotFound();
     }
 
+    public function test_note_receipt_and_route_sheet_are_confirmed_once_by_camunda(): void
+    {
+        Http::fake([
+            self::ENGINE.'/process-instances' => Http::response(['processInstanceKey' => '300']),
+            self::ENGINE.'/user-tasks/search' => Http::sequence()
+                ->push(['items' => [['userTaskKey' => '301']]])
+                ->push(['items' => [['userTaskKey' => '302']]])
+                ->push(['items' => [['userTaskKey' => '303']]])
+                ->push(['items' => [['userTaskKey' => '304']]])
+                ->push(['items' => [['userTaskKey' => '304']]])
+                ->push(['items' => [['userTaskKey' => '305']]]),
+            self::ENGINE.'/user-tasks/301' => Http::sequence()->push(['state' => 'CREATED'])->push(['state' => 'COMPLETED']),
+            self::ENGINE.'/user-tasks/301/completion' => Http::response(null, 504),
+            self::ENGINE.'/user-tasks/302' => Http::sequence()->push(['state' => 'CREATED'])->push(['state' => 'COMPLETED']),
+            self::ENGINE.'/user-tasks/302/completion' => Http::response(null, 504),
+            self::ENGINE.'/user-tasks/303' => Http::response(['state' => 'CREATED']),
+            self::ENGINE.'/user-tasks/303/completion' => Http::response(null, 204),
+            self::ENGINE.'/user-tasks/304' => Http::response(['state' => 'CREATED']),
+            self::ENGINE.'/user-tasks/304/completion' => Http::response(null, 204),
+            self::ENGINE.'/user-tasks/305' => Http::response(['state' => 'CREATED']),
+            self::ENGINE.'/user-tasks/305/completion' => Http::response(null, 204),
+        ]);
+
+        Sanctum::actingAs($this->author);
+        $draft = $this->postJson('/api/notas-internas', $this->draft())->assertCreated();
+        $uri = '/api/notas-internas/'.$draft->json('id');
+        $emitted = $this->postJson($uri.'/emision', ['version' => $draft->json('version')], $this->key())->assertOk();
+        $payload = ['version' => $emitted->json('version')];
+
+        Sanctum::actingAs($this->copy);
+        $this->postJson($uri.'/recepciones', $payload, $this->key())->assertForbidden();
+        $this->actingAs($this->recipient, 'web')->get(route('notes.show', $draft->json('id')))
+            ->assertOk()->assertSee('Confirmar recepción');
+        Sanctum::actingAs($this->recipient);
+        $key = $this->key();
+        $this->getJson($uri)->assertJsonPath('acciones_permitidas', ['confirmar_primera_recepcion']);
+        $this->postJson($uri.'/recepciones', $payload, $key)->assertAccepted()->assertJsonPath('hoja_id', null);
+        $this->assertDatabaseCount('route_sheets', 0);
+        $this->postJson($uri.'/recepciones', $payload, $this->key())->assertConflict();
+        $receipt = $this->postJson($uri.'/recepciones', $payload, $key)->assertOk()
+            ->assertJsonPath('estado', 'recibida')->assertJsonPath('cite', $emitted->json('cite'));
+        $sheet = $receipt->json('hoja_id');
+        $document = $receipt->json('documento_id');
+        $this->postJson($uri.'/recepciones', $payload, $key)->assertOk()->assertJsonPath('hoja_id', $sheet);
+        $this->assertDatabaseCount('route_sheets', 1);
+        $this->assertDatabaseHas('documents', [
+            'id' => $document, 'code' => $emitted->json('cite'), 'subject' => $draft->json('asunto'), 'sender' => $this->author->name,
+        ]);
+        $this->assertDatabaseCount('movements', 1);
+        $this->actingAs($this->recipient, 'web')->get(route('notes.show', $draft->json('id')))
+            ->assertOk()->assertSee('Abrir hoja de ruta');
+        Sanctum::actingAs($this->recipient);
+
+        $route = '/api/hojas/'.$sheet;
+        $derivation = ['version' => 1, 'destino_unidad_id' => $this->outsider->unit_id, 'motivo' => 'Revisar el inventario'];
+        $deriveKey = $this->key();
+        $this->postJson($route.'/derivaciones', $derivation, $deriveKey)->assertServiceUnavailable();
+        $this->assertDatabaseCount('movements', 1);
+        $this->postJson($route.'/derivaciones', $derivation, $this->key())->assertConflict();
+        $this->postJson($route.'/derivaciones', $derivation, $deriveKey)->assertCreated();
+        $this->postJson($route.'/derivaciones', $derivation, $deriveKey)->assertOk();
+        $this->getJson($uri)->assertJsonPath('unidad_actual.id', $this->recipient->unit_id)
+            ->assertJsonPath('destino_pendiente.id', $this->outsider->unit_id);
+        $this->postJson($route.'/recepciones', ['version' => 2], $this->key())->assertForbidden();
+
+        Sanctum::actingAs($this->outsider);
+        $this->getJson('/api/notas-internas?bandeja=por_recibir')->assertOk()->assertJsonPath('meta.total', 1);
+        $this->postJson($route.'/recepciones', ['version' => 2], $this->key())->assertCreated();
+        $this->postJson($route.'/atenciones', ['version' => 3, 'observacion' => 'Inventario revisado'], $this->key())->assertCreated();
+        $this->postJson('/api/documentos/'.$document.'/respuestas', [
+            'version' => 4, 'remitente' => 'Unidad Delta', 'asunto' => 'Resultado de prueba', 'fecha' => '2026-11-18',
+            'tipo_id' => DB::table('catalogs')->where('kind', 'tipo')->value('id'),
+            'prioridad_id' => DB::table('catalogs')->where('kind', 'prioridad')->value('id'),
+        ], $this->key())->assertCreated();
+        $closure = ['version' => 5, 'motivo' => 'Expediente atendido'];
+        $closeKey = $this->key();
+        $this->postJson($route.'/cierre', $closure, $closeKey)->assertServiceUnavailable();
+        $this->postJson($route.'/cierre', $closure, $closeKey)->assertOk();
+        $this->getJson($uri)->assertOk()->assertJsonPath('estado', 'cerrada')->assertJsonPath('acciones_permitidas', []);
+        $this->assertDatabaseCount('movements', 6);
+
+        Sanctum::actingAs($this->copy);
+        $this->getJson('/api/notas-internas?bandeja=copias')->assertOk()->assertJsonPath('meta.total', 1);
+        $this->getJson($uri)->assertOk()->assertJsonPath('estado', 'cerrada')->assertJsonPath('acciones_permitidas', []);
+        Http::assertSent(fn (Request $request): bool => $request->url() === self::ENGINE.'/user-tasks/302/completion'
+            && $request['variables']->decisionRecorrido === 'derivar');
+        Http::assertSent(fn (Request $request): bool => $request->url() === self::ENGINE.'/user-tasks/305/completion'
+            && $request['variables']->decisionRecorrido === 'cerrar');
+    }
+
     private function account(Unit $unit): User
     {
         return User::factory()->create(['unit_id' => $unit->id, 'role' => 'funcionario', 'enabled' => true]);

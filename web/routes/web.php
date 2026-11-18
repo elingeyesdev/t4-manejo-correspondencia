@@ -25,6 +25,7 @@ Route::middleware(['auth', 'operational'])->group(function () {
         Route::patch('/{id}', 'update')->whereUuid('id')->name('update');
         Route::post('/{id}/emision', 'emit')->whereUuid('id')->name('emit');
         Route::post('/{id}/conformidades', 'approve')->whereUuid('id')->name('approve');
+        Route::post('/{id}/recepciones', 'receive')->whereUuid('id')->name('receive');
     });
     Route::get('/documentos', [DocumentController::class, 'index'])->name('documents.index');
     Route::get('/documentos/nuevo', [DocumentController::class, 'create'])->name('documents.create');

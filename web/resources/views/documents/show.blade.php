@@ -4,8 +4,12 @@
     @php
         $actions = $payload['acciones_permitidas'];
         $workflows = [];
+        $pending = $document->rootDocument()->sheet->camunda_transition;
+        if (($pending['actor_id'] ?? null) !== auth()->id()) {
+            $pending = null;
+        }
 
-        $addWorkflow = function ($operation, $label, $submitLabel, $help, $fields = [], $action = null) use (&$workflows, $payload, $errors) {
+        $addWorkflow = function ($operation, $label, $submitLabel, $help, $fields = [], $action = null) use (&$workflows, $payload, $errors, $pending) {
             $formKey = 'route-'.$operation;
             $submitted = old('_form') === $formKey;
             $version = $payload['hoja']['version'];
@@ -13,9 +17,14 @@
             $requestKey = $submitted && is_scalar($oldVersion) && (string) $oldVersion === (string) $version
                 ? old('request_key')
                 : null;
+            $pendingOperation = ['attend' => 'atencion', 'derive' => 'derivacion', 'receive' => 'recepcion', 'close' => 'cierre'][$operation] ?? null;
+            $retry = $pending !== null && $pending['operation'] === $pendingOperation ? $pending : null;
             $initial = [];
             foreach ($fields as $field) {
                 $value = $submitted ? old($field['name']) : null;
+                if ($retry) {
+                    $value = $retry['intent'][$field['name']] ?? $value;
+                }
                 $initial[$field['name']] = is_scalar($value) ? (string) $value : '';
             }
 
@@ -28,9 +37,9 @@
                 'help' => $help,
                 'hidden' => [
                     'version' => $version,
-                    'request_key' => is_string($requestKey) && preg_match('/^[A-Za-z0-9_-]{16,100}$/D', $requestKey)
+                    'request_key' => $retry['key'] ?? (is_string($requestKey) && preg_match('/^[A-Za-z0-9_-]{16,100}$/D', $requestKey)
                         ? $requestKey
-                        : (string) \Illuminate\Support\Str::uuid(),
+                        : (string) \Illuminate\Support\Str::uuid()),
                 ],
                 'initial' => (object) $initial,
                 'errors' => (object) ($submitted ? $errors->messages() : []),

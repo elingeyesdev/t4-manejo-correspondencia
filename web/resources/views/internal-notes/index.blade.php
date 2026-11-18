@@ -4,7 +4,7 @@
 @section('content')
     <h1>Bandeja de Nota Interna</h1>
     <nav aria-label="Bandejas de Nota Interna">
-        @foreach (['mis_notas' => 'Mis notas', 'por_revisar' => 'Por revisar', 'por_recibir' => 'Por recibir', 'copias' => 'Copias'] as $key => $label)
+        @foreach (['mis_notas' => 'Mis notas', 'por_revisar' => 'Por revisar', 'por_recibir' => 'Por recibir', 'por_atender' => 'Por atender', 'copias' => 'Copias'] as $key => $label)
             <a href="{{ route('notes.index', ['bandeja' => $key]) }}" @if ($tray === $key) aria-current="page" @endif>{{ $label }}</a>
         @endforeach
         <a class="button" href="{{ route('notes.create') }}">Nueva nota</a>
@@ -19,7 +19,7 @@
                         <td><a href="{{ route('notes.show', $note) }}">{{ $note->subject }}</a></td>
                         <td>{{ $note->origin->name }}</td>
                         <td>{{ $note->recipient->name }}</td>
-                        <td>{{ $note->updated_at->timezone('America/La_Paz')->format('d/m/Y H:i') }}</td>
+                        <td>{{ ($note->document?->sheet?->updated_at ?? $note->updated_at)->timezone('America/La_Paz')->format('d/m/Y H:i') }}</td>
                         <td>{{ $note->stateLabel() }}</td>
                     </tr>
                 @empty
