@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+    id="Correspondencia" targetNamespace="urn:correspondencia:nota-interna">
+    <bpmn:process id="nota_interna" name="Nota interna" isExecutable="true">
+        <bpmn:startEvent id="Emitida" name="Emitida"/>
+        <bpmn:sequenceFlow id="InicioRevision" sourceRef="Emitida" targetRef="RevisarVia"/>
+        <bpmn:userTask id="RevisarVia" name="Revisar por VÍA">
+            <bpmn:extensionElements>
+                <zeebe:userTask/>
+                <zeebe:assignmentDefinition assignee="= revisor"/>
+            </bpmn:extensionElements>
+            <bpmn:multiInstanceLoopCharacteristics isSequential="true">
+                <bpmn:extensionElements>
+                    <zeebe:loopCharacteristics inputCollection="= revisores" inputElement="revisor"/>
+                </bpmn:extensionElements>
+            </bpmn:multiInstanceLoopCharacteristics>
+        </bpmn:userTask>
+        <bpmn:sequenceFlow id="RevisionRecepcion" sourceRef="RevisarVia" targetRef="RecibirNota"/>
+        <bpmn:userTask id="RecibirNota" name="Confirmar primera recepción">
+            <bpmn:extensionElements><zeebe:userTask/></bpmn:extensionElements>
+        </bpmn:userTask>
+        <bpmn:sequenceFlow id="PrimeraAtencion" sourceRef="RecibirNota" targetRef="AtenderNota"/>
+        <bpmn:userTask id="AtenderNota" name="Atender, derivar o cerrar">
+            <bpmn:extensionElements><zeebe:userTask/></bpmn:extensionElements>
+        </bpmn:userTask>
+        <bpmn:sequenceFlow id="AtencionDecision" sourceRef="AtenderNota" targetRef="DecisionRecorrido"/>
+        <bpmn:exclusiveGateway id="DecisionRecorrido" default="SeguirAtendiendo"/>
+        <bpmn:sequenceFlow id="SeguirAtendiendo" sourceRef="DecisionRecorrido" targetRef="AtenderNota"/>
+        <bpmn:sequenceFlow id="DerivarNota" sourceRef="DecisionRecorrido" targetRef="RecibirDerivacion">
+            <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= decisionRecorrido = "derivar"</bpmn:conditionExpression>
+        </bpmn:sequenceFlow>
+        <bpmn:userTask id="RecibirDerivacion" name="Recibir derivación">
+            <bpmn:extensionElements><zeebe:userTask/></bpmn:extensionElements>
+        </bpmn:userTask>
+        <bpmn:sequenceFlow id="AtenderDerivacion" sourceRef="RecibirDerivacion" targetRef="AtenderNota"/>
+        <bpmn:sequenceFlow id="CerrarNota" sourceRef="DecisionRecorrido" targetRef="Cerrada">
+            <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= decisionRecorrido = "cerrar"</bpmn:conditionExpression>
+        </bpmn:sequenceFlow>
+        <bpmn:endEvent id="Cerrada" name="Cerrada"/>
+    </bpmn:process>
+</bpmn:definitions>
