@@ -70,7 +70,7 @@ class InternalNoteWorkflow
             $this->validateRecipients($actor, $current->recipient_unit_id, $current->participants()->where('role', 'via')->pluck('user_id')->all(),
                 $current->participants()->where('role', 'cc')->pluck('user_id')->all());
 
-            // Serializa la numeraci├│n de cada unidad y gesti├│n.
+            // Serializa la numeración de cada unidad y gestión.
             $unit = Unit::lockForUpdate()->findOrFail($current->origin_unit_id);
             $institutionCode = DB::table('institutions')->where('id', $unit->institution_id)->value('code');
             $year = now('America/La_Paz')->year;
@@ -171,12 +171,12 @@ class InternalNoteWorkflow
         $institution = $actor->unit->institution_id;
         $units = Unit::where('institution_id', $institution)->where('enabled', true);
         if (! (clone $units)->whereKey($destination)->exists()) {
-            throw ValidationException::withMessages(['destinatario_unidad_id' => 'Selecciona una unidad activa de tu instituci├│n.']);
+            throw ValidationException::withMessages(['destinatario_unidad_id' => 'Selecciona una unidad activa de tu institución.']);
         }
 
         foreach (['vias_usuario_ids' => $via, 'cc_usuario_ids' => $cc] as $field => $ids) {
             if (User::where('enabled', true)->whereIn('unit_id', (clone $units)->select('id'))->whereIn('id', $ids)->count() !== count($ids)) {
-                throw ValidationException::withMessages([$field => 'Selecciona ├║nicamente usuarios activos de tu instituci├│n.']);
+                throw ValidationException::withMessages([$field => 'Selecciona únicamente usuarios activos de tu institución.']);
             }
         }
     }
@@ -186,7 +186,7 @@ class InternalNoteWorkflow
         try {
             return $operation();
         } catch (ConnectionException|RequestException) {
-            abort(503, 'Camunda no confirm├│ la operaci├│n. Vuelve a intentar con la misma solicitud.');
+            abort(503, 'Camunda no confirmó la operación. Vuelve a intentar con la misma solicitud.');
         }
     }
 }
