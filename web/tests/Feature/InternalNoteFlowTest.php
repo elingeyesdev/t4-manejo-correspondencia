@@ -65,6 +65,29 @@ class InternalNoteFlowTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_web_draft_shows_saved_reviewers_and_rejects_duplicates(): void
+    {
+        $first = $this->account($this->author->unit);
+        $second = $this->account($this->author->unit);
+        $this->actingAs($this->author)->post(route('notes.store'), $this->draft([$first->id, $second->id]))
+            ->assertRedirect();
+        $note = DB::table('internal_notes')->first();
+        $edit = route('notes.edit', $note->id);
+
+        $form = $this->get($edit)->assertOk()
+            ->assertSee('value="'.$second->id.'" selected', false);
+        $this->assertMatchesRegularExpression('/<details class="reviewers-details"\s+open\s*>/', $form->getContent());
+
+        $invalid = $this->draft([$first->id, $first->id]) + [
+            'version' => $note->version,
+        ];
+        $this->from($edit)->patch(route('notes.update', $note->id), $invalid)
+            ->assertRedirect($edit)->assertSessionHasErrors('vias_usuario_ids.1');
+        $this->assertDatabaseHas('internal_note_participants', [
+            'note_id' => $note->id, 'user_id' => $second->id, 'role' => 'via', 'position' => 2,
+        ]);
+    }
+
     public function test_via_advances_in_order_and_cc_has_read_only_visibility_after_delivery(): void
     {
         $via1 = $this->account($this->author->unit);

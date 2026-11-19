@@ -2,53 +2,60 @@
 @section('title', 'Detalle de Nota Interna')
 
 @section('content')
-    <a href="{{ route('notes.index') }}">Volver a la bandeja</a>
-    <h1>{{ $note->subject }}</h1>
-    <section>
-        <dl>
-            <dt>CITE</dt><dd>{{ $note->cite ?? 'Por asignar' }}</dd>
-            <dt>Estado</dt><dd>{{ $note->stateLabel() }}</dd>
-            <dt>DE</dt><dd>{{ $note->author->name }} · {{ $note->origin->name }}</dd>
-            <dt>A</dt><dd>{{ $note->recipient->name }}</dd>
-            <dt>Unidad actual</dt><dd>{{ $data['unidad_actual']['nombre'] }}</dd>
+    <a class="back-link" href="{{ route('notes.index') }}">Volver a la bandeja</a>
+    <header class="page-heading note-heading">
+        <div>
+            <h1>{{ $note->subject }}</h1>
+            <p class="note-cite"><strong>CITE</strong> {{ $note->cite ?? 'Por asignar' }}</p>
+        </div>
+        @include('internal-notes.state', ['note' => $note])
+    </header>
+
+    <section class="note-section" aria-labelledby="datos-nota">
+        <h2 id="datos-nota">Datos de la nota</h2>
+        <dl class="note-record">
+            <div><dt>DE</dt><dd>{{ $note->author->name }} · {{ $note->origin->name }}</dd></div>
+            <div><dt>A</dt><dd>{{ $note->recipient->name }}</dd></div>
+            <div><dt>Unidad actual</dt><dd>{{ $data['unidad_actual']['nombre'] }}</dd></div>
             @if ($data['destino_pendiente'])
-                <dt>Recepción pendiente en</dt><dd>{{ $data['destino_pendiente']['nombre'] }}</dd>
+                <div><dt>Recepción pendiente en</dt><dd>{{ $data['destino_pendiente']['nombre'] }}</dd></div>
             @endif
             @if ($note->reference)
-                <dt>Referencia</dt><dd>{{ $note->reference }}</dd>
+                <div><dt>Referencia</dt><dd>{{ $note->reference }}</dd></div>
             @endif
         </dl>
-        <p class="body">{{ $note->body }}</p>
+        <h3>Contenido</h3>
+        <p class="note-body">{{ $note->body }}</p>
     </section>
-    <section>
-        <h2>Siguiente acción</h2>
+    <section class="note-section next-action" aria-labelledby="siguiente-accion">
+        <h2 id="siguiente-accion">Siguiente acción</h2>
         <div class="actions">
             @if (in_array('editar_borrador', $data['acciones_permitidas'], true))
-                <a href="{{ route('notes.edit', $note) }}">Editar borrador</a>
+                <a class="btn btn-outline-secondary" href="{{ route('notes.edit', $note) }}">Editar borrador</a>
             @endif
             @if (in_array('emitir', $data['acciones_permitidas'], true))
                 <form method="post" action="{{ route('notes.emit', $note) }}">
                     @csrf
                     <input type="hidden" name="version" value="{{ $note->emission_version ?? $note->version }}">
                     <input type="hidden" name="request_key" value="{{ $note->emission_key ?? $actionKey }}">
-                    <button>{{ $note->emission_key ? 'Reintentar emisión' : 'Emitir Nota Interna' }}</button>
+                    <button type="submit" class="btn btn-primary">{{ $note->emission_key ? 'Reintentar emisión' : 'Emitir Nota Interna' }}</button>
                 </form>
             @elseif (in_array('dar_conformidad', $data['acciones_permitidas'], true))
                 <form method="post" action="{{ route('notes.approve', $note) }}">
                     @csrf
                     <input type="hidden" name="version" value="{{ $via->action_version ?? $note->version }}">
                     <input type="hidden" name="request_key" value="{{ $via->action_key ?? $actionKey }}">
-                    <button>{{ $via->action_key ? 'Reintentar conformidad' : 'Dar conformidad' }}</button>
+                    <button type="submit" class="btn btn-primary">{{ $via->action_key ? 'Reintentar conformidad' : 'Dar conformidad' }}</button>
                 </form>
             @elseif (in_array('confirmar_primera_recepcion', $data['acciones_permitidas'], true))
                 <form method="post" action="{{ route('notes.receive', $note) }}">
                     @csrf
                     <input type="hidden" name="version" value="{{ $note->receipt_version ?? $note->version }}">
                     <input type="hidden" name="request_key" value="{{ $note->receipt_key ?? $actionKey }}">
-                    <button>{{ $note->receipt_key ? 'Reintentar recepción' : 'Confirmar recepción' }}</button>
+                    <button type="submit" class="btn btn-primary">{{ $note->receipt_key ? 'Reintentar recepción' : 'Confirmar recepción' }}</button>
                 </form>
             @elseif ($canOpenSheet)
-                <a class="button" href="{{ route('documents.show', $note->document_id) }}">
+                <a class="btn btn-primary" href="{{ route('documents.show', $note->document_id) }}">
                     {{ in_array('confirmar_recepcion_derivacion', $data['acciones_permitidas'], true) ? 'Abrir hoja para confirmar recepción' : 'Abrir hoja de ruta' }}
                 </a>
             @elseif ($note->state === $note::RECEIVE)
@@ -58,33 +65,39 @@
             @endif
         </div>
     </section>
-    <section>
-        <h2>Historial de la nota</h2>
+    <section class="note-section" aria-labelledby="historial-nota">
+        <h2 id="historial-nota">Historial de la nota</h2>
         @if ($note->emitted_at)
-            <p>{{ $note->emitted_at->timezone('America/La_Paz')->format('d/m/Y H:i') }} · Emisión de {{ $note->author->name }}</p>
-        @endif
-        @forelse ($note->participants->whereNotNull('confirmed_at') as $review)
-            <p>{{ $review->confirmed_at->timezone('America/La_Paz')->format('d/m/Y H:i') }} · Conformidad de {{ $review->user->name }}</p>
-        @empty
-            <p>Todavía no hay conformidades registradas.</p>
-        @endforelse
-        @if ($canOpenSheet)
-            @foreach ($note->document->sheet->movements as $movement)
-                <p>
-                    {{ $movement->occurred_at->timezone('America/La_Paz')->format('d/m/Y H:i') }}
-                    · {{ match ($movement->action) {
-                        'RECEPCION' => 'Recepción', 'DERIVACION' => 'Derivación', 'ATENCION' => 'Atención',
-                        'RESPUESTA' => 'Respuesta', 'CIERRE' => 'Cierre', default => $movement->action,
-                    } }}
-                    · {{ $movement->actor->name }}
-                    @if ($movement->destinationUnit)
-                        · {{ $movement->destinationUnit->name }}
-                    @endif
-                    @if ($movement->reason)
-                        · {{ $movement->reason }}
-                    @endif
-                </p>
-            @endforeach
+            <ol class="note-history">
+                @include('internal-notes.history-entry', [
+                    'date' => $note->emitted_at,
+                    'action' => 'Emisión',
+                    'actor' => $note->author->name,
+                ])
+                @foreach ($note->participants->whereNotNull('confirmed_at') as $review)
+                    @include('internal-notes.history-entry', [
+                        'date' => $review->confirmed_at,
+                        'action' => 'Conformidad',
+                        'actor' => $review->user->name,
+                    ])
+                @endforeach
+                @if ($canOpenSheet)
+                    @foreach ($note->document->sheet->movements as $movement)
+                        @include('internal-notes.history-entry', [
+                            'date' => $movement->occurred_at,
+                            'action' => match ($movement->action) {
+                                'RECEPCION' => 'Recepción', 'DERIVACION' => 'Derivación', 'ATENCION' => 'Atención',
+                                'RESPUESTA' => 'Respuesta', 'CIERRE' => 'Cierre', default => $movement->action,
+                            },
+                            'actor' => $movement->actor->name,
+                            'unit' => $movement->destinationUnit?->name,
+                            'reason' => $movement->reason,
+                        ])
+                    @endforeach
+                @endif
+            </ol>
+        @else
+            <p class="text-secondary mb-0">Todavía no hay movimientos registrados.</p>
         @endif
     </section>
 @endsection

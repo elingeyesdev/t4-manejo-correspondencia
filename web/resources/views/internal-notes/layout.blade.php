@@ -4,50 +4,38 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title') · Correspondencia</title>
-    <style>
-        :root { font-family: system-ui, sans-serif; color: #202c36; background: #f4f6f8; line-height: 1.5; }
-        body { margin: 0; }
-        header, main { max-width: 72rem; margin: auto; padding: 1rem; }
-        header { border-bottom: 1px solid #c9d1d8; display: flex; gap: 1rem; align-items: baseline; flex-wrap: wrap; }
-        a { color: #17466a; }
-        a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #23619a; outline-offset: 2px; }
-        section, fieldset { background: white; border: 1px solid #c9d1d8; padding: 1rem; margin-block: 1rem; }
-        h1 { margin: .2rem 0 1rem; }
-        h2 { font-size: 1.2rem; }
-        nav, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
-        nav [aria-current] { font-weight: 700; }
-        label { display: block; font-weight: 600; }
-        input:not([type=hidden]), textarea, select { width: 100%; max-width: 40rem; box-sizing: border-box; font: inherit; padding: .45rem; margin: .2rem 0 .75rem; border: 1px solid #718292; }
-        button, .button { display: inline-block; background: #17466a; color: white; border: none; padding: .45rem .75rem; font: inherit; text-decoration: none; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; text-align: left; background: white; }
-        td, th { border-bottom: 1px solid #c9d1d8; padding: .7rem; vertical-align: top; }
-        th { background: #eaf0f4; }
-        .table-scroll { overflow-x: auto; }
-        dt { font-weight: 600; }
-        dd { margin: 0 0 .6rem; }
-        .body { white-space: pre-wrap; overflow-wrap: anywhere; }
-        .alert { border-left: 4px solid #9b2929; }
-    </style>
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap-5.3.8/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/internal-notes.css') }}">
 </head>
 <body>
-    <header>
-        <strong>Correspondencia institucional</strong>
-        <a href="{{ route('documents.index') }}">Documentos</a>
-        <a href="{{ route('notes.index') }}">Nota Interna</a>
-    </header>
-    <main>
+    <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+
+    <nav class="navbar navbar-expand site-navbar" aria-label="Navegación principal">
+        <div class="container site-navbar-inner">
+            <a class="navbar-brand" href="{{ route('documents.index') }}">
+                <span class="sc-flag" role="img" aria-label="Bandera de Santa Cruz"></span>
+                <span>Correspondencia institucional</span>
+            </a>
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="{{ route('documents.index') }}">Documentos</a></li>
+                <li class="nav-item"><a class="nav-link active" aria-current="true" href="{{ route('notes.index') }}">Nota Interna</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container notes-main" id="contenido" tabindex="-1">
         @if (session('status'))
-            <section role="status">{{ session('status') }}</section>
+            <div class="alert notice-success" role="status">{{ session('status') }}</div>
         @endif
         @if ($errors->any())
-            <section class="alert" role="alert">
+            <div class="alert notice-error" role="alert">
                 <strong>Revisa los datos del formulario</strong>
-                <ul>
+                <ul class="mb-0">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
                 </ul>
-            </section>
+            </div>
         @endif
         @yield('content')
     </main>
