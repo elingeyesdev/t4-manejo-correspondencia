@@ -205,6 +205,56 @@ class InternalNoteFlowTest extends TestCase
             && $request['variables']->decisionRecorrido === 'cerrar');
     }
 
+    public function test_first_receipt_recovers_when_the_recipient_changes_unit_during_confirmation(): void
+    {
+        $destination = $this->recipient->unit;
+        $replacement = $this->account($destination);
+        Http::fake([
+            self::ENGINE.'/process-instances' => Http::response(['processInstanceKey' => '400']),
+            self::ENGINE.'/user-tasks/search' => Http::response(['items' => [['userTaskKey' => '401']]]),
+            self::ENGINE.'/user-tasks/401' => Http::sequence()->push(['state' => 'CREATED'])->push(['state' => 'COMPLETED']),
+            self::ENGINE.'/user-tasks/401/completion' => function () {
+                User::whereKey($this->recipient->id)->update(['unit_id' => $this->outsider->unit_id]);
+
+                return Http::response(null, 204);
+            },
+        ]);
+
+        Sanctum::actingAs($this->author);
+        $draft = $this->postJson('/api/notas-internas', $this->draft())->assertCreated();
+        $note = '/api/notas-internas/'.$draft->json('id');
+        $emitted = $this->postJson($note.'/emision', ['version' => $draft->json('version')], $this->key())->assertOk();
+        $payload = ['version' => $emitted->json('version')];
+
+        Sanctum::actingAs($this->recipient);
+        $this->postJson($note.'/recepciones', $payload, $this->key())->assertForbidden();
+        $this->assertDatabaseCount('documents', 0);
+        $this->assertDatabaseCount('route_sheets', 0);
+        $this->assertDatabaseCount('movements', 0);
+        $this->assertDatabaseHas('internal_notes', [
+            'id' => $draft->json('id'),
+            'state' => 'pendiente_recepcion',
+            'receipt_actor_id' => null,
+            'receipt_task_key' => '401',
+        ]);
+
+        Sanctum::actingAs($replacement);
+        $this->getJson('/api/notas-internas?bandeja=por_recibir')->assertOk()->assertJsonPath('meta.total', 1);
+        $key = $this->key();
+        $receipt = $this->postJson($note.'/recepciones', $payload, $key)
+            ->assertOk()->assertJsonPath('estado', 'recibida')->assertJsonPath('cite', $emitted->json('cite'));
+        $this->postJson($note.'/recepciones', $payload, $key)
+            ->assertOk()->assertJsonPath('hoja_id', $receipt->json('hoja_id'));
+        $this->assertDatabaseHas('route_sheets', [
+            'id' => $receipt->json('hoja_id'),
+            'responsible_id' => $replacement->id,
+            'current_unit_id' => $destination->id,
+        ]);
+        $this->assertDatabaseCount('route_sheets', 1);
+        $this->assertDatabaseCount('movements', 1);
+        Http::assertSentCount(5);
+    }
+
     private function account(Unit $unit): User
     {
         return User::factory()->create(['unit_id' => $unit->id, 'role' => 'funcionario', 'enabled' => true]);
