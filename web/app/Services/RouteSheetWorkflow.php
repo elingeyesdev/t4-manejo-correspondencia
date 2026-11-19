@@ -4,16 +4,23 @@ namespace App\Services;
 
 use App\Models\Catalog;
 use App\Models\Document;
+use App\Models\InternalNote;
 use App\Models\RouteSheet;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\Camunda\NotaInternaEngine;
 use Carbon\CarbonInterface;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use UnexpectedValueException;
 
 class RouteSheetWorkflow
 {
+    public function __construct(private readonly NotaInternaEngine $engine) {}
+
     public function derive(User $actor, string $sheetId, array $data): array
     {
         return $this->transition($actor, $sheetId, 'derivacion', $data['request_key'], [
@@ -72,7 +79,7 @@ class RouteSheetWorkflow
             JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
         ));
 
-        return DB::transaction(function () use ($actor, $sheetId, $operation, $requestKey, $intent, $fingerprint): array {
+        $apply = function (?string $confirmedTask = null) use ($actor, $sheetId, $operation, $requestKey, $intent, $fingerprint): array {
             // El bloqueo del actor serializa la misma clave incluso si se intenta usar en otra hoja.
             $actor = User::query()->lockForUpdate()->findOrFail($actor->id);
             abort_unless($actor->isOperational(), 403, 'ACCION_NO_PERMITIDA');
@@ -114,6 +121,18 @@ class RouteSheetWorkflow
 
             abort_unless((int) $sheet->version === $intent['version'], 409, 'VERSION_DESACTUALIZADA');
 
+            $pending = $sheet->camunda_transition;
+            if ($pending !== null) {
+                abort_unless($pending['actor_id'] === $actor->id && $pending['key'] === $requestKey
+                    && $pending['operation'] === $operation && hash_equals($pending['fingerprint'], $fingerprint), 409, 'ACCION_PENDIENTE');
+            }
+
+            $noteId = InternalNote::where('document_id', $document->id)->value('id');
+            if ($confirmedTask !== null) {
+                abort_unless($pending !== null && $pending['task'] === $confirmedTask, 409, 'ACCION_PENDIENTE');
+            }
+
+            // Valida la acción antes de enviarla al motor.
             $originUnitId = (int) $sheet->current_unit_id;
             $destinationUnitId = match ($operation) {
                 'derivacion' => $this->applyDerivation($actor, $sheet, $intent),
@@ -123,10 +142,40 @@ class RouteSheetWorkflow
                 'cierre' => $this->applyClosure($actor, $sheet),
             };
 
+            if ($noteId !== null && $operation !== 'respuesta' && $confirmedTask === null) {
+                if ($pending === null) {
+                    $element = $operation === 'recepcion' ? 'RecibirDerivacion' : 'AtenderNota';
+                    $instance = DB::table('note_workflow_instances')->where('note_id', $noteId)->value('instance_key');
+                    abort_unless(is_string($instance), 503, 'No se pudo consultar el proceso de la nota.');
+                    $task = $this->camunda(fn () => $this->engine->activeTask($instance, $element));
+                    abort_if($task === null || $task === $sheet->camunda_last_task_key, 503, 'La tarea todavía no está disponible. Vuelve a intentar.');
+
+                    $pending = [
+                        'actor_id' => $actor->id,
+                        'operation' => $operation,
+                        'key' => $requestKey,
+                        'fingerprint' => $fingerprint,
+                        'task' => $task,
+                        'intent' => $intent,
+                    ];
+                    DB::table('route_sheets')->where('id', $sheetId)
+                        ->update(['camunda_transition' => json_encode($pending, JSON_THROW_ON_ERROR)]);
+                }
+
+                return ['pending_task' => $pending['task']];
+            }
+
             $instant = now();
             $response = $operation === 'respuesta' ? $this->createResponse($actor, $sheet, $intent, $instant) : null;
             $sheet->version = $intent['version'] + 1;
+            $sheet->camunda_transition = null;
+            if ($confirmedTask !== null) {
+                $sheet->camunda_last_task_key = $confirmedTask;
+            }
             $sheet->save();
+            if ($noteId !== null) {
+                InternalNote::whereKey($noteId)->update(['updated_at' => $instant]);
+            }
 
             $movement = $sheet->movements()->create([
                 'id' => (string) Str::uuid(),
@@ -173,7 +222,33 @@ class RouteSheetWorkflow
             $this->saveResult($request, $fingerprint, $document->id, $payload, $instant);
 
             return [$payload, true];
-        }, 3);
+        };
+
+        $result = DB::transaction(fn () => $apply(), 3);
+        if (! isset($result['pending_task'])) {
+            return $result;
+        }
+
+        $task = $result['pending_task'];
+        $variables = match ($operation) {
+            'derivacion' => ['decisionRecorrido' => 'derivar'],
+            'atencion' => ['decisionRecorrido' => 'atender'],
+            'cierre' => ['decisionRecorrido' => 'cerrar'],
+            default => [],
+        };
+        $confirmed = $this->camunda(fn () => $this->engine->completeTask($task, $variables));
+        abort_unless($confirmed, 503, 'Camunda no confirmó la acción. Reintenta con la misma solicitud.');
+
+        return DB::transaction(fn () => $apply($task), 3);
+    }
+
+    private function camunda(callable $operation): mixed
+    {
+        try {
+            return $operation();
+        } catch (ConnectionException|RequestException|UnexpectedValueException) {
+            abort(503, 'No se pudo confirmar la acción con Camunda. Vuelve a intentar.');
+        }
     }
 
     private function saveResult(array $request, string $fingerprint, string $documentId, array $payload, CarbonInterface $instant): void

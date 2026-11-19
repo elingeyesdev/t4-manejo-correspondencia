@@ -40,13 +40,17 @@ class NotaInternaEngine
 
     public function activeReviewTask(string $instance, string $reviewer): ?string
     {
+        return $this->activeTask($instance, 'RevisarVia', ['assignee' => $reviewer]);
+    }
+
+    public function activeTask(string $instance, string $element, array $filters = []): ?string
+    {
         $items = $this->client()->post('user-tasks/search', [
             'filter' => [
                 'processInstanceKey' => $instance,
-                'elementId' => 'RevisarVia',
+                'elementId' => $element,
                 'state' => 'CREATED',
-                'assignee' => $reviewer,
-            ],
+            ] + $filters,
             'page' => ['limit' => 2],
         ])->throw()->json('items');
 
@@ -59,13 +63,18 @@ class NotaInternaEngine
 
     public function completeReviewTask(string $key): bool
     {
+        return $this->completeTask($key);
+    }
+
+    public function completeTask(string $key, array $variables = []): bool
+    {
         $task = $this->client()->get("user-tasks/{$key}");
         if (! $task->notFound() && $task->throw()->json('state') === 'COMPLETED') {
             return true;
         }
 
         try {
-            $response = $this->client()->post("user-tasks/{$key}/completion", ['variables' => (object) []]);
+            $response = $this->client()->post("user-tasks/{$key}/completion", ['variables' => (object) $variables]);
         } catch (ConnectionException) {
             return false;
         }

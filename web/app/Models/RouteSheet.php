@@ -13,6 +13,13 @@ class RouteSheet extends Model
 
     protected $guarded = [];
 
+    protected $hidden = ['camunda_transition', 'camunda_last_task_key'];
+
+    protected function casts(): array
+    {
+        return ['camunda_transition' => 'array'];
+    }
+
     public function movements()
     {
         return $this->hasMany(Movement::class)->orderBy('sheet_version');
