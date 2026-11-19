@@ -3,7 +3,7 @@
     $restoring = old('_form') === $formKey;
     $formProps = [
         'action' => url('/administracion/usuarios'.($item ? '/'.$item->id : '')),
-        'csrfToken' => csrf_token(), 'method' => $item ? 'PUT' : 'POST',
+        'method' => $item ? 'PUT' : 'POST',
         'formKey' => $formKey, 'formLabel' => $item ? 'Editar usuario '.$item->name : 'Agregar usuario',
         'submitLabel' => 'Guardar usuario',
         'help' => 'Una actualización invalida las sesiones anteriores del usuario. Las contraseñas requieren al menos 12 caracteres con letras y números.',
@@ -30,4 +30,4 @@
         ],
     ];
 @endphp
-<div data-sakai-form data-props="{{ json_encode($formProps, JSON_UNESCAPED_SLASHES) }}"></div>
+@include('partials.form', ['form' => $formProps])

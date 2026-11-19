@@ -1,14 +1,13 @@
 @extends('layout')
 @section('title', 'Nuevo registro')
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-3xl font-semibold mb-2">Registrar correspondencia</h1>
-        <p class="text-muted-color m-0">Se crearán el documento y su hoja de ruta en una sola operación.</p>
+    <div class="page-heading">
+        <h1 >Registrar correspondencia</h1>
+        <p class="text-secondary m-0">Se crearán el documento y su hoja de ruta en una sola operación.</p>
     </div>
     @php
         $formProps = [
             'action' => route('documents.store'),
-            'csrfToken' => csrf_token(),
             'formKey' => 'register',
             'formLabel' => 'Registrar correspondencia',
             'submitLabel' => 'Guardar documento y hoja',
@@ -36,7 +35,7 @@
             ],
         ];
     @endphp
-    <div class="card">
-        <div id="register-form" data-sakai-form data-props="{{ json_encode($formProps, JSON_UNESCAPED_SLASHES) }}"></div>
-    </div>
+    <section class="note-section note-form" aria-label="Datos de la correspondencia">
+        @include('partials.form', ['form' => $formProps])
+    </section>
 @endsection

@@ -146,7 +146,7 @@ class RouteSheetResponseTest extends TestCase
         $this->get(route('documents.show', $response->id))
             ->assertOk()->assertSee('Documento original')
             ->assertSee(route('documents.show', $this->document->id))
-            ->assertSee('RESPUESTA')->assertDontSee('route-attend');
+            ->assertSeeText('Respuesta')->assertDontSee('route-attend');
     }
 
     public function test_response_does_not_grant_access_to_colleagues_without_original_access(): void
@@ -219,7 +219,7 @@ class RouteSheetResponseTest extends TestCase
             ->assertRedirect($detail)->assertSessionHas('status', 'Respuesta vinculada.');
         $response = $this->document->responses()->sole();
         $this->get($detail)->assertOk()->assertSee(route('documents.show', $response->id))
-            ->assertSee('"statusMessage":'.json_encode('Respuesta vinculada.'));
+            ->assertSeeText('Respuesta vinculada.');
         $this->get(route('documents.show', $response->id))->assertOk()->assertDontSee('route-respond');
     }
 
@@ -267,17 +267,17 @@ class RouteSheetResponseTest extends TestCase
         ];
         $this->from($detail)->post($closeUrl, $closure)
             ->assertRedirect($detail)->assertSessionHasErrors('confirmar');
-        $this->get($detail)->assertOk()->assertSee('"statusMessage":null');
+        $this->get($detail)->assertOk()->assertDontSee('id="operation-status"', false);
         $this->assertDatabaseHas('route_sheets', ['id' => $this->document->sheet->id, 'version' => 4, 'state' => 'RECIBIDA']);
 
         $this->post($closeUrl, $closure + ['confirmar' => '1'])
             ->assertRedirect($detail)->assertSessionHas('status', 'Expediente cerrado.');
-        $this->get($detail)->assertOk()->assertSee('CERRADA')
-            ->assertSee('"statusMessage":'.json_encode('Expediente cerrado.'))
+        $this->get($detail)->assertOk()->assertSee('Cerrada')
+            ->assertSeeText('Expediente cerrado.')
             ->assertSee(route('documents.show', $response->id))
             ->assertDontSee('route-close')->assertDontSee('route-respond')->assertDontSee('route-attend');
         $this->get(route('documents.show', $response->id))
-            ->assertOk()->assertSee('CERRADA')->assertSee(route('documents.show', $this->document->id));
+            ->assertOk()->assertSee('Cerrada')->assertSee(route('documents.show', $this->document->id));
         $this->assertDatabaseHas('movements', [
             'route_sheet_id' => $this->document->sheet->id,
             'action' => 'CIERRE',
