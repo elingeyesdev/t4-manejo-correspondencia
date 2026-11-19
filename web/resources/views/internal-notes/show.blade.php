@@ -10,6 +10,10 @@
             <dt>Estado</dt><dd>{{ $note->stateLabel() }}</dd>
             <dt>DE</dt><dd>{{ $note->author->name }} · {{ $note->origin->name }}</dd>
             <dt>A</dt><dd>{{ $note->recipient->name }}</dd>
+            <dt>Unidad actual</dt><dd>{{ $data['unidad_actual']['nombre'] }}</dd>
+            @if ($data['destino_pendiente'])
+                <dt>Recepción pendiente en</dt><dd>{{ $data['destino_pendiente']['nombre'] }}</dd>
+            @endif
             @if ($note->reference)
                 <dt>Referencia</dt><dd>{{ $note->reference }}</dd>
             @endif
@@ -36,6 +40,17 @@
                     <input type="hidden" name="request_key" value="{{ $via->action_key ?? $actionKey }}">
                     <button>{{ $via->action_key ? 'Reintentar conformidad' : 'Dar conformidad' }}</button>
                 </form>
+            @elseif (in_array('confirmar_primera_recepcion', $data['acciones_permitidas'], true))
+                <form method="post" action="{{ route('notes.receive', $note) }}">
+                    @csrf
+                    <input type="hidden" name="version" value="{{ $note->receipt_version ?? $note->version }}">
+                    <input type="hidden" name="request_key" value="{{ $note->receipt_key ?? $actionKey }}">
+                    <button>{{ $note->receipt_key ? 'Reintentar recepción' : 'Confirmar recepción' }}</button>
+                </form>
+            @elseif ($canOpenSheet)
+                <a class="button" href="{{ route('documents.show', $note->document_id) }}">
+                    {{ in_array('confirmar_recepcion_derivacion', $data['acciones_permitidas'], true) ? 'Abrir hoja para confirmar recepción' : 'Abrir hoja de ruta' }}
+                </a>
             @elseif ($note->state === $note::RECEIVE)
                 <p>Queda pendiente la recepción en {{ $note->recipient->name }}.</p>
             @else
@@ -53,5 +68,23 @@
         @empty
             <p>Todavía no hay conformidades registradas.</p>
         @endforelse
+        @if ($canOpenSheet)
+            @foreach ($note->document->sheet->movements as $movement)
+                <p>
+                    {{ $movement->occurred_at->timezone('America/La_Paz')->format('d/m/Y H:i') }}
+                    · {{ match ($movement->action) {
+                        'RECEPCION' => 'Recepción', 'DERIVACION' => 'Derivación', 'ATENCION' => 'Atención',
+                        'RESPUESTA' => 'Respuesta', 'CIERRE' => 'Cierre', default => $movement->action,
+                    } }}
+                    · {{ $movement->actor->name }}
+                    @if ($movement->destinationUnit)
+                        · {{ $movement->destinationUnit->name }}
+                    @endif
+                    @if ($movement->reason)
+                        · {{ $movement->reason }}
+                    @endif
+                </p>
+            @endforeach
+        @endif
     </section>
 @endsection

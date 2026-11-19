@@ -19,6 +19,7 @@ Route::middleware(['auth:sanctum', 'operational'])->group(function () {
         Route::patch('/{id}', 'update')->whereUuid('id');
         Route::post('/{id}/emision', 'emit')->whereUuid('id');
         Route::post('/{id}/conformidades', 'approve')->whereUuid('id');
+        Route::post('/{id}/recepciones', 'receive')->whereUuid('id');
     });
     Route::delete('/sesiones/actual', [SessionController::class, 'revoke']);
     Route::get('/configuracion-registro', [DocumentController::class, 'configuration']);

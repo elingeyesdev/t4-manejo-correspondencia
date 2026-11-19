@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\InternalNoteDraftRequest;
+use App\Models\Document;
 use App\Models\InternalNote;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\InternalNoteWorkflow;
+use App\Services\ReceiveInternalNote;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -23,17 +26,25 @@ class InternalNoteController extends Controller
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ]);
         $tray = $filters['bandeja'] ?? ($api ? 'por_revisar' : 'mis_notas');
-        $query = InternalNote::visibleTo($actor)->with(['origin', 'recipient', 'participants']);
+        $query = InternalNote::visibleTo($actor)->with(['origin', 'recipient', 'participants', 'document.sheet.currentUnit', 'document.sheet.pendingUnit']);
 
         match ($tray) {
             'mis_notas' => $query->where('author_id', $actor->id),
             'por_revisar' => $query->where('state', InternalNote::REVIEW)
                 ->whereHas('participants', fn ($via) => $via->where('role', 'via')->where('user_id', $actor->id)
                     ->whereColumn('position', 'internal_notes.active_position')),
-            'por_recibir' => $query->where('state', InternalNote::RECEIVE)->where('recipient_unit_id', $actor->unit_id),
-            'copias' => $query->where('state', InternalNote::RECEIVE)
+            'por_recibir' => $query->where(fn (Builder $pending) => $pending
+                ->where(fn (Builder $initial) => $initial->where('state', InternalNote::RECEIVE)
+                    ->where('recipient_unit_id', $actor->unit_id)
+                    ->where(fn (Builder $assigned) => $assigned->whereNull('receipt_actor_id')->orWhere('receipt_actor_id', $actor->id)))
+                ->orWhereHas('document.sheet', fn (Builder $sheet) => $sheet->where('state', 'PENDIENTE_RECEPCION')
+                    ->where('pending_unit_id', $actor->unit_id)))
+                ->whereRaw($actor->role === 'funcionario' ? '1 = 1' : '1 = 0'),
+            'copias' => $query->whereIn('state', [InternalNote::RECEIVE, InternalNote::RECEIVED])
                 ->whereHas('participants', fn ($cc) => $cc->where('role', 'cc')->where('user_id', $actor->id)),
-            'por_atender' => $query->whereRaw('1 = 0'), // La atención empieza con la hoja de ruta del #45.
+            'por_atender' => $query->whereHas('document.sheet', fn (Builder $sheet) => $sheet
+                ->whereIn('state', ['RECIBIDA', 'EN_ATENCION'])->where('responsible_id', $actor->id)
+                ->where('current_unit_id', $actor->unit_id)),
         };
 
         $notes = $query->orderByDesc('updated_at')->orderByDesc('id')->paginate($filters['per_page'] ?? 15)->withQueryString();
@@ -78,7 +89,10 @@ class InternalNoteController extends Controller
 
         $actionKey = (string) Str::uuid();
 
-        return view('internal-notes.show', compact('note', 'via', 'data', 'actionKey'));
+        $canOpenSheet = $note->document_id !== null && Document::visibleTo($actor)->whereKey($note->document_id)->exists();
+        $note->load('document.sheet.movements.actor', 'document.sheet.movements.destinationUnit');
+
+        return view('internal-notes.show', compact('note', 'via', 'data', 'actionKey', 'canOpenSheet'));
     }
 
     public function store(InternalNoteDraftRequest $request, InternalNoteWorkflow $workflow)
@@ -113,6 +127,16 @@ class InternalNoteController extends Controller
         return $this->result($request, $note, $pending ? 'Conformidad pendiente. Puedes reintentar desde esta nota.' : 'Conformidad registrada.', $pending ? 202 : 200);
     }
 
+    public function receive(Request $request, string $id, ReceiveInternalNote $receipt)
+    {
+        $actor = $request->user();
+        $data = $this->action($request);
+        $note = $receipt->execute($actor, $this->find($actor, $id), (int) $data['version'], $data['request_key']);
+        $pending = $note->document_id === null;
+
+        return $this->result($request, $note, $pending ? 'Recepción pendiente. Puedes reintentar desde esta nota.' : 'Recepción confirmada.', $pending ? 202 : 200);
+    }
+
     private function action(Request $request): array
     {
         if ($request->is('api/*')) {
@@ -124,7 +148,7 @@ class InternalNoteController extends Controller
 
     private function find(User $actor, string $id): InternalNote
     {
-        return InternalNote::visibleTo($actor)->with(['origin', 'recipient', 'participants'])->findOrFail($id);
+        return InternalNote::visibleTo($actor)->with(['origin', 'recipient', 'participants', 'document.sheet.currentUnit', 'document.sheet.pendingUnit'])->findOrFail($id);
     }
 
     private function canEdit(InternalNote $note, User $actor): bool
@@ -151,6 +175,7 @@ class InternalNoteController extends Controller
 
     private function payload(InternalNote $note, User $actor, bool $detail = false): array
     {
+        $sheet = $note->document?->sheet;
         $actions = [];
         if ($this->canEdit($note, $actor)) {
             $actions = ['editar_borrador', 'emitir'];
@@ -159,22 +184,29 @@ class InternalNoteController extends Controller
         } elseif ($note->state === InternalNote::REVIEW && $note->participants->contains(fn ($via) => $via->role === 'via'
             && $via->position === $note->active_position && $via->user_id === $actor->id)) {
             $actions = ['dar_conformidad'];
+        } elseif ($note->state === InternalNote::RECEIVE && $note->allowsInitialReceipt($actor)) {
+            $actions = ['confirmar_primera_recepcion'];
+        } elseif ($sheet?->canReceive($actor)) {
+            $actions = ['confirmar_recepcion_derivacion'];
+        } elseif ($sheet?->canAttend($actor)) {
+            $actions = ['registrar_atencion', 'derivar', 'responder', 'cerrar'];
         }
 
         $origin = ['id' => $note->origin->id, 'nombre' => $note->origin->name];
+        $current = $sheet?->currentUnit ?? $note->origin;
+        $pending = $note->state === InternalNote::RECEIVE ? $note->recipient : $sheet?->pendingUnit;
         $data = [
             'id' => $note->id,
             'cite' => $note->cite,
             'asunto' => $note->subject,
             'unidad_origen' => $origin,
-            'unidad_actual' => $origin,
-            'destino_pendiente' => $note->state === InternalNote::RECEIVE
-                ? ['id' => $note->recipient->id, 'nombre' => $note->recipient->name] : null,
-            'estado' => $note->state,
+            'unidad_actual' => ['id' => $current->id, 'nombre' => $current->name],
+            'destino_pendiente' => $pending ? ['id' => $pending->id, 'nombre' => $pending->name] : null,
+            'estado' => $note->displayState(),
             'version' => $note->version,
-            'fecha_ultimo_movimiento' => $note->updated_at->toISOString(),
-            'documento_id' => null,
-            'hoja_id' => null,
+            'fecha_ultimo_movimiento' => ($sheet?->updated_at ?? $note->updated_at)->toISOString(),
+            'documento_id' => $note->document_id,
+            'hoja_id' => $sheet?->id,
             'acciones_permitidas' => $actions,
         ];
 

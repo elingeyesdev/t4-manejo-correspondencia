@@ -43,6 +43,12 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->withInput($request->only('_form', 'remitente', 'asunto', 'fecha', 'tipo_id', 'prioridad_id'));
             }
 
+            if ($status === 503 && $request->routeIs('route-sheets.derive', 'route-sheets.receive', 'route-sheets.attend', 'route-sheets.close')) {
+                return redirect()->route('route-sheets.show', $request->route('reference'))
+                    ->withErrors(['recorrido' => 'La acción está pendiente de confirmación. Reintenta desde el detalle.'])
+                    ->withInput($request->only('_form', 'version', 'request_key', 'destino_unidad_id', 'observacion', 'motivo', 'confirmar'));
+            }
+
             if ($status === 409 && $request->routeIs('route-sheets.derive', 'route-sheets.receive', 'route-sheets.attend', 'route-sheets.close')) {
                 return redirect()->route('route-sheets.show', $request->route('reference'))
                     ->withErrors(['recorrido' => 'La operación no se guardó. Revisa el estado y vuelve a intentarlo si corresponde.'])
@@ -57,6 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 403 => 'ACCION_NO_PERMITIDA',
                 404 => 'RECURSO_NO_DISPONIBLE',
                 409 => $error->getMessage(),
+                503 => 'CAMUNDA_NO_DISPONIBLE',
                 default => null,
             };
 
@@ -66,6 +73,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 'VERSION_DESACTUALIZADA' => 'La hoja cambió. Actualiza el detalle.',
                 'ESTADO_INCOMPATIBLE' => 'El estado de la hoja no permite esta operación.',
                 'CLAVE_REUTILIZADA' => 'La clave de solicitud ya se utilizó con otros datos.',
+                'ACCION_PENDIENTE' => 'Hay una acción pendiente. Reintenta la solicitud original.',
+                'CAMUNDA_NO_DISPONIBLE' => 'La acción no fue confirmada. Reintenta con la misma solicitud.',
                 default => null,
             };
 
