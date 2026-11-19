@@ -41,7 +41,6 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
   }
 
   void _limpiar() {
-    NotasApi(widget.api).descartarIntento(widget.id);
     _nota = null;
     _documento = null;
     _pendiente = null;
@@ -52,17 +51,31 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
   Future<void> _cargar() async {
     if (_cargando) return;
     final token = widget.api.token;
+    final cuenta = widget.api.cuentaId;
     setState(() {
-      _pendiente = widget.soloLectura
-          ? null
-          : NotasApi(widget.api).pendientePara(widget.id);
       _cargando = true;
       _errorCarga = null;
       _documento = null;
     });
     try {
-      final nota = await NotasApi(widget.api).detalle(widget.id);
+      final servicio = NotasApi(widget.api);
+      final pendiente = widget.soloLectura
+          ? null
+          : await servicio.pendientePara(widget.id);
       if (!mounted) return;
+      setState(() => _pendiente = pendiente);
+      final nota = await servicio.detalle(widget.id);
+      if (!mounted) return;
+      if (pendiente != null &&
+          await servicio.confirmarSiAplicado(nota, pendiente)) {
+        if (!mounted) return;
+        setState(() {
+          _pendiente = null;
+          _mensaje = pendiente.accion == AccionNota.conformidad
+              ? 'La conformidad ya está registrada. Estado actualizado.'
+              : 'La recepción ya está registrada. Estado actualizado.';
+        });
+      }
       Map<String, dynamic>? vinculado;
       if (nota.documentoId != null && nota.hojaId != null) {
         final documento = await widget.api.enviar(
@@ -95,7 +108,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
               .toList(),
         };
       }
-      if (token != widget.api.token) {
+      if (token != widget.api.token || cuenta != widget.api.cuentaId) {
         throw const ErrorLaravel(
           'Tu sesión cambió. Vuelve a ingresar.',
           estado: 401,
@@ -125,6 +138,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
     if (_pendiente == null) {
       final nota = _nota!;
       final token = widget.api.token;
+      final cuenta = widget.api.cuentaId;
       final permiso = accion == AccionNota.conformidad
           ? 'dar_conformidad'
           : 'confirmar_primera_recepcion';
@@ -154,7 +168,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
       if (!mounted) return;
       setState(() => _confirmando = false);
       if (aceptar != true) return;
-      if (token != widget.api.token) {
+      if (token != widget.api.token || cuenta != widget.api.cuentaId) {
         setState(() {
           _limpiar();
           _errorCarga = 'Tu sesión cambió. Vuelve a ingresar.';
@@ -165,6 +179,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
         nota: nota,
         accion: accion,
         token: widget.api.token,
+        cuentaId: widget.api.cuentaId,
       );
     }
     setState(() {

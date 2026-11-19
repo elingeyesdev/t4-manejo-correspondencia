@@ -63,10 +63,14 @@ class SesionController extends ChangeNotifier {
             data['token'] is! String ||
             (data['token'] as String).isEmpty ||
             data['usuario'] is! Map) {
+          api.token = null;
+          api.cuentaId = null;
+          usuario = null;
           await almacen.eliminar();
         } else {
           api.token = data['token'] as String;
           usuario = Map<String, dynamic>.from(data['usuario'] as Map);
+          api.cuentaId = usuario?['id']?.toString();
           try {
             await api.enviar('GET', 'documentos');
           } on ErrorLaravel catch (e) {
@@ -80,6 +84,7 @@ class SesionController extends ChangeNotifier {
       }
     } catch (_) {
       api.token = null;
+      api.cuentaId = null;
       usuario = null;
       try {
         await almacen.eliminar();
@@ -123,6 +128,7 @@ class SesionController extends ChangeNotifier {
         throw const ErrorLaravel('El servidor devolvió una sesión incompleta.');
       }
       api.token = token;
+      api.cuentaId = user['id']?.toString();
       try {
         await almacen.guardar(
           jsonEncode({
@@ -142,6 +148,7 @@ class SesionController extends ChangeNotifier {
           /* Se invalida localmente. */
         }
         api.token = null;
+        api.cuentaId = null;
         throw const ErrorLaravel(
           'No se pudo proteger la sesión en el teléfono. Intenta nuevamente.',
         );
@@ -162,6 +169,7 @@ class SesionController extends ChangeNotifier {
 
   Future<void> invalidar() async {
     api.token = null;
+    api.cuentaId = null;
     usuario = null;
     mensaje = 'Tu sesión venció o ya no está habilitada. Vuelve a ingresar.';
     try {
@@ -183,6 +191,7 @@ class SesionController extends ChangeNotifier {
       advertencia = 'Se cerró la sesión en este teléfono. No se pudo confirmar la revocación en el servidor.';
     } finally {
       api.token = null;
+      api.cuentaId = null;
       usuario = null;
       try {
         await almacen.eliminar();

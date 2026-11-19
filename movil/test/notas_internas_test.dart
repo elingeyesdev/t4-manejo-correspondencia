@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:t4_movil/compartido/api/laravel_api.dart';
@@ -64,10 +65,10 @@ http.Response pagina(
 });
 
 ApiLaravel conectar(Future<http.Response> Function(http.Request) responder) {
-  final api = ApiLaravel(
-    baseUrl: 'http://api.test',
-    client: MockClient(responder),
-  )..token = 'sesion-1';
+  final api =
+      ApiLaravel(baseUrl: 'http://api.test', client: MockClient(responder))
+        ..token = 'sesion-1'
+        ..cuentaId = '1';
   addTearDown(api.close);
   return api;
 }
@@ -95,6 +96,8 @@ Future<void> pulsar(WidgetTester tester, String texto) async {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   test('consulta las cuatro bandejas con paginación del contrato', () async {
     final rutas = <Uri>[];
     final api = conectar((r) async {
@@ -143,6 +146,7 @@ void main() {
         nota: NotaInterna.desdeJson(nota()),
         accion: AccionNota.conformidad,
         token: api.token,
+        cuentaId: api.cuentaId,
       );
       final servicio = NotasApi(api);
       await expectLater(
@@ -177,6 +181,7 @@ void main() {
         nota: NotaInterna.desdeJson(nota()),
         accion: AccionNota.primeraRecepcion,
         token: api.token,
+        cuentaId: api.cuentaId,
       );
       await expectLater(
         NotasApi(api).ejecutar(solicitud),
@@ -199,6 +204,7 @@ void main() {
       nota: NotaInterna.desdeJson(nota()),
       accion: AccionNota.conformidad,
       token: api.token,
+      cuentaId: api.cuentaId,
     );
     api.token = 'otra-sesion';
     await expectLater(

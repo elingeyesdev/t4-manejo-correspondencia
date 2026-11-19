@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:t4_movil/compartido/api/laravel_api.dart';
@@ -58,6 +59,8 @@ Future<void> _capturar(WidgetTester tester, String nombre) async {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   setUpAll(() async {
     if (!const bool.fromEnvironment('CAPTURAR_INSTITUCIONAL')) return;
     final sdk =
@@ -111,27 +114,30 @@ void main() {
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final api = ApiLaravel(
-        baseUrl: 'http://api.test',
-        client: MockClient((r) async {
-          final Object datos = r.url.path.endsWith('/nota-0')
-              ? _nota(0)
-              : {
-                  'data': [for (var i = 0; i < 3; i++) _nota(i)],
-                  'meta': {
-                    'current_page': 1,
-                    'last_page': 1,
-                    'total': 3,
-                    'per_page': 15,
-                  },
-                };
-          return http.Response(
-            jsonEncode(datos),
-            200,
-            headers: {'content-type': 'application/json; charset=utf-8'},
-          );
-        }),
-      )..token = 'sesion-ficticia';
+      final api =
+          ApiLaravel(
+              baseUrl: 'http://api.test',
+              client: MockClient((r) async {
+                final Object datos = r.url.path.endsWith('/nota-0')
+                    ? _nota(0)
+                    : {
+                        'data': [for (var i = 0; i < 3; i++) _nota(i)],
+                        'meta': {
+                          'current_page': 1,
+                          'last_page': 1,
+                          'total': 3,
+                          'per_page': 15,
+                        },
+                      };
+                return http.Response(
+                  jsonEncode(datos),
+                  200,
+                  headers: {'content-type': 'application/json; charset=utf-8'},
+                );
+              }),
+            )
+            ..token = 'sesion-ficticia'
+            ..cuentaId = '1';
       addTearDown(api.close);
       await tester.pumpWidget(
         RepaintBoundary(

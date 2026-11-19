@@ -36,6 +36,7 @@ class ApiLaravel {
   final http.Client _client;
   final Duration timeout;
   String? token;
+  String? cuentaId;
   Future<void> Function()? alVencerSesion;
 
   Future<Map<String, dynamic>> enviar(

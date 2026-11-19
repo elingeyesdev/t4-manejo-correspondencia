@@ -134,6 +134,7 @@ void main() {
       addTearDown(sesion.dispose);
       await sesion.ingresar(' recepcion@example.test ', 'ClavePrivada123');
       expect(sesion.autenticada, true);
+      expect(api.cuentaId, '1');
       expect(sesion.puedeRegistrar, true);
       expect(llamadas.first.url.path, '/api/sesiones');
       expect(
@@ -145,6 +146,7 @@ void main() {
       expect(almacen.valor, isNot(contains('ClavePrivada123')));
       await sesion.salir();
       expect(sesion.autenticada, false);
+      expect(api.cuentaId, null);
       expect(almacen.valor, null);
       expect(llamadas.last.url.path, '/api/sesiones/actual');
       expect(llamadas.last.headers['Authorization'], 'Bearer secreto-local');
@@ -166,6 +168,7 @@ void main() {
       throwsA(isA<ConsultaEnvioException>()),
     );
     expect(sesion.autenticada, false);
+    expect(api.cuentaId, null);
     expect(almacen.valor, null);
   });
   test('credencial rechazada 422 no crea sesión', () async {
@@ -198,6 +201,7 @@ void main() {
     expect(s.autenticada, false);
     expect(revoco, true);
     expect(api.token, null);
+    expect(api.cuentaId, null);
   });
   test(
     'restauración valida token en Laravel y vencimiento local lo elimina',
@@ -222,6 +226,7 @@ void main() {
       addTearDown(s.dispose);
       await s.restaurar();
       expect(s.autenticada, true);
+      expect(api.cuentaId, '1');
       expect(peticiones, 1);
       final otro = SesionController(api: api, almacen: a);
       addTearDown(otro.dispose);
@@ -233,6 +238,8 @@ void main() {
       });
       await otro.restaurar();
       expect(otro.autenticada, false);
+      expect(api.token, null);
+      expect(api.cuentaId, null);
       expect(a.valor, null);
       expect(peticiones, 1);
     },
