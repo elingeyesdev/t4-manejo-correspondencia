@@ -14,10 +14,12 @@ class DetalleLaravelPage extends StatefulWidget {
     required this.id,
     this.crearCamara,
     this.puedeAdjuntar = true,
+    this.soloLectura = false,
   });
   final ApiLaravel api;
   final String id;
   final bool puedeAdjuntar;
+  final bool soloLectura;
   final CamaraDocumento Function()? crearCamara;
   @override
   State<DetalleLaravelPage> createState() => _DetalleLaravelPageState();
@@ -168,6 +170,7 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
     final responsable = hoja['responsable'];
     final movimientos = _historial ?? datos?['movimientos'] as List? ?? [];
     final puedeAdjuntar =
+        !widget.soloLectura &&
         datos?['estado'] != 'CERRADA' &&
         (widget.puedeAdjuntar || acciones.contains('atender'));
     return PopScope(
@@ -300,23 +303,26 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
                         'Sube o descarta la foto pendiente antes de cambiar el recorrido.',
                       ),
                     ),
-                  RecorridoDocumento(
-                    key: const ValueKey('recorrido'),
-                    api: widget.api,
-                    documento: datos,
-                    bloqueado:
-                        _cargando ||
-                        _error != null ||
-                        _subiendo ||
-                        _fotoPendiente,
-                    alConfirmar: _confirmado,
-                    alOcuparse: (valor) {
-                      if (mounted) setState(() => _operando = valor);
-                    },
-                    alPendiente: (valor) {
-                      if (mounted) setState(() => _solicitudPendiente = valor);
-                    },
-                  ),
+                  if (!widget.soloLectura)
+                    RecorridoDocumento(
+                      key: const ValueKey('recorrido'),
+                      api: widget.api,
+                      documento: datos,
+                      bloqueado:
+                          _cargando ||
+                          _error != null ||
+                          _subiendo ||
+                          _fotoPendiente,
+                      alConfirmar: _confirmado,
+                      alOcuparse: (valor) {
+                        if (mounted) setState(() => _operando = valor);
+                      },
+                      alPendiente: (valor) {
+                        if (mounted) {
+                          setState(() => _solicitudPendiente = valor);
+                        }
+                      },
+                    ),
                   const SizedBox(height: 16),
                   IgnorePointer(
                     key: const ValueKey('adjuntos'),

@@ -20,6 +20,12 @@ class ErrorLaravel implements Exception {
   final Map<String, String> errores;
 }
 
+class RespuestaLaravel {
+  const RespuestaLaravel(this.estado, this.datos);
+  final int estado;
+  final Map<String, dynamic> datos;
+}
+
 class ApiLaravel {
   ApiLaravel({
     this.baseUrl = ApiConfig.baseUrl,
@@ -30,9 +36,24 @@ class ApiLaravel {
   final http.Client _client;
   final Duration timeout;
   String? token;
+  String? cuentaId;
   Future<void> Function()? alVencerSesion;
 
   Future<Map<String, dynamic>> enviar(
+    String metodo,
+    String ruta, {
+    Map<String, dynamic>? datos,
+    Map<String, String> cabeceras = const {},
+    bool autenticado = true,
+  }) async => (await enviarConEstado(
+    metodo,
+    ruta,
+    datos: datos,
+    cabeceras: cabeceras,
+    autenticado: autenticado,
+  )).datos;
+
+  Future<RespuestaLaravel> enviarConEstado(
     String metodo,
     String ruta, {
     Map<String, dynamic>? datos,
@@ -80,7 +101,10 @@ class ApiLaravel {
     if (response.statusCode >= 300 && response.statusCode < 400) {
       throw const ErrorLaravel('El servidor intentó redirigir la operación.');
     }
-    return await _interpretar(response, tokenEnviado, autenticado);
+    return RespuestaLaravel(
+      response.statusCode,
+      await _interpretar(response, tokenEnviado, autenticado),
+    );
   }
 
   Future<Map<String, dynamic>> _interpretar(

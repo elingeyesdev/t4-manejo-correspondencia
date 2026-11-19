@@ -34,6 +34,11 @@
         <strong>Correspondencia institucional</strong>
         <a href="{{ route('documents.index') }}">Documentos</a>
         <a href="{{ route('notes.index') }}">Nota Interna</a>
+        <span>{{ auth()->user()->name }} · {{ auth()->user()->unit?->name }}</span>
+        <form method="post" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit">Cerrar sesión</button>
+        </form>
     </header>
     <main>
         @if (session('status'))

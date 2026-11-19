@@ -1,0 +1,92 @@
+{
+  "cite": "NI/E5220261119025527/ORIGEN/2026/000005",
+  "note_id": "01a1f1de-5d29-7214-9352-755865664346",
+  "documento_id": "ba8c8b5c-68f7-470d-ad39-daa23753cbba",
+  "casos": [
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:04.3606996-04:00",
+      "caso": "Crear borrador ficticio",
+      "http": 201
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:04.7251032-04:00",
+      "caso": "Emisión directa con Camunda real",
+      "http": 200
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:05.5590739-04:00",
+      "caso": "Primera recepción crea hoja y documento",
+      "http": 200
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:05.8311790-04:00",
+      "caso": "Reintento conserva hoja y documento",
+      "http": 200
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:06.1059754-04:00",
+      "caso": "Otra clave no repite la recepción",
+      "http": 409
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:06.3569667-04:00",
+      "caso": "Existe un solo movimiento inicial de recepción",
+      "http": 200
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:06.6116219-04:00",
+      "caso": "No se deriva a una institución ajena",
+      "http": 422
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:07.0133559-04:00",
+      "caso": "Atención avanza a EN_ATENCION",
+      "http": 201
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:07.7825500-04:00",
+      "caso": "Derivación mantiene responsable hasta recibir",
+      "http": 201
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:08.1692456-04:00",
+      "caso": "Recepción cambia una vez al responsable de destino",
+      "http": 201
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:10.0952038-04:00",
+      "caso": "Atención del nuevo responsable",
+      "http": 201
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:10.7186439-04:00",
+      "caso": "Respuesta vinculada al mismo expediente",
+      "http": 201
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:11.1592336-04:00",
+      "caso": "Cierre confirmado en Camunda y Laravel",
+      "http": 200
+    },
+    {
+      "resultado": "PASS",
+      "fecha": "2026-11-18T23:34:11.4446718-04:00",
+      "caso": "CITE, nota, documento y hoja no cambian al cerrar",
+      "http": 200
+    }
+  ],
+  "hoja_id": "70685da2-27af-486b-8cbd-ffb727e79cdd"
+}
