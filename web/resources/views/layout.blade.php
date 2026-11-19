@@ -34,6 +34,9 @@
                         </form>
                     </li>
                 </ul>
+                <p class="site-account small text-body-secondary mb-0 text-break">
+                    {{ auth()->user()->name }}@if (auth()->user()->unit) · {{ auth()->user()->unit->name }}@endif
+                </p>
             @endauth
         </div>
     </nav>

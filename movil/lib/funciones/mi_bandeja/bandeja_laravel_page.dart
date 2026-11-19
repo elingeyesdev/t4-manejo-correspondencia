@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../compartido/api/laravel_api.dart';
 import 'detalle_laravel_page.dart';
 import '../qr/consulta_qr_page.dart';
+import '../notas_internas/bandeja_notas_page.dart';
 
 export 'detalle_laravel_page.dart';
 import '../../compartido/diseno/sakai_theme.dart';
@@ -155,6 +156,23 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
             padding: EdgeInsets.symmetric(vertical: 20),
             child: Text('Sin coincidencias en los documentos cargados.'),
           ),
+        OutlinedButton.icon(
+          key: const ValueKey('abrir-notas-internas'),
+          onPressed: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => BandejaNotasPage(
+                  api: widget.api,
+                  puedeAdjuntar: widget.puedeAdjuntar,
+                ),
+              ),
+            );
+            if (mounted) await _cargar(reiniciar: true);
+          },
+          icon: const Icon(Icons.inbox_outlined),
+          label: const Text('Notas internas'),
+        ),
+        const SizedBox(height: 16),
         for (final d in _documentos.where(_coincide))
           Padding(
             padding: const EdgeInsets.only(bottom: 12),

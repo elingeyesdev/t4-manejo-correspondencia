@@ -12,14 +12,14 @@ La cabecera compartida usa la bandera departamental verde, blanco y verde, con p
 
 | Elemento | Criterio web |
 | --- | --- |
-| Color y jerarquía | Fondo blanco, texto `#171A18`, verde `#12682A` para el CITE y la acción primaria, líneas `#D4D8D5`. La cabecera web usa el verde `#20B72C` en un filete y lleva la bandera junto al nombre. |
+| Color y jerarquía | Fondo blanco, texto `#171A18`, texto secundario `#555B57`, verde `#12682A` para el CITE y la acción primaria, líneas `#D4D8D5` y error `#941E15`. Cabecera blanca con filete `#20B72C` y la bandera junto al nombre. |
 | Tipografía y medidas | Tipografía de sistema, cuerpo de 15 px, títulos de sección de 17 px, espaciado regular y bordes de 1 px. |
 | Bandeja | CITE, asunto, origen, destino, fecha y estado. El asunto abre el detalle. En pantallas estrechas la tabla tiene desplazamiento propio. |
 | Formulario | DE, A, asunto, referencia y cuerpo. VÍA mantiene el orden de los revisores y CC permite selección múltiple. |
 | Detalle | El asunto, el CITE y el estado encabezan la nota. Se muestran la unidad actual, la siguiente acción autorizada y el historial. |
 | Accesibilidad | Foco visible, campo asociado a su etiqueta y errores vinculados al control cuando corresponda. El estado se identifica por texto. |
 
-Web y Android comparten colores de acción, bordes finos y nombres de estados. Android adapta la bandeja a filas compactas. La revisión cruzada de ambos canales con el mismo expediente corresponde al #47.
+Esta tabla define la referencia que Android implementa en Flutter para el #46. En el teléfono, la bandeja se adapta a filas compactas con los mismos campos, orden y etiquetas. El #47 verifica la equivalencia con capturas de la bandeja y el detalle del mismo expediente ficticio, incluidos la cabecera, los estados y las acciones disponibles para la cuenta de prueba.
 
 ## Evidencias con datos ficticios
 

@@ -40,11 +40,15 @@ class InstitutionalViewsTest extends TestCase
     public function test_web_uses_the_shared_template_from_login_through_administration(): void
     {
         $this->get('/acceso')->assertOk()->assertSee('css/institutional.css')->assertSee('name="password"', false);
-        $this->actingAs($this->account('administrador'));
+        $administrator = $this->account('administrador');
+        $this->actingAs($administrator);
         foreach (['/documentos', '/documentos/nuevo', '/notas-internas', '/notas-internas/nueva', '/administracion', '/sin-registro'] as $path) {
             $response = $this->get($path)->assertStatus($path === '/sin-registro' ? 404 : 200);
             $response->assertSee('css/institutional.css')->assertSee('Bandera de Santa Cruz')->assertDontSee('sakai-app');
             $response->assertSee('Cerrar sesión');
+            $dom = $this->dom($response->getContent());
+            $this->assertSame($administrator->name.' · '.$administrator->unit->name, $dom->evaluate('normalize-space(//nav//p[contains(@class, "site-account")])'));
+            $this->assertSame(1, $dom->query('//nav//form[@method="post" and @action="'.route('logout').'"]')->length);
         }
         $this->post('/notas-internas/nueva')->assertStatus(405)->assertSee('css/institutional.css');
     }

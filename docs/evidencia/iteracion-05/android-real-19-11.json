@@ -1,0 +1,24 @@
+{
+  "resultado": "PASS",
+  "fecha": "2026-11-19",
+  "ejecutor": "Codex en el equipo de Russel",
+  "version_codigo": "32b897e",
+  "dispositivo": "Android Studio / Medium_Phone / Android API 36",
+  "casos": {
+    "directa": {
+      "note_id": "01a1f40c-a814-70c9-b205-0fd2a876b27e",
+      "cite": "NI/E5220261119025527/ORIGEN/2026/000022",
+      "documento_id": "4859fd75-ffc5-4eab-b248-355e5819512f",
+      "hoja_id": "700302a3-f363-4e1d-ba49-cdf8a2a1df55"
+    },
+    "dos_vias": {
+      "note_id": "01a1f40c-b338-71d8-a5a7-5f33d6c89218",
+      "cite": "NI/E5220261119025527/ORIGEN/2026/000023",
+      "documento_id": "f6f30341-3417-49ea-a542-329783a56937",
+      "hoja_id": "07b13aaf-ac2b-4f68-b68d-6bd3eab6cd1a",
+      "derivacion_respuesta_adjuntos_qr": "PASS",
+      "adjunto_id": "01a1f415-922b-70e7-ae06-114343418a32",
+      "respuesta_id": "318b6b77-290a-412e-b25d-182bf26a45e2"
+    }
+  }
+}
