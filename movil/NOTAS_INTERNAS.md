@@ -25,7 +25,7 @@ Abrir una nota consulta el detalle actualizado; leerla no la recibe ni aprueba.
 ## Confirmaciones y reintentos
 
 La app solicita confirmación antes de revisar o recibir. Solo presenta éxito
-cuando el servidor confirma un resultado válido. Un `202`, un fallo de red o una
+cuando el servidor confirma un resultado válido. Un `202`, `429`, fallo de red o una
 respuesta ambigua conservan la clave y la versión originales en el almacenamiento
 seguro del dispositivo. Se guarda antes de enviar el POST y se asocia al servidor,
 la cuenta, la nota y la acción. No almacena contraseñas, tokens ni el contenido de la nota.
@@ -69,6 +69,15 @@ Resultado de esta revisión: **145 pruebas aprobadas**, análisis sin observacio
 y APK debug compilado. Los 12 casos nuevos se ejecutan con
 `flutter test test/notas_reinicio_test.dart`; reconstruyen API y pantalla tras el
 fallo, conservando únicamente el almacenamiento persistente simulado de la plataforma.
+
+La revisión posterior agrega dos regresiones para `202 → 429 → reinicio → reintento`,
+una por acción, usando una respuesta 429 HTML como podría devolver la infraestructura.
+El 429 conserva el registro persistente y el botón para comprobarlo; los tres POST
+utilizan la misma clave y versión y se comprueba una sola aplicación. Ambas pruebas
+fallaron antes de la corrección. Pasan las **39 pruebas focalizadas** con el ajuste,
+el análisis y la compilación APK. No se repitieron las integraciones de servidor para
+este cambio exclusivo del tratamiento de errores del cliente. La prueba conjunta
+del nuevo recorrido con Android, Laravel y Camunda reales sigue pendiente.
 
 ## Verificación pendiente en conjunto
 

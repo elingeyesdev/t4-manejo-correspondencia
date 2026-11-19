@@ -205,6 +205,89 @@ void main() {
     }
   }
 
+  for (final accion in AccionNota.values) {
+    testWidgets(
+      '${accion.name}: reserva tras 429 conserva clave y versión al reiniciar',
+      (tester) async {
+        final posts = <http.Request>[];
+        var aplicada = false, aplicaciones = 0;
+        String? claveReservada;
+        Future<http.Response> servidor(http.Request r) async {
+          if (r.method == 'POST') {
+            posts.add(r);
+            claveReservada ??= r.headers['Idempotency-Key'];
+            if (r.headers['Idempotency-Key'] != claveReservada ||
+                jsonDecode(r.body)['version'] != 3) {
+              return fixture.respuesta({}, 409);
+            }
+            if (posts.length == 1) return fixture.respuesta({}, 202);
+            if (posts.length == 2) {
+              return http.Response(
+                '<html>Too Many Requests</html>',
+                429,
+                headers: {'content-type': 'text/html', 'retry-after': '1'},
+              );
+            }
+            if (!aplicada) {
+              aplicada = true;
+              aplicaciones++;
+            }
+            return fixture.respuesta(_estado(accion, aplicada));
+          }
+          if (r.url.path.endsWith('/hojas/hoja-1')) {
+            return fixture.respuesta({
+              'id': 'doc-1',
+              'hoja': {'id': 'hoja-1', 'version': 1},
+              'acciones_permitidas': [],
+            });
+          }
+          return fixture.respuesta(_estado(accion, aplicada));
+        }
+
+        final api = _api(servidor);
+        await fixture.abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
+        await fixture.pulsar(tester, accion.titulo);
+        await fixture.pulsar(tester, 'Confirmar');
+        await fixture.pulsar(tester, 'Comprobar mismo intento');
+        expect(posts.length, 2);
+        expect(find.byKey(const ValueKey('nota-confirmada')), findsNothing);
+        expect(
+          await const FlutterSecureStorage().readAll(),
+          isNotEmpty,
+          reason: 'Un 429 no demuestra que la reserva anterior haya sido rechazada.',
+        );
+        expect(find.text('Comprobar mismo intento'), findsOneWidget);
+        expect(
+          find.textContaining('se conservaron su clave y versión'),
+          findsOneWidget,
+        );
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+        api.close();
+        final reiniciada = _api(servidor, token: 'sesion-renovada');
+        await tester.pumpWidget(
+          MaterialApp(
+            home: DetalleNotaPage(api: reiniciada, id: 'nota-1'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await fixture.pulsar(tester, 'Comprobar mismo intento');
+        expect(posts.length, 3);
+        expect(posts.map((r) => r.headers['Idempotency-Key']).toSet(), {
+          claveReservada,
+        });
+        expect(posts.map((r) => r.body).toSet(), {
+          jsonEncode({'version': 3}),
+        });
+        expect(posts.last.headers['Authorization'], 'Bearer sesion-renovada');
+        expect(aplicaciones, 1);
+        expect(await const FlutterSecureStorage().readAll(), isEmpty);
+        expect(find.text('Comprobar mismo intento'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   test('no transmite la acción si falla guardar o leer el almacén', () async {
     for (final escritura in [true, false]) {
       var posts = 0;

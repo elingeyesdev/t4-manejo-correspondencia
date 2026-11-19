@@ -207,6 +207,8 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
         if (rechazo) _pendiente = null;
         _errorAccion = e.estado == 409
             ? 'La nota cambió. Revisa la versión actualizada antes de confirmar.'
+            : e.estado == 429
+            ? 'El servidor limitó las solicitudes. Espera un momento y comprueba el mismo intento; se conservaron su clave y versión.'
             : [e.mensaje, ...e.errores.values].join('\n');
         if ({401, 403, 404}.contains(e.estado)) _limpiar();
       });

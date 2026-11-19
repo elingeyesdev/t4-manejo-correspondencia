@@ -271,7 +271,7 @@ class NotasApi {
       e.estado != null &&
       e.estado! >= 400 &&
       e.estado! < 500 &&
-      !{408, 425}.contains(e.estado);
+      !{408, 425, 429}.contains(e.estado);
 
   Future<NotaInterna> _enviar(SolicitudNota solicitud) async {
     if (api.token != solicitud.token) {
