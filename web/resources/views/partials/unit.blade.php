@@ -3,7 +3,7 @@
     $restoring = old('_form') === $formKey;
     $formProps = [
         'action' => url('/administracion/unidades'.($item ? '/'.$item->id : '')),
-        'csrfToken' => csrf_token(), 'method' => $item ? 'PUT' : 'POST',
+        'method' => $item ? 'PUT' : 'POST',
         'formKey' => $formKey, 'formLabel' => $item ? 'Editar unidad '.$item->code : 'Agregar unidad',
         'submitLabel' => 'Guardar unidad',
         'initial' => [
@@ -20,4 +20,4 @@
         ],
     ];
 @endphp
-<div data-sakai-form data-props="{{ json_encode($formProps, JSON_UNESCAPED_SLASHES) }}"></div>
+@include('partials.form', ['form' => $formProps])

@@ -51,21 +51,13 @@ class AttachmentWebTest extends TestCase
         return new UploadedFile(base_path('tests/Fixtures/adjunto.jpg'), $name, 'image/jpeg', null, true);
     }
 
-    private function props(string $html): array
-    {
-        $this->assertSame(1, preg_match('/id="document-attachments" data-props="([^"]*)"/', $html, $matches));
-
-        return json_decode(html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'), true, 512, JSON_THROW_ON_ERROR);
-    }
-
     public function test_api_and_web_share_the_same_files_and_original_content(): void
     {
         $api = $this->actingAs($this->operator)->postJson('/api/documentos/'.$this->document->id.'/adjuntos', ['archivo' => $this->photo('desde-movil.jpg')])->assertCreated();
         $id = $api->json('id');
         $response = $this->get(route('documents.show', $this->document->id))->assertOk();
-        $panel = $this->props($response->getContent());
-        $this->assertTrue($panel['canUpload']);
-        $this->assertSame('desde-movil.jpg', $panel['records'][0]['name']);
+        $response->assertSee('Subir archivo')->assertSee('desde-movil.jpg')
+            ->assertSee(route('attachments.download', [$this->document->id, $id]));
         $original = file_get_contents(base_path('tests/Fixtures/adjunto.jpg'));
         $download = $this->get(route('attachments.download', [$this->document->id, $id]))->assertOk();
         $this->assertSame($original, $download->getContent());
@@ -85,7 +77,7 @@ class AttachmentWebTest extends TestCase
         $a = app(StoreAttachment::class)->execute($this->operator, $this->document->id, $this->photo());
         $official = User::factory()->create(['role' => 'funcionario', 'unit_id' => $this->operator->unit_id, 'enabled' => true]);
         $response = $this->actingAs($official)->get(route('documents.show', $this->document->id))->assertOk();
-        $this->assertFalse($this->props($response->getContent())['canUpload']);
+        $response->assertDontSee('Subir archivo')->assertSee('carta.jpg');
         $this->get(route('attachments.download', [$this->document->id, $a->id]))->assertOk();
         $this->post(route('attachments.store', $this->document->id), ['archivo' => $this->photo()])->assertForbidden();
         $this->assertDatabaseCount('attachments', 1);
@@ -127,10 +119,8 @@ class AttachmentWebTest extends TestCase
         }
         $url = route('documents.show', $this->document->id);
         $response = $this->actingAs($this->operator)->get($url.'?adjuntos_page=2')->assertOk();
-        $panel = $this->props($response->getContent());
-        $this->assertSame(2, $panel['currentPage']);
-        $this->assertSame(16, $panel['total']);
-        $this->assertCount(1, $panel['records']);
+        $response->assertSee('Página 2 de 2')->assertSee('Archivos guardados · 16');
+        $this->assertSame(1, substr_count($response->getContent(), 'Descargar carta-'));
         app(StoreAttachment::class)->execute($this->operator, $this->document->id, $this->photo('<script>alert(1)</script>.jpg'));
         $this->get($url)->assertDontSee('<script>alert(1)</script>', false);
     }

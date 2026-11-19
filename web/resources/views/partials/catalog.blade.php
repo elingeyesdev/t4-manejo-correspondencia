@@ -14,7 +14,7 @@
     ]);
     $formProps = [
         'action' => url('/administracion/catalogos'.($item ? '/'.$item->id : '')),
-        'csrfToken' => csrf_token(), 'method' => $item ? 'PUT' : 'POST',
+        'method' => $item ? 'PUT' : 'POST',
         'formKey' => $formKey, 'formLabel' => $item ? 'Editar catálogo '.$item->name : 'Agregar catálogo',
         'submitLabel' => 'Guardar catálogo', 'hidden' => $item ? ['kind' => $item->kind] : (object) [],
         'initial' => [
@@ -26,4 +26,4 @@
         'errors' => (object) ($restoring ? $errors->messages() : []), 'fields' => $fields,
     ];
 @endphp
-<div data-sakai-form data-props="{{ json_encode($formProps, JSON_UNESCAPED_SLASHES) }}"></div>
+@include('partials.form', ['form' => $formProps])

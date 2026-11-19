@@ -1,4 +1,4 @@
-@extends('internal-notes.layout')
+@extends('layout')
 @section('title', 'Bandeja de Nota Interna')
 
 @section('content')

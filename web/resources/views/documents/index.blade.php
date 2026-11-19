@@ -1,30 +1,37 @@
 @extends('layout')
-
 @section('title', 'Documentos')
-
 @section('content')
-    @php
-        $tableProps = [
-            'records' => $documents->getCollection()->map(fn ($doc) => [
-                'id' => $doc->id,
-                'code' => $doc->code,
-                'guide' => $doc->guide,
-                'subject' => $doc->subject,
-                'sender' => $doc->sender,
-                'unit' => $doc->unit->name,
-                'state' => $doc->sheet->state,
-                'detailUrl' => route('documents.show', $doc->id),
-            ])->values()->all(),
-            'total' => $documents->total(),
-            'pageSize' => $documents->perPage(),
-            'currentPage' => $documents->currentPage(),
-            'canRegister' => auth()->user()->canRegister(),
-            'createUrl' => route('documents.create'),
-        ];
-    @endphp
-
-    <div
-        id="documents-table"
-        data-props="{{ json_encode($tableProps, JSON_UNESCAPED_SLASHES) }}"
-    ></div>
+    <div class="page-heading">
+        <div>
+            <h1>Correspondencia registrada</h1>
+            <p class="text-secondary mb-0 mt-1">{{ $documents->total() }} {{ $documents->total() === 1 ? 'registro disponible' : 'registros disponibles' }}</p>
+        </div>
+        @if (auth()->user()->canRegister())
+            <a class="btn btn-primary" href="{{ route('documents.create') }}">Nueva correspondencia</a>
+        @endif
+    </div>
+    <div class="table-responsive notes-table-scroll" tabindex="0" role="region" aria-label="Correspondencia registrada">
+        <table class="table notes-table">
+            <thead>
+                <tr>
+                    <th scope="col">Documento / guía</th><th scope="col">Asunto y remitente</th>
+                    <th scope="col">Unidad</th><th scope="col">Estado</th><th scope="col">Consulta</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($documents as $document)
+                    <tr>
+                        <td class="text-break">{{ $document->code }}<br><small class="text-secondary">{{ $document->guide }}</small></td>
+                        <th scope="row">{{ $document->subject }}<br><small class="text-secondary fw-normal">{{ $document->sender }}</small></th>
+                        <td>{{ $document->unit->name }}</td>
+                        <td>@include('partials.sheet-state', ['state' => $document->sheet->state])</td>
+                        <td><a href="{{ route('documents.show', $document->id) }}" aria-label="Ver detalle de {{ $document->code }}">Ver detalle</a></td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" class="empty-cell">No hay documentos disponibles.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    @include('partials.pagination', ['paginator' => $documents->withQueryString(), 'label' => 'Páginas de documentos'])
 @endsection

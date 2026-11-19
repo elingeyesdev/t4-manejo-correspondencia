@@ -30,9 +30,8 @@
 
             $workflows[] = [
                 'action' => $action ?? route('route-sheets.'.$operation, $payload['hoja']['id']),
-                'csrfToken' => csrf_token(),
                 'formKey' => $formKey,
-                'formLabel' => $label,
+                'formLabel' => $label, 'retry' => $retry !== null,
                 'submitLabel' => $submitLabel,
                 'help' => $help,
                 'hidden' => [
@@ -128,21 +127,110 @@
             'indexUrl' => route('documents.index'),
         ];
     @endphp
-    <div id="document-detail" data-props="{{ json_encode($detailProps, JSON_UNESCAPED_SLASHES) }}"></div>
+    <div id="document-detail">
+        <a class="back-link" href="{{ $detailProps['indexUrl'] }}">Volver a documentos</a>
+        <div class="page-heading">
+            <h1>{{ $detailProps['document']['subject'] }}</h1>
+            @include('partials.sheet-state', ['state' => $detailProps['sheet']['state']])
+        </div>
+        @if ($detailProps['sheet']['state'] === 'CERRADA')
+            <p class="alert notice-success" role="status"><strong>Expediente cerrado.</strong> Sus datos, archivos e historial están disponibles para consulta.</p>
+        @endif
+        <div class="row g-4">
+            <section class="col-12 col-lg-6" aria-labelledby="documento-titulo">
+                <div class="note-section">
+                    <h2 id="documento-titulo">Documento</h2>
+                    <dl class="note-record mb-0">
+                        <div><dt>Código</dt><dd>{{ $detailProps['document']['code'] }}</dd></div>
+                        <div><dt>Guía de consulta</dt><dd>{{ $detailProps['document']['guide'] }}</dd></div>
+                        <div><dt>Remitente</dt><dd>{{ $detailProps['document']['sender'] }}</dd></div>
+                        <div><dt>Fecha de recepción</dt><dd>{{ $detailProps['document']['receivedOn'] }}</dd></div>
+                        <div><dt>Unidad</dt><dd>{{ $detailProps['document']['unit'] }}</dd></div>
+                        <div><dt>Tipo y prioridad</dt><dd>{{ $detailProps['document']['type'] }} · {{ $detailProps['document']['priority'] }}</dd></div>
+                    </dl>
+                </div>
+            </section>
+            <section class="col-12 col-lg-6" aria-labelledby="hoja-titulo">
+                <div class="note-section">
+                    <h2 id="hoja-titulo">Hoja de ruta</h2>
+                    <dl class="note-record mb-0">
+                        <div><dt>Código</dt><dd>{{ $detailProps['sheet']['code'] }}</dd></div>
+                        <div><dt>Responsable actual</dt><dd>{{ $detailProps['sheet']['responsible'] }}</dd></div>
+                        <div><dt>Estado</dt><dd>@include('partials.sheet-state', ['state' => $detailProps['sheet']['state']])</dd></div>
+                        <div><dt>Unidad vigente</dt><dd>{{ $detailProps['sheet']['currentUnit'] }}</dd></div>
+                        @if ($detailProps['sheet']['pendingUnit'])
+                            <div><dt>Destino pendiente</dt><dd>{{ $detailProps['sheet']['pendingUnit'] }}</dd></div>
+                        @endif
+                        <div><dt>Versión</dt><dd>{{ $detailProps['sheet']['version'] }}</dd></div>
+                    </dl>
+                </div>
+            </section>
+        </div>
+        @if ($workflows)
+            <section class="note-section wide-section" aria-labelledby="acciones-titulo">
+                <h2 id="acciones-titulo">Acciones del expediente</h2>
+                <div class="admin-list">
+                    @foreach ($workflows as $workflow)
+                        <details class="admin-item" @if (count($workflows) === 1 || old('_form') === $workflow['formKey'] || $workflow['retry']) open @endif>
+                            <summary>{{ $workflow['formLabel'] }}</summary>
+                            <div class="note-form mt-3 mb-2">@include('partials.form', ['form' => $workflow])</div>
+                        </details>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+        <section class="note-section wide-section" aria-labelledby="qr-titulo">
+            <h2 id="qr-titulo">QR de la hoja de ruta</h2>
+            <div class="d-flex align-items-start flex-wrap gap-3">
+                <img src="{{ $detailProps['qr']['imageUrl'] }}" alt="Código QR de la hoja {{ $detailProps['sheet']['code'] }}"
+                    width="144" height="144" class="route-qr" loading="lazy">
+                <div>
+                    <p class="mb-2">Escanea el código para consultar esta hoja de ruta.</p>
+                    <a href="{{ $detailProps['qr']['consultUrl'] }}">Consultar hoja de ruta</a>
+                </div>
+            </div>
+        </section>
+        <section class="note-section wide-section" aria-labelledby="historial-titulo">
+            <h2 id="historial-titulo">Historial documental</h2>
+            <div class="table-responsive notes-table-scroll" tabindex="0" role="region" aria-label="Movimientos del expediente">
+                <table class="table notes-table movement-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Acción</th><th scope="col">Realizado por</th><th scope="col">Unidad de origen</th>
+                            <th scope="col">Unidad de destino</th><th scope="col">Fecha y hora · Bolivia</th>
+                            <th scope="col">Estado resultante</th><th scope="col">Motivo u observación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($detailProps['movements'] as $event)
+                            <tr>
+                                <th scope="row">{{ \Illuminate\Support\Str::headline(strtolower($event['action'])) }}</th>
+                                <td>{{ $event['actor'] }}</td><td>{{ $event['originUnit'] }}</td><td>{{ $event['destinationUnit'] }}</td>
+                                <td>{{ $event['date'] }}</td><td>@include('partials.sheet-state', ['state' => $event['state']])</td>
+                                <td class="note-body">{{ $event['reason'] }}</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="7" class="empty-cell">No hay movimientos registrados para este documento.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
     @if ($payload['documento_original'])
-        <section class="card">
-            <h2 class="text-xl font-semibold mt-0 mb-4">Documento original</h2>
-            <a class="text-primary underline" href="{{ route('documents.show', $payload['documento_original']['id']) }}">
+        <section class="note-section wide-section">
+            <h2>Documento original</h2>
+            <a class="link-offset-2" href="{{ route('documents.show', $payload['documento_original']['id']) }}">
                 {{ $payload['documento_original']['codigo'] }} · {{ $payload['documento_original']['asunto'] }}
             </a>
         </section>
     @elseif ($payload['respuestas'])
-        <section class="card">
-            <h2 class="text-xl font-semibold mt-0 mb-4">Respuestas vinculadas</h2>
-            <ul class="list-disc pl-5 space-y-2">
+        <section class="note-section wide-section">
+            <h2>Respuestas vinculadas</h2>
+            <ul class="mb-0">
                 @foreach ($payload['respuestas'] as $response)
                     <li>
-                        <a class="text-primary underline" href="{{ route('documents.show', $response['id']) }}">
+                        <a class="link-offset-2" href="{{ route('documents.show', $response['id']) }}">
                             {{ $response['codigo'] }} · {{ $response['asunto'] }}
                         </a>
                     </li>

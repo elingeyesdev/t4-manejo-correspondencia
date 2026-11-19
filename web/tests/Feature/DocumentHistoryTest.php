@@ -282,33 +282,12 @@ class DocumentHistoryTest extends TestCase
         $this->assertSame($before, $this->snapshot());
     }
 
-    public function test_web_passes_unit_names_to_the_component(): void
+    public function test_web_renders_the_origin_and_destination_units_in_the_history(): void
     {
-        $response = $this->actingAs($this->operator, 'web')
-            ->get('/documentos/'.$this->document->id)
-            ->assertOk();
-
-        $this->assertSame(
-            1,
-            preg_match(
-                '/id="document-detail"[^>]*data-props="([^"]*)"/',
-                $response->getContent(),
-                $matches
-            )
-        );
-
-        $props = json_decode(
-            html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8'),
-            true,
-            512,
-            JSON_THROW_ON_ERROR
-        );
-
         $unitName = $this->operator->unit->name;
-
-        $this->assertSame($unitName, $props['movements'][0]['originUnit']);
-        $this->assertSame($unitName, $props['movements'][0]['destinationUnit']);
-        $this->assertSame('REGISTRO', $props['movements'][0]['action']);
-        $this->assertSame('—', $props['movements'][0]['reason']);
+        $this->actingAs($this->operator, 'web')
+            ->get('/documentos/'.$this->document->id)
+            ->assertOk()
+            ->assertSeeTextInOrder(['Historial documental', 'Registro', $unitName, $unitName]);
     }
 }

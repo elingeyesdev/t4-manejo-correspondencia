@@ -1,4 +1,4 @@
-@extends('internal-notes.layout')
+@extends('layout')
 @section('title', $note->exists ? 'Editar borrador' : 'Nueva Nota Interna')
 
 @section('content')
