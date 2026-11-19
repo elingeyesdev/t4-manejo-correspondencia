@@ -1,0 +1,25 @@
+{
+  "resultado": "PASS",
+  "fecha": "2026-11-19T10:10:50.1290200-04:00",
+  "note_id": "01a1f40c-b338-71d8-a5a7-5f33d6c89218",
+  "cite": "NI/E5220261119025527/ORIGEN/2026/000023",
+  "documento_id": "f6f30341-3417-49ea-a542-329783a56937",
+  "hoja_id": "07b13aaf-ac2b-4f68-b68d-6bd3eab6cd1a",
+  "comprobaciones": {
+    "cite_identico": true,
+    "documento_identico": true,
+    "hoja_identica": true,
+    "estado_cerrada_web_android": true,
+    "historial_identico": true
+  },
+  "movimientos": 7,
+  "acciones": [
+    "RECEPCION",
+    "ATENCION",
+    "DERIVACION",
+    "RECEPCION",
+    "ATENCION",
+    "RESPUESTA",
+    "CIERRE"
+  ]
+}

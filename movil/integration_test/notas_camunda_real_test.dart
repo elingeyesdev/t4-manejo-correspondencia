@@ -16,6 +16,8 @@ import 'package:t4_movil/main.dart';
 import 'package:t4_movil/funciones/notas_internas/detalle_nota_page.dart';
 import 'package:t4_movil/funciones/recorrido/recorrido_documento.dart';
 
+import 'estado_web_ensayo.dart';
+
 // Opt-in: requiere cuentas y dos notas ficticias emitidas desde la web, un
 // backend Laravel real y el BPMN desplegado en Camunda. No hay mocks ni seeds.
 const _password = String.fromEnvironment('ENSAYO_PASSWORD');
@@ -118,7 +120,17 @@ class _Web {
   Future<void> comprobar(String id, String cite, String estado) async {
     final page = await request('/notas-internas/$id');
     expect(page, contains(cite));
-    expect(page, contains('<dd>$estado</dd>'));
+    final codigo = const {
+      'Recibida': 'recibida',
+      'En atención': 'en_atencion',
+      'Pendiente de recepción': 'pendiente_recepcion',
+      'Cerrada': 'cerrada',
+    }[estado]!;
+    expect(
+      contieneEstadoNotaWeb(page, codigo, estado),
+      isTrue,
+      reason: 'Estado web $codigo, con template anterior o institucional',
+    );
   }
 
   Future<void> hoja(

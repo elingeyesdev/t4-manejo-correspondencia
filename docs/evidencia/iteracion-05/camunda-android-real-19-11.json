@@ -1,0 +1,20 @@
+[
+  {
+    "case": "directo",
+    "note_id": "01a1f40c-a814-70c9-b205-0fd2a876b27e",
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000022",
+    "processInstanceKey": "2251799813690277",
+    "businessId": "01a1f40c-a814-70c9-b205-0fd2a876b27e",
+    "state": "COMPLETED",
+    "instancias": 1
+  },
+  {
+    "case": "dos_vias",
+    "note_id": "01a1f40c-b338-71d8-a5a7-5f33d6c89218",
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000023",
+    "processInstanceKey": "2251799813690287",
+    "businessId": "01a1f40c-b338-71d8-a5a7-5f33d6c89218",
+    "state": "COMPLETED",
+    "instancias": 1
+  }
+]

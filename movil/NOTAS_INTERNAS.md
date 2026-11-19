@@ -1,7 +1,7 @@
 # Notas internas en Android — #46
 
-Avance local de los primeros tres criterios, basado en el contrato del PR #49.
-No acredita todavía el recorrido completo contra Laravel y Camunda reales.
+Recorrido funcional comprobado con Laravel, PostgreSQL y Camunda reales el
+19/11/2026, basado en el contrato del PR #49.
 La bandeja y el detalle ya aplican el diseño institucional verde elegido. La
 [referencia compartida](../docs/diseno/referencia-institucional.md) queda para
 comparar con la web del #48; esa comparación todavía está pendiente.
@@ -57,56 +57,42 @@ que falló y no duplican filas.
 - `test/notas_reinicio_test.dart`: reinicios, 202 y respuestas perdidas para ambas acciones;
   comprobación de identidad, limpieza, almacenamiento fallido y concurrencia.
 
-La entrega inicial aprobó 133 pruebas. La corrección del 18/11/2026 añade 12 casos
-de regresión y conserva las 25 pruebas de nota interna: 37 pruebas focalizadas.
-La suite completa se ejecuta con las tres integraciones de Laravel/PostgreSQL reales,
-únicamente en `correspondencia_test`: sesión/registro/consulta, adjuntos y recorrido
-histórico con QR/recepción/atención. Las acciones de la nueva nota interna y los
-reinicios se verifican con HTTP controlado. No se presentan estas comprobaciones
-como una prueba del flujo completo nuevo con teléfono y Camunda reales.
+## Verificación real del 19/11/2026
 
-Resultado de esta revisión: **145 pruebas aprobadas**, análisis sin observaciones
-y APK debug compilado. Los 12 casos nuevos se ejecutan con
-`flutter test test/notas_reinicio_test.dart`; reconstruyen API y pantalla tras el
-fallo, conservando únicamente el almacenamiento persistente simulado de la plataforma.
+Pasó el recorrido en Android Studio (Medium_Phone, API 36): emisión desde los
+formularios web, envío directo, dos VÍAs en orden, recepción y atención en Android,
+derivación a otra unidad, respuesta y cierre web, y actualización en Android con
+el mismo CITE, documento y hoja. Copias conserva la consulta de su nota aunque no
+tenga acceso al expediente vinculado; no recibe permisos para modificarlo.
 
-La revisión posterior agrega dos regresiones para `202 → 429 → reinicio → reintento`,
-una por acción, usando una respuesta 429 HTML como podría devolver la infraestructura.
-El 429 conserva el registro persistente y el botón para comprobarlo; los tres POST
-utilizan la misma clave y versión y se comprueba una sola aplicación. Ambas pruebas
-fallaron antes de la corrección. Pasan las **39 pruebas focalizadas** con el ajuste,
-el análisis y la compilación APK. No se repitieron las integraciones de servidor para
-este cambio exclusivo del tratamiento de errores del cliente. La prueba conjunta
-del nuevo recorrido con Android, Laravel y Camunda reales sigue pendiente.
+El ensayo usa widgets reales de Android, formularios HTTP con sesión y CSRF, y
+el motor Camunda real. No se presenta como navegación manual completa del navegador.
+Las dos instancias de los casos finales terminaron una sola vez en COMPLETED.
 
-## Verificación pendiente en conjunto
+Se corrigieron el bloqueo de atención con respuesta demorada, la consulta de CC
+con hoja restringida y la zona horaria de la conexión PostgreSQL. Se agregó Cerrar
+sesión al encabezado web de Nota Interna.
 
-Los PR #51 y #53 implementan emisión, CITE, VÍAs, Copias, primera recepción y la
-relación con hoja y atención. Ambos están integrados en `develop` y esta rama
-incorpora el #53. La comprobación conjunta con Android y Camunda real sigue pendiente.
-La app presenta el error real del servidor: no sustituye respuestas por datos de
-ejemplo. Los datos ficticios existen únicamente en las pruebas.
+Validación: 151 pruebas Flutter aprobadas, 41 focalizadas de notas/reintentos,
+102 pruebas Laravel (811 aserciones), análisis Flutter, formato PHP y build web.
+La compatibilidad del verificador web con data-state tiene cuatro pruebas
+adicionales aprobadas. No se repitió toda la suite por ese cambio del verificador.
 
-Tras integrar el servidor, comprobar el mismo CITE entre web y Android con cuentas
-de emisor, dos VÍAs, destinatario y CC; primera recepción, derivación, atención,
-fotos e historial. Repetir con pérdida de respuesta y pérdida de permiso.
-Ese recorrido real corresponde también a la evidencia del #47.
+El informe y los resultados están en
+[recorrido-real-18-19-11.md](../docs/evidencia/iteracion-05/recorrido-real-18-19-11.md).
+Los requisitos y el comando reproducible están en
+[integration_test/README.md](integration_test/README.md).
 
-Este avance no implementa Firebase, firma ni sello. Esas funciones requieren su
-implementación coordinada y no quedan acreditadas por estas pruebas.
+## Pendientes separados
 
-## Tareas y revisión
+El template web #48 y su comparación con Android siguen pendientes. Se priorizó
+la conectividad y el recorrido funcional. Los issues #46/#47 no deben marcarse
+completos en sus criterios visuales antes de esa comparación.
 
-- **#46, Russel:** bandejas, acciones, mensajes, reintentos y diseño Android
-  implementados y preparados para revisión cruzada. Falta comprobar las
-  operaciones con el backend integrado por #53 y comparar el diseño con #48;
-  no cerrar todavía.
-- **#47, Russel:** recorrido completo, comprobaciones negativas y evidencia
-  conjunta. Pendiente de la integración del servidor y la prueba con el teléfono.
-- **#45, Mathew:** primera recepción, hoja de ruta, derivaciones, atención,
-  respuesta y cierre de la nueva nota interna.
-- **#48, Mathew:** diseño institucional web y comparación con Android. No impide
-  preparar el diseño móvil con la referencia acordada.
+La recuperación tras reiniciar el proceso Android real no se acredita en este
+corte. Los reintentos persistentes y la secuencia 202 → 429 → misma clave tienen
+regresiones HTTP controladas en test/notas_reinicio_test.dart. No confundirlas
+con una prueba de caída física de conexión. La imagen del ensayo verifica sus
+bytes en web y Android; no acredita cámara ni escaneo QR físicos.
 
-La publicación de esta entrega solicita revisión a Mathew y relaciona el PR con
-el #46. El issue permanece abierto hasta comprobar sus dependencias de integración.
+Firebase, firma y sello no están implementados por esta entrega.

@@ -66,23 +66,7 @@ en web como en Android. Esto comprueba adjuntos y visor, **no captura física co
 la cámara**. Descargar el QR comprueba su recurso protegido, **no su escaneo**.
 Publicar únicamente capturas de una ejecución aprobada y los resultados sin secretos.
 
-## Recuperación al reiniciar Android
-
-Preparar **otras dos notas nuevas** con los mismos roles. Ejecutar el target
-`integration_test/notas_recuperacion_real_test.dart` dos veces con el mismo JSON.
-En la segunda ejecución agregar `--dart-define=ENSAYO_RECUPERAR=true` y cambiar el
-directorio de evidencia. Entre ejecuciones, el proceso Android debe terminar.
-
-La primera fase envía la acción al servidor real y descarta deliberadamente su
-respuesta en el transporte del ensayo. Conserva el intento en almacenamiento
-seguro. La segunda fase vuelve a iniciar sesión, recupera la misma clave y versión
-y consulta/reconcilia la acción, comprobando una sola conformidad o recepción.
-Comparar los PID registrados para acreditar procesos distintos. No describir esta
-inyección controlada como una caída espontánea de Wi-Fi.
-
-Los escenarios `202 → 429 → reintento` y denegación de permisos también tienen
-regresiones HTTP controladas en `test/notas_reinicio_test.dart`; distinguirlas de
-las ejecuciones con Camunda real.
+La recuperación de intentos tiene regresiones HTTP controladas en `test/notas_reinicio_test.dart`. No se acredita un reinicio completo del proceso Android con servidor real en esta entrega.
 
 ## Finalizar
 
