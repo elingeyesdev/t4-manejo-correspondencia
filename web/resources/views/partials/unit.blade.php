@@ -13,7 +13,7 @@
         ],
         'errors' => (object) ($restoring ? $errors->messages() : []),
         'fields' => [
-            ['name' => 'code', 'label' => 'Código', 'required' => true, 'maxLength' => 30, 'pattern' => '[A-Z0-9_-]+', 'help' => 'Mayúsculas, números, guion o guion bajo.'],
+            ['name' => 'code', 'label' => 'Código', 'required' => true, 'maxLength' => 30, 'pattern' => '[A-Z0-9_\-]+', 'help' => 'Mayúsculas, números, guion o guion bajo.'],
             ['name' => 'name', 'label' => 'Nombre', 'required' => true, 'maxLength' => 150],
             ['name' => 'enabled', 'label' => 'Estado', 'type' => 'select', 'required' => true,
                 'options' => [['value' => '1', 'label' => 'Habilitada'], ['value' => '0', 'label' => 'Deshabilitada']]],

@@ -108,4 +108,18 @@ class InstitutionalViewsTest extends TestCase
         $this->assertSame(0, $dom->query('//input[@type="password" and @value!=""]')->length);
         $response->assertDontSee('NoDebeExponerse123');
     }
+
+    public function test_admin_code_inputs_preserve_ranges_and_escape_only_literal_hyphen(): void
+    {
+        $response = $this->actingAs($this->account('administrador'))->get('/administracion')->assertOk();
+        $dom = $this->dom($response->getContent());
+
+        foreach (['unit-', 'catalog-'] as $prefix) {
+            $inputs = $dom->query('//input[@name="code" and starts-with(@id, "'.$prefix.'")]');
+            $this->assertGreaterThanOrEqual(2, $inputs->length);
+            foreach ($inputs as $input) {
+                $this->assertSame('[A-Z0-9_\-]+', $input->getAttribute('pattern'), $input->getAttribute('id'));
+            }
+        }
+    }
 }

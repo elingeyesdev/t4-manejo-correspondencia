@@ -47,7 +47,7 @@
                         <input {{ $control->class(['form-control', 'is-invalid' => $error]) }} type="{{ $type }}" value="{{ $value }}"
                             @isset($field['maxLength']) maxlength="{{ $field['maxLength'] }}" @endisset
                             @isset($field['minLength']) minlength="{{ $field['minLength'] }}" @endisset
-                            @isset($field['pattern']) pattern="{{ str_replace('-', '\\-', $field['pattern']) }}" @endisset
+                            @isset($field['pattern']) pattern="{{ $field['pattern'] }}" @endisset
                             @if ($type === 'password') autocomplete="new-password" @endif>
                     @endif
                     @isset($field['help'])
