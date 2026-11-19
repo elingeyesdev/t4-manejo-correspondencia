@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Catalog;
 use App\Models\Document;
 use App\Models\InternalNote;
+use App\Models\Unit;
 use App\Models\User;
 use App\Services\Camunda\NotaInternaEngine;
 use Illuminate\Http\Client\ConnectionException;
@@ -37,13 +38,28 @@ class ReceiveInternalNote
             return $current;
         }, 3);
 
-        if ($note->document_id !== null || ! $this->confirmInCamunda($note)) {
+        if ($note->document_id !== null) {
             return $note->refresh();
         }
 
-        return DB::transaction(function () use ($note, $actor) {
+        $confirmed = $this->confirmInCamunda($note);
+        $receipt = DB::transaction(function () use ($note, $actor, $key, $confirmed): ?InternalNote {
+            $actor = User::lockForUpdate()->findOrFail($actor->id);
             $current = InternalNote::lockForUpdate()->findOrFail($note->id);
-            if ($current->document_id !== null) {
+            abort_unless($current->receipt_actor_id === (int) $actor->id
+                && $current->receipt_key === $key, 403, 'ACCION_NO_PERMITIDA');
+
+            $actor->setRelation('unit', Unit::whereKey($actor->unit_id)->lockForUpdate()->first());
+            if (! $current->allowsInitialReceipt($actor)) {
+                if ($current->document_id === null) {
+                    // Conserva la tarea de Camunda para que otro receptor autorizado pueda conciliarla.
+                    $current->update(['receipt_key' => null, 'receipt_version' => null, 'receipt_actor_id' => null]);
+                }
+
+                return null;
+            }
+
+            if ($current->document_id !== null || ! $confirmed) {
                 return $current;
             }
 
@@ -89,6 +105,10 @@ class ReceiveInternalNote
 
             return $current;
         }, 3);
+
+        abort_unless($receipt !== null, 403, 'ACCION_NO_PERMITIDA');
+
+        return $receipt;
     }
 
     private function confirmInCamunda(InternalNote $note): bool
