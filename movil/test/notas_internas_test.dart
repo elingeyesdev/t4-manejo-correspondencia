@@ -337,6 +337,62 @@ void main() {
     },
   );
 
+  for (final status in [403, 404]) {
+    testWidgets('CC conserva la nota autorizada si la hoja devuelve $status', (
+      tester,
+    ) async {
+      var posts = 0;
+      final api = conectar((r) async {
+        if (r.method == 'POST') posts++;
+        if (r.url.path.endsWith('/hojas/hoja-1')) {
+          return respuesta({'message': 'Recurso no autorizado'}, status);
+        }
+        return respuesta(
+          nota(vinculada: true, acciones: [], estado: 'cerrada'),
+        );
+      });
+      await abrir(
+        tester,
+        DetalleNotaPage(api: api, id: 'nota-1', soloLectura: true),
+      );
+      expect(find.text('CM/TI/001'), findsOneWidget);
+      expect(find.text('Copia para conocimiento.'), findsOneWidget);
+      expect(
+        find.textContaining('Tu cuenta puede consultar la nota'),
+        findsOneWidget,
+      );
+      expect(find.text('Dar conformidad'), findsNothing);
+      expect(find.text('Confirmar recepción'), findsNothing);
+      expect(find.text('Registrar atención'), findsNothing);
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Ver expediente y adjuntos'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(posts, 0);
+    });
+  }
+
+  testWidgets('401 de la hoja sí limpia la nota porque la sesión caducó', (
+    tester,
+  ) async {
+    final api = conectar((r) async {
+      if (r.url.path.endsWith('/hojas/hoja-1')) {
+        return respuesta({'message': 'Unauthenticated.'}, 401);
+      }
+      return respuesta(nota(vinculada: true, acciones: []));
+    });
+    await abrir(
+      tester,
+      DetalleNotaPage(api: api, id: 'nota-1', soloLectura: true),
+    );
+    expect(find.text('CM/TI/001'), findsNothing);
+    expect(find.text('Copia para conocimiento.'), findsNothing);
+  });
+
   testWidgets('202 no muestra éxito y reintenta con la misma clave', (
     tester,
   ) async {
@@ -495,77 +551,120 @@ void main() {
     expect(posts, 1);
   });
 
-  testWidgets(
-    'recepción enlaza hoja y atención usa versión de hoja, no de nota',
-    (tester) async {
-      var recibida = false, atendida = false;
-      final rutas = <String>[];
-      final api = conectar((r) async {
-        rutas.add('${r.method} ${r.url.path}');
-        if (r.url.path.endsWith('/notas-internas/nota-1/recepciones')) {
-          expect(jsonDecode(r.body)['version'], 3);
-          recibida = true;
+  for (final demorar in [false, true]) {
+    testWidgets(
+      'recepción y atención usan versión de hoja; red con demora: $demorar',
+      (tester) async {
+        var recibida = false, atendida = false;
+        final rutas = <String>[];
+        final api = conectar((r) async {
+          if (demorar) {
+            await Future<void>.delayed(const Duration(milliseconds: 80));
+          }
+          rutas.add('${r.method} ${r.url.path}');
+          if (r.url.path.endsWith('/notas-internas/nota-1/recepciones')) {
+            expect(jsonDecode(r.body)['version'], 3);
+            recibida = true;
+          }
+          if (r.url.path.endsWith('/hojas/hoja-1/atenciones')) {
+            expect(jsonDecode(r.body)['version'], 8);
+            atendida = true;
+            return respuesta({
+              'documento_id': 'doc-1',
+              'hoja': {
+                'id': 'hoja-1',
+                'version': 9,
+                'estado': 'EN_ATENCION',
+                'responsable_id': 2,
+                'unidad_vigente_id': 2,
+                'destino_pendiente_id': null,
+              },
+              'movimiento': {'id': 'atencion-1', 'accion': 'ATENCION'},
+            });
+          }
+          if (r.url.path.endsWith('/hojas/hoja-1')) {
+            return respuesta({
+              'id': 'doc-1',
+              'hoja': {'id': 'hoja-1', 'version': atendida ? 9 : 8},
+              'acciones_permitidas': atendida
+                  ? (demorar ? ['atender'] : [])
+                  : ['atender', 'derivar'],
+            });
+          }
+          return respuesta(
+            nota(
+              version: recibida ? 4 : 3,
+              vinculada: recibida,
+              acciones: atendida
+                  ? (demorar ? ['registrar_atencion'] : [])
+                  : recibida
+                  ? ['registrar_atencion']
+                  : ['confirmar_primera_recepcion'],
+              estado: atendida
+                  ? 'en_atencion'
+                  : recibida
+                  ? 'recibida'
+                  : 'pendiente_recepcion',
+            ),
+          );
+        });
+        await abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
+        if (demorar) {
+          await tester.binding.setSurfaceSize(const Size(393, 740));
+          await tester.pumpAndSettle();
         }
-        if (r.url.path.endsWith('/hojas/hoja-1/atenciones')) {
-          expect(jsonDecode(r.body)['version'], 8);
-          atendida = true;
-          return respuesta({
-            'documento_id': 'doc-1',
-            'hoja': {
-              'id': 'hoja-1',
-              'version': 9,
-              'estado': 'EN_ATENCION',
-              'responsable_id': 2,
-              'unidad_vigente_id': 2,
-              'destino_pendiente_id': null,
-            },
-            'movimiento': {'id': 'atencion-1', 'accion': 'ATENCION'},
-          });
-        }
-        if (r.url.path.endsWith('/hojas/hoja-1')) {
-          return respuesta({
-            'id': 'doc-1',
-            'hoja': {'id': 'hoja-1', 'version': atendida ? 9 : 8},
-            'acciones_permitidas': atendida ? [] : ['atender', 'derivar'],
-          });
-        }
-        return respuesta(
-          nota(
-            version: recibida ? 4 : 3,
-            vinculada: recibida,
-            acciones: atendida
-                ? []
-                : recibida
-                ? ['registrar_atencion']
-                : ['confirmar_primera_recepcion'],
-            estado: atendida
-                ? 'en_atencion'
-                : recibida
-                ? 'recibida'
-                : 'pendiente_recepcion',
-          ),
+        await pulsar(tester, 'Confirmar recepción');
+        await pulsar(tester, 'Confirmar');
+        expect(find.text('Recepción confirmada.'), findsOneWidget);
+        expect(find.text('Derivar hoja'), findsNothing);
+        await pulsar(tester, 'Registrar atención');
+        await tester.enterText(
+          find.byType(TextFormField),
+          'Se verificó el parque.',
         );
-      });
-      await abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
-      await pulsar(tester, 'Confirmar recepción');
-      await pulsar(tester, 'Confirmar');
-      expect(find.text('Recepción confirmada.'), findsOneWidget);
-      expect(find.text('Derivar hoja'), findsNothing);
-      await pulsar(tester, 'Registrar atención');
-      await tester.enterText(
-        find.byType(TextFormField),
-        'Se verificó el parque.',
-      );
-      await pulsar(tester, 'Guardar atención');
-      expect(atendida, isTrue);
-      expect(find.text('En atención'), findsOneWidget);
-      expect(
-        rutas.where((r) => r == 'POST /api/hojas/hoja-1/atenciones').length,
-        1,
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
+        if (demorar) {
+          final guardar = find.text('Guardar atención');
+          await tester.ensureVisible(guardar);
+          await tester.tap(guardar);
+          // Renderiza el indicador mientras el POST sigue en vuelo, como
+          // sucede en el teléfono; un HTTP inmediato ocultaba la regresión.
+          await tester.pump();
+          await tester.pumpAndSettle(
+            const Duration(milliseconds: 100),
+            EnginePhase.sendSemanticsUpdate,
+            const Duration(seconds: 5),
+          );
+        } else {
+          await pulsar(tester, 'Guardar atención');
+        }
+        expect(atendida, isTrue);
+        if (demorar) {
+          await tester.scrollUntilVisible(
+            find.text('En atención'),
+            -250,
+            scrollable: find.byType(Scrollable).last,
+          );
+        }
+        expect(find.text('En atención'), findsOneWidget);
+        expect(
+          rutas.where((r) => r == 'POST /api/hojas/hoja-1/atenciones').length,
+          1,
+        );
+        expect(tester.takeException(), isNull);
+        expect(find.byType(LinearProgressIndicator), findsNothing);
+        expect(
+          tester
+              .widget<IconButton>(
+                find.byWidgetPredicate(
+                  (w) => w is IconButton && w.tooltip == 'Actualizar nota',
+                ),
+              )
+              .onPressed,
+          isNotNull,
+        );
+      },
+    );
+  }
 
   testWidgets('lista y detalle se adaptan a teléfono angosto y texto grande', (
     tester,

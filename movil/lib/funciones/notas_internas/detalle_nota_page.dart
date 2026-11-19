@@ -28,7 +28,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
   NotaInterna? _nota;
   Map<String, dynamic>? _documento;
   SolicitudNota? _pendiente;
-  String? _errorCarga, _errorAccion, _mensaje;
+  String? _errorCarga, _errorAccion, _mensaje, _avisoExpediente;
   bool _cargando = false, _guardando = false, _confirmando = false;
   bool _hojaOcupada = false, _hojaPendiente = false, _saliendo = false;
   bool get _ocupada => _cargando || _guardando || _confirmando || _hojaOcupada;
@@ -43,6 +43,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
   void _limpiar() {
     _nota = null;
     _documento = null;
+    _avisoExpediente = null;
     _pendiente = null;
     _hojaPendiente = false;
     _mensaje = null;
@@ -56,6 +57,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
       _cargando = true;
       _errorCarga = null;
       _documento = null;
+      _avisoExpediente = null;
     });
     try {
       final servicio = NotasApi(widget.api);
@@ -77,36 +79,47 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
         });
       }
       Map<String, dynamic>? vinculado;
+      String? avisoExpediente;
       if (nota.documentoId != null && nota.hojaId != null) {
-        final documento = await widget.api.enviar(
-          'GET',
-          'hojas/${Uri.encodeComponent(nota.hojaId!)}',
-        );
-        final hoja = documento['hoja'];
-        if (documento['id'] != nota.documentoId ||
-            hoja is! Map ||
-            hoja['id'] != nota.hojaId ||
-            hoja['version'] is! int ||
-            documento['acciones_permitidas'] is! List ||
-            (documento['acciones_permitidas'] as List).any(
-              (a) => a is! String,
-            )) {
-          throw const ErrorLaravel('No se pudo comprobar la hoja vinculada.');
+        Map<String, dynamic>? documento;
+        try {
+          documento = await widget.api.enviar(
+            'GET',
+            'hojas/${Uri.encodeComponent(nota.hojaId!)}',
+          );
+        } on ErrorLaravel catch (e) {
+          // La nota y su expediente tienen permisos independientes. Una CC
+          // autorizada no pierde la nota porque no pueda consultar la hoja.
+          if (!{403, 404}.contains(e.estado)) rethrow;
+          avisoExpediente = 'Tu cuenta puede consultar la nota, pero no el expediente vinculado.';
         }
-        if (!mounted) return;
-        final permitidas = <String>{
-          if (!widget.soloLectura &&
-              nota.permite('confirmar_recepcion_derivacion'))
-            'recibir',
-          if (!widget.soloLectura && nota.permite('registrar_atencion'))
-            'atender',
-        };
-        vinculado = {
-          ...documento,
-          'acciones_permitidas': (documento['acciones_permitidas'] as List)
-              .where(permitidas.contains)
-              .toList(),
-        };
+        if (documento != null) {
+          final hoja = documento['hoja'];
+          if (documento['id'] != nota.documentoId ||
+              hoja is! Map ||
+              hoja['id'] != nota.hojaId ||
+              hoja['version'] is! int ||
+              documento['acciones_permitidas'] is! List ||
+              (documento['acciones_permitidas'] as List).any(
+                (a) => a is! String,
+              )) {
+            throw const ErrorLaravel('No se pudo comprobar la hoja vinculada.');
+          }
+          if (!mounted) return;
+          final permitidas = <String>{
+            if (!widget.soloLectura &&
+                nota.permite('confirmar_recepcion_derivacion'))
+              'recibir',
+            if (!widget.soloLectura && nota.permite('registrar_atencion'))
+              'atender',
+          };
+          vinculado = {
+            ...documento,
+            'acciones_permitidas': (documento['acciones_permitidas'] as List)
+                .where(permitidas.contains)
+                .toList(),
+          };
+        }
       }
       if (token != widget.api.token || cuenta != widget.api.cuentaId) {
         throw const ErrorLaravel(
@@ -117,6 +130,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
       setState(() {
         _nota = nota;
         _documento = vinculado;
+        _avisoExpediente = avisoExpediente;
       });
     } on ErrorLaravel catch (e) {
       if (!mounted) return;
@@ -271,6 +285,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
   Future<void> _abrirExpediente() async {
     final nota = _nota;
     if (nota?.documentoId == null ||
+        _documento == null ||
         _ocupada ||
         _sinConfirmar ||
         _errorCarga != null) {
@@ -426,6 +441,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
               ],
               if (_documento != null && !widget.soloLectura)
                 RecorridoDocumento(
+                  key: const ValueKey('recorrido-nota'),
                   institucional: true,
                   api: widget.api,
                   documento: _documento!,
@@ -444,10 +460,13 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
                 ),
               if (nota.documentoId != null && nota.hojaId != null)
                 OutlinedButton.icon(
-                  onPressed: puedeActuar ? _abrirExpediente : null,
+                  onPressed: puedeActuar && _documento != null
+                      ? _abrirExpediente
+                      : null,
                   icon: const Icon(Icons.folder_open),
                   label: const Text('Ver expediente y adjuntos'),
                 ),
+              if (_avisoExpediente != null) Text(_avisoExpediente!),
               const Divider(height: 32),
               Text(
                 'Historial de la nota',
