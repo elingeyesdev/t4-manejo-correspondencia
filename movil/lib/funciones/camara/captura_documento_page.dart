@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'camara_documento.dart';
 import '../../compartido/diseno/sakai_theme.dart';
+import '../../compartido/diseno/institucional.dart';
 import '../../compartido/diseno/sakai_widgets.dart';
 
 class CapturaDocumentoPage extends StatefulWidget {
@@ -138,7 +139,7 @@ class _CapturaDocumentoPageState extends State<CapturaDocumentoPage>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Fotografiar documento')),
+    appBar: const CabeceraInstitucional(titulo: 'Fotografiar documento'),
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -160,7 +161,7 @@ class _CapturaDocumentoPageState extends State<CapturaDocumentoPage>
         const SizedBox(height: 16),
         if (_foto != null)
           ClipRRect(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(4),
             child: ColoredBox(
               color: Sakai.border,
               child: Image.memory(
@@ -177,7 +178,7 @@ class _CapturaDocumentoPageState extends State<CapturaDocumentoPage>
           )
         else if (_enVivo)
           ClipRRect(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(4),
             child: SizedBox(height: 360, child: Center(child: _camara.vista())),
           )
         else if (_error == null && !_ocupado)

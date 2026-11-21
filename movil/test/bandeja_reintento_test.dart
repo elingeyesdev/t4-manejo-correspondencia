@@ -51,6 +51,51 @@ Future<void> _pulsar(WidgetTester tester, String texto) async {
 
 void main() {
   testWidgets(
+    'volver a Bandeja carga el documento creado en web mientras estaba fuera',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      var creado = false;
+      var consultas = 0;
+      final api = ApiLaravel(
+        client: MockClient((r) async {
+          consultas++;
+          return _pagina(
+            creado ? [_documento('nuevo', 'Creado desde web')] : [],
+            ultima: 1,
+          );
+        }),
+      )..token = 'token-de-prueba';
+      addTearDown(api.close);
+      Future<void> mostrar(bool activa) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: BandejaLaravelPage(api: api, activa: activa),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      await mostrar(true);
+      expect(
+        find.text('Todavía no hay correspondencia disponible.'),
+        findsOneWidget,
+      );
+      await mostrar(false);
+      creado = true;
+      await mostrar(true);
+      expect(consultas, 2);
+      expect(find.text('Creado desde web'), findsOneWidget);
+      expect(
+        find.text('Todavía no hay correspondencia disponible.'),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
     'reintentar una actualización fallida repite página 1 y reemplaza la lista',
     (tester) async {
       final peticiones = <int>[];

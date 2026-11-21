@@ -66,7 +66,25 @@ en web como en Android. Esto comprueba adjuntos y visor, **no captura física co
 la cámara**. Descargar el QR comprueba su recurso protegido, **no su escaneo**.
 Publicar únicamente capturas de una ejecución aprobada y los resultados sin secretos.
 
-La recuperación de intentos tiene regresiones HTTP controladas en `test/notas_reinicio_test.dart`. No se acredita un reinicio completo del proceso Android con servidor real en esta entrega.
+La recuperación de intentos tiene regresiones HTTP controladas en
+`test/notas_reinicio_test.dart`. El ensayo del 21/11 también interrumpe la entrega
+de una respuesta real, verifica el intento en almacenamiento seguro y recrea
+la pantalla para conciliar con Laravel/Camunda sin repetir la recepción.
+
+## Targets locales de cierre
+
+- `acceso_recepcion_local_test.dart`: acceso con `ACCESO_EMAIL`, `ACCESO_PASSWORD`
+  y `ACCESO_NOTA_ID`. Sólo consulta por defecto. Con `ACCESO_COMPLETAR_NOTA=true`,
+  recibe y atiende esa nota ficticia e incluye la interrupción controlada.
+  Usa la sesión protegida normal por solicitud del propietario; cierra la sesión
+  anterior y deja la nueva guardada para restaurar el APK normal.
+- `cierre_iteracion5_local_test.dart`: combina ese acceso con el recorrido completo.
+  Requiere ambos grupos de parámetros privados; crea/modifica expedientes.
+- `comparacion_institucional_real_test.dart`: con los parámetros `ENSAYO_*`, abre
+  la nota cerrada como CC y captura bandeja/detalle, sin modificar el trámite.
+
+El [informe del 21/11](../../docs/evidencia/iteracion-05/cierre-21-11.md) contiene
+resultados del teléfono físico y de la comparación con el navegador web real.
 
 ## Finalizar
 

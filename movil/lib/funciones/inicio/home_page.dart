@@ -9,12 +9,14 @@ class HomePage extends StatelessWidget {
     required this.onConsultar,
     required this.onNuevoRegistro,
     this.onBandeja,
+    this.onNotas,
     this.puedeRegistrar = true,
     this.nombre = '',
   });
   final bool puedeRegistrar;
   final String nombre;
   final VoidCallback? onBandeja;
+  final VoidCallback? onNotas;
   final VoidCallback onConsultar, onNuevoRegistro;
 
   Widget _acceso(
@@ -30,7 +32,7 @@ class HomePage extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 12),
     child: Card(
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(4),
         onTap: onTap,
         child: Padding(
           padding: EdgeInsets.all(destacado ? 20 : 16),
@@ -111,6 +113,17 @@ class HomePage extends StatelessWidget {
               style: const TextStyle(color: Sakai.muted, height: 1.5),
             ),
             const SizedBox(height: 26),
+            if (onNotas != null)
+              _acceso(
+                context,
+                icono: PrimeIcons.inbox,
+                titulo: 'Notas internas',
+                descripcion: 'Por revisar, por recibir, por atender y copias',
+                onTap: onNotas!,
+                color: Sakai.green,
+                fondo: Sakai.mint,
+                destacado: true,
+              ),
             _acceso(
               context,
               icono: PrimeIcons.search,

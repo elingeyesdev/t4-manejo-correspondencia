@@ -531,6 +531,12 @@ void main() {
               () => find.byType(Image).evaluate().isNotEmpty,
               'Imagen real descargada y abierta en Android',
             );
+            await until(
+              () => tester
+                  .widgetList<RawImage>(find.byType(RawImage))
+                  .any((image) => image.image != null),
+              'Imagen decodificada antes de capturar evidencia',
+            );
             await screenshot('imagen_ficticia_android');
             await tap(find.byType(BackButton));
             await tester.pumpAndSettle();
@@ -593,7 +599,9 @@ void main() {
         await receiveAndAttend(_directa, _citeDirecta, 'directa');
 
         await login('via1');
+        await screenshot('comparacion_bandeja_android');
         await open(_vias, _citeVias);
+        await screenshot('comparacion_detalle_android');
         await action('Dar conformidad', 'Conformidad registrada.');
         expect((await note(_vias))['estado'], 'pendiente_revision');
         expect(

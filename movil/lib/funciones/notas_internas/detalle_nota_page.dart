@@ -342,8 +342,8 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
         if (!didPop) _salir();
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Nota interna'),
+        appBar: CabeceraInstitucional(
+          titulo: 'Nota interna',
           leading: IconButton(
             tooltip: 'Volver',
             onPressed: _ocupada ? null : _salir,
@@ -404,20 +404,24 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             if (nota != null) ...[
-              Text(nota.cite, style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 8),
               Text(
                 nota.asunto,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
+              const SizedBox(height: 8),
+              Text(nota.cite, style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 12),
               EstadoInstitucional(nota.etiquetaEstado),
               const SizedBox(height: 12),
-              DatoInstitucional('Origen', nota.origen),
+              DatoInstitucional('DE', nota.emisor),
+              DatoInstitucional('A', nota.destinataria),
               if (nota.datos['unidad_actual'] case final Map unidad)
                 DatoInstitucional('Unidad actual', '${unidad['nombre']}'),
               if (nota.datos['destino_pendiente'] case final Map unidad)
-                DatoInstitucional('Destino', '${unidad['nombre']}'),
+                DatoInstitucional(
+                  'Recepción pendiente en',
+                  '${unidad['nombre']}',
+                ),
               DatoInstitucional(
                 'Fecha',
                 sakaiDate(nota.datos['fecha_ultimo_movimiento']),

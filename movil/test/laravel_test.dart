@@ -318,6 +318,10 @@ void main() {
     );
   });
   testWidgets('acceso valida y funcionario no ve registro', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 740));
+    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     final api = apiMock(
       (_) => json({
         'token': 'token',
@@ -329,16 +333,28 @@ void main() {
     addTearDown(s.dispose);
     await tester.pumpWidget(CorrespondenciaApp(sesion: s));
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      find.bySemanticsLabel(RegExp('Bandera de Santa Cruz')),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.text('Iniciar sesión'));
     await tester.tap(find.text('Iniciar sesión'));
     await tester.pumpAndSettle();
     expect(find.text('Ingresa un correo válido.'), findsOneWidget);
     await tester.enterText(find.byType(TextFormField).at(0), 'a@b.test');
     await tester.enterText(find.byType(TextFormField).at(1), 'clave');
+    await tester.ensureVisible(find.text('Iniciar sesión'));
     await tester.tap(find.text('Iniciar sesión'));
     await tester.pumpAndSettle();
     expect(find.text('Consultar envío'), findsOneWidget);
     expect(find.text('Nueva correspondencia'), findsNothing);
     expect(find.text('Mi bandeja'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(
+      find.bySemanticsLabel(RegExp('Bandera de Santa Cruz')),
+      findsOneWidget,
+    );
   });
   testWidgets('registro usa catálogos reales y conserva clave en reintento', (
     tester,

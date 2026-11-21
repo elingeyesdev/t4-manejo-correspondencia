@@ -279,7 +279,7 @@ class _AdjuntosDocumentoState extends State<AdjuntosDocumento>
             const Text('Revisa la foto antes de enviarla.'),
             const SizedBox(height: 12),
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(4),
               child: Image.memory(
                 _foto!.bytes,
                 height: 240,

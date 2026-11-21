@@ -20,7 +20,7 @@ class SakaiIcon extends StatelessWidget {
     alignment: Alignment.center,
     decoration: BoxDecoration(
       color: background,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(4),
     ),
     child: Icon(icon, color: color, size: 22),
   );
@@ -53,7 +53,7 @@ class SakaiStatus extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: registered ? Sakai.mint : Sakai.background,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           label,

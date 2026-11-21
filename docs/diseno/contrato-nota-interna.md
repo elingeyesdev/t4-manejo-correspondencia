@@ -91,6 +91,14 @@ Estados propuestos: `borrador`, `pendiente_revision`, `pendiente_recepcion`, `re
 
 ### Relación con fotos, historial y hoja de ruta
 
+Para mantener los mismos campos en la tabla web y las filas Android, la adaptación
+institucional local añade `unidad_destinataria: {id, nombre}` en lista y detalle.
+El detalle añade `autor: {id, nombre}` para representar DE junto con
+`unidad_origen`. Son campos adicionales de la misma nota autorizada: no cambian
+los permisos, las acciones ni los identificadores existentes. Android permite
+que falten al consultar una versión anterior del servidor; usa el destino
+pendiente cuando existe y, en caso contrario, muestra «No indicada».
+
 El `id` identifica la nota. La primera recepción devuelve `200` con el detalle actualizado, `documento_id` y `hoja_id`. Un reintento con la misma clave devuelve los mismos identificadores. Antes de la vinculación ambos son `null`. El detalle incluye los eventos previos autorizados en `movimientos_nota` con `id`, `accion`, `actor`, `fecha` y `estado_resultante`. La carga de fotos antes de la primera recepción queda pendiente de definición.
 
 - Con `documento_id`, reutilizar `GET /api/documentos/{documento_id}/adjuntos` y `GET /api/documentos/{documento_id}/historial`. La carga usa `POST /api/documentos/{documento_id}/adjuntos` con el campo multipart `archivo` y los permisos existentes.

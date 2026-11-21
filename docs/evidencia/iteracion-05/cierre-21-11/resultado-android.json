@@ -1,0 +1,26 @@
+{
+  "acceso": "PASS",
+  "rol": "funcionario",
+  "bandeja": "Por recibir",
+  "nota_visible": "01a1ff86-cc77-72f5-acc6-75bfd6b525c8",
+  "recepcion_confirmada_por_ensayo": true,
+  "estado_final": "en_atencion",
+  "recuperacion": "Respuesta interrumpida controlada; intento persistido en almacenamiento seguro y conciliado al recrear la pantalla, sin reenviar la recepción.",
+  "ensayo_real": {
+    "directa": {
+      "note_id": "01a1ff99-9173-729c-a763-f012e6372234",
+      "cite": "NI/E5220261119025527/ORIGEN/2026/000028",
+      "documento_id": "55d0553a-adb8-48b4-803f-a9ec95985e47",
+      "hoja_id": "94eb17ba-4bac-4b4b-92ec-91a7135187b8"
+    },
+    "dos_vias": {
+      "note_id": "01a1ff99-9dc9-7121-b9d6-10a26d9f74ea",
+      "cite": "NI/E5220261119025527/ORIGEN/2026/000029",
+      "documento_id": "ee70b8f1-912f-4c41-9b61-c1e1c52cce15",
+      "hoja_id": "c850d93d-27d9-43e2-ad35-9af1a46626a6",
+      "derivacion_respuesta_adjuntos_qr": "PASS",
+      "adjunto_id": "01a1ffa0-f29f-72c6-a572-f210b58be7ee",
+      "respuesta_id": "2fdcad4d-89f3-407c-bee0-22854c41e1e5"
+    }
+  }
+}

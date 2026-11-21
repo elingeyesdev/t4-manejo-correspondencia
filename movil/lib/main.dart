@@ -5,10 +5,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'compartido/diseno/sakai_theme.dart';
 import 'compartido/diseno/sakai_widgets.dart';
+import 'compartido/diseno/institucional.dart';
 import 'funciones/consultar_envio/consulta_envio_page.dart';
 import 'funciones/inicio/home_page.dart';
 import 'funciones/iniciar_sesion/acceso_laravel_page.dart';
 import 'funciones/mi_bandeja/bandeja_laravel_page.dart';
+import 'funciones/notas_internas/bandeja_notas_page.dart';
 import 'funciones/nueva_correspondencia/registro_laravel_page.dart';
 import 'compartido/api/laravel_api.dart';
 import 'funciones/iniciar_sesion/sesion_controller.dart';
@@ -47,7 +49,7 @@ class CorrespondenciaApp extends StatelessWidget {
     locale: const Locale('es'),
     supportedLocales: const [Locale('es')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    theme: Sakai.theme,
+    theme: Institucional.tema,
     home: servicio != null || apiRegistro != null
         ? PantallaPrincipal(servicio: servicio, apiRegistro: apiRegistro)
         : PuertaSesion(sesion: sesion),
@@ -244,15 +246,15 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
       ListTile(
         leading: const Icon(Icons.info_outline),
         title: const Text('Acerca de la aplicación'),
-        subtitle: const Text('Sakai / PrimeVue · PrimeIcons'),
+        subtitle: const Text('Interfaz institucional · Santa Cruz'),
         onTap: () => showAboutDialog(
           context: context,
           applicationName: 'Correspondencia',
           applicationVersion: '1.0.0',
-          applicationLegalese: 'Interfaz Flutter adaptada de Sakai / PrimeVue. Iconos PrimeIcons. Recursos originales bajo licencia MIT.',
+          applicationLegalese: 'Interfaz institucional implementada en Flutter. Iconos PrimeIcons y componentes adaptados originalmente de Sakai bajo licencia MIT.',
           children: [
             const SelectableText(
-              'Fuente: https://github.com/primefaces/sakai-vue',
+              'Diseño compartido con la web institucional. Los créditos y licencias de terceros están disponibles en Licencias.',
             ),
           ],
         ),
@@ -268,6 +270,19 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     ],
   );
 
+  Future<void> _abrirNotas() async {
+    final sesion = widget.sesion;
+    if (sesion == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BandejaNotasPage(
+          api: sesion.api,
+          puedeAdjuntar: sesion.puedeRegistrar,
+        ),
+      ),
+    );
+  }
+
   Widget _seccion(int pagina) => switch (pagina) {
     0 => HomePage(
       nombre: widget.sesion?.nombre ?? '',
@@ -275,6 +290,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
       onNuevoRegistro: () => _mostrar(2),
       puedeRegistrar: _puedeRegistrar,
       onBandeja: widget.sesion == null ? null : () => _mostrar(3),
+      onNotas: widget.sesion == null ? null : _abrirNotas,
     ),
     1 =>
       _visitadas.contains(1)
@@ -285,6 +301,7 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
           ? BandejaLaravelPage(
               api: widget.sesion!.api,
               puedeAdjuntar: widget.sesion!.puedeRegistrar,
+              activa: _pagina == 3,
             )
           : const SizedBox.shrink(),
     4 => _cuenta(),
@@ -299,19 +316,14 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     },
     child: Scaffold(
       key: _scaffold,
-      appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(PrimeIcons.folder, size: 24, color: Sakai.green),
-            SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                'Correspondencia',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
+      appBar: CabeceraInstitucional(
+        titulo: switch (_pagina) {
+          1 => 'Consultar envío',
+          2 => 'Nueva correspondencia',
+          3 => 'Mi bandeja',
+          4 => 'Mi cuenta',
+          _ => 'Inicio',
+        },
         actions: [
           if (widget.sesion != null)
             Padding(
@@ -370,7 +382,17 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
             children: [
               const Padding(
                 padding: EdgeInsets.fromLTRB(24, 24, 16, 20),
-                child: Text('Correspondencia', style: TextStyle(fontSize: 20)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    BanderaSantaCruz(),
+                    SizedBox(height: 12),
+                    Text(
+                      'Correspondencia institucional',
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ],
+                ),
               ),
               ListTile(
                 leading: const Icon(Icons.home_outlined),
@@ -399,6 +421,15 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                   onTap: () => _navegar(3),
                 ),
               if (widget.sesion != null) ...[
+                ListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('Notas internas'),
+                  subtitle: const Text('Revisar, recibir, atender y copias'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _abrirNotas();
+                  },
+                ),
                 const Divider(),
                 ListTile(
                   title: Text(widget.sesion!.nombre),

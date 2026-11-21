@@ -14,8 +14,10 @@ class BandejaLaravelPage extends StatefulWidget {
     super.key,
     required this.api,
     this.puedeAdjuntar = true,
+    this.activa = true,
   });
   final bool puedeAdjuntar;
+  final bool activa;
   final ApiLaravel api;
   @override
   State<BandejaLaravelPage> createState() => _BandejaLaravelPageState();
@@ -33,6 +35,12 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
   void initState() {
     super.initState();
     _cargar(reiniciar: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant BandejaLaravelPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.activa && widget.activa) _cargar(reiniciar: true);
   }
 
   Future<void> _cargar({bool reiniciar = false}) async {
@@ -75,13 +83,7 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
       ].any((key) => '${d[key] ?? ''}'.toLowerCase().contains(_busqueda));
 
   (Color, Color) _acento(Map<String, dynamic> d) {
-    final tipo = (d['tipo'] as Map?)?['name']?.toString().toLowerCase() ?? '';
-    if (tipo.contains('informe')) return (Sakai.violet, Sakai.violetLight);
-    if (tipo.contains('nota') || tipo.contains('memor')) {
-      return (Sakai.amber, Sakai.amberLight);
-    }
-    if (tipo.contains('carta')) return (Sakai.cyan, Sakai.cyanLight);
-    return (Sakai.blue, Sakai.blueLight);
+    return (Sakai.green, Sakai.mint);
   }
 
   @override
@@ -108,6 +110,23 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
         ),
         const SizedBox(height: 8),
         const Text('Documentos disponibles para tu cuenta y unidad.'),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          key: const ValueKey('abrir-notas-internas'),
+          onPressed: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => BandejaNotasPage(
+                  api: widget.api,
+                  puedeAdjuntar: widget.puedeAdjuntar,
+                ),
+              ),
+            );
+            if (mounted) await _cargar(reiniciar: true);
+          },
+          icon: const Icon(Icons.inbox_outlined),
+          label: const Text('Notas internas'),
+        ),
         const SizedBox(height: 16),
         OutlinedButton.icon(
           onPressed: () async {
@@ -156,29 +175,12 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
             padding: EdgeInsets.symmetric(vertical: 20),
             child: Text('Sin coincidencias en los documentos cargados.'),
           ),
-        OutlinedButton.icon(
-          key: const ValueKey('abrir-notas-internas'),
-          onPressed: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => BandejaNotasPage(
-                  api: widget.api,
-                  puedeAdjuntar: widget.puedeAdjuntar,
-                ),
-              ),
-            );
-            if (mounted) await _cargar(reiniciar: true);
-          },
-          icon: const Icon(Icons.inbox_outlined),
-          label: const Text('Notas internas'),
-        ),
-        const SizedBox(height: 16),
         for (final d in _documentos.where(_coincide))
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Card(
               child: InkWell(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(4),
                 onTap: () async {
                   await Navigator.of(context).push(
                     MaterialPageRoute<void>(

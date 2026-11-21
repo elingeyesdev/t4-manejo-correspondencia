@@ -94,7 +94,7 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
                     color: Sakai.blueLight,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Icon(
                     PrimeIcons.search,
@@ -155,7 +155,7 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                       color: _esError
                           ? Theme.of(context).colorScheme.errorContainer
                           : Sakai.background,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +180,7 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                     elevation: 0,
                     color: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(4),
                       side: const BorderSide(color: Sakai.border),
                     ),
                     child: Padding(
@@ -209,7 +209,7 @@ class _ConsultaEnvioPageState extends State<ConsultaEnvioPage> {
                             ),
                             decoration: BoxDecoration(
                               color: Sakai.blueLight,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               envio.estado,

@@ -1,0 +1,18 @@
+[
+  {
+    "instancias": 1,
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000028",
+    "nota": "01a1ff99-9173-729c-a763-f012e6372234",
+    "estado": "COMPLETED",
+    "instancia": "2251799813719795",
+    "caso": "directo"
+  },
+  {
+    "instancias": 1,
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000029",
+    "nota": "01a1ff99-9dc9-7121-b9d6-10a26d9f74ea",
+    "estado": "COMPLETED",
+    "instancia": "2251799813719807",
+    "caso": "dos_vias"
+  }
+]

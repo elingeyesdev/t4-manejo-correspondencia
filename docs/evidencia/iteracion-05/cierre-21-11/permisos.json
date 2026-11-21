@@ -1,0 +1,26 @@
+[
+  {
+    "fecha": "2026-11-21T15:38:39.7238846-04:00",
+    "resultado": "PASS",
+    "caso": "Sin sesión no se consultan notas",
+    "http": 401
+  },
+  {
+    "fecha": "2026-11-21T15:38:41.8184006-04:00",
+    "resultado": "PASS",
+    "caso": "Segunda VÍA no actúa antes de primera",
+    "http": 404
+  },
+  {
+    "fecha": "2026-11-21T15:38:44.1147021-04:00",
+    "resultado": "PASS",
+    "caso": "CC no confirma recepción de otra unidad",
+    "http": 403
+  },
+  {
+    "fecha": "2026-11-21T15:38:45.9317945-04:00",
+    "resultado": "PASS",
+    "caso": "No se crea nota dirigida a institución ajena",
+    "http": 422
+  }
+]

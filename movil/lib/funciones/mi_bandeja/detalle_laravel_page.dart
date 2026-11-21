@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../compartido/api/laravel_api.dart';
 import '../../compartido/diseno/sakai_theme.dart';
+import '../../compartido/diseno/institucional.dart';
 import '../../compartido/diseno/sakai_widgets.dart';
 import '../camara/camara_documento.dart';
 import '../adjuntos/adjuntos_documento.dart';
@@ -184,8 +185,8 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
         if (!didPop) _volver();
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Detalle de correspondencia'),
+        appBar: CabeceraInstitucional(
+          titulo: 'Detalle de correspondencia',
           leading: BackButton(onPressed: _volver),
           actions: [
             IconButton(

@@ -200,6 +200,7 @@ class InternalNoteController extends Controller
             'cite' => $note->cite,
             'asunto' => $note->subject,
             'unidad_origen' => $origin,
+            'unidad_destinataria' => ['id' => $note->recipient->id, 'nombre' => $note->recipient->name],
             'unidad_actual' => ['id' => $current->id, 'nombre' => $current->name],
             'destino_pendiente' => $pending ? ['id' => $pending->id, 'nombre' => $pending->name] : null,
             'estado' => $note->displayState(),
@@ -211,6 +212,7 @@ class InternalNoteController extends Controller
         ];
 
         if ($detail) {
+            $data['autor'] = ['id' => $note->author->id, 'nombre' => $note->author->name];
             $data['referencia'] = $note->reference;
             $data['cuerpo'] = $note->body;
             $count = $note->participants->where('role', 'via')->count();

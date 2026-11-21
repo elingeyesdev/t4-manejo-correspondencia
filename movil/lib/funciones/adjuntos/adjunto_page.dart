@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'adjuntos_api.dart';
 import '../../compartido/api/laravel_api.dart';
 import '../../compartido/diseno/sakai_theme.dart';
+import '../../compartido/diseno/institucional.dart';
 
 class AdjuntoPage extends StatefulWidget {
   const AdjuntoPage({super.key, required this.servicio, required this.adjunto});
@@ -73,13 +74,7 @@ class _AdjuntoPageState extends State<AdjuntoPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(
-        widget.adjunto.nombre,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-    ),
+    appBar: CabeceraInstitucional(titulo: widget.adjunto.nombre),
     body: FutureBuilder<ContenidoAdjunto>(
       future: _contenido,
       builder: (context, snapshot) {

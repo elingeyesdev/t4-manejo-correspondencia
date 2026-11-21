@@ -1,0 +1,13 @@
+{
+  "fecha": "2026-11-21",
+  "metodo": "Navegador de pruebas Edge/Playwright con formularios reales",
+  "nota": "01a1ff99-9dc9-7121-b9d6-10a26d9f74ea",
+  "cite": "NI/E5220261119025527/ORIGEN/2026/000029",
+  "estado": "cerrada",
+  "rol": "CC ficticia",
+  "bandera": true,
+  "estilo": {
+    "fondo": "rgb(255, 255, 255)",
+    "filete": "rgb(32, 183, 44)"
+  }
+}
