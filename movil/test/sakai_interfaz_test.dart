@@ -67,6 +67,10 @@ Future<void> _preparar(
           'data': [_doc],
           'last_page': 1,
         },
+        '/api/notas-internas' => {
+          'data': <Object>[],
+          'meta': {'current_page': 1, 'last_page': 1, 'total': 0},
+        },
         '/api/configuracion-registro' => {
           'tipos': [
             {'id': 1, 'name': 'Carta'},
@@ -144,38 +148,77 @@ void main() {
     )..addFont(rootBundle.load('assets/fonts/primeicons.ttf'))).load();
   });
 
+  testWidgets('Inicio y menú abren las cuatro bandejas de notas', (
+    tester,
+  ) async {
+    await _preparar(tester);
+    await tester.tap(find.text('Notas internas'));
+    await tester.pumpAndSettle();
+    for (final titulo in [
+      'Por revisar',
+      'Por recibir',
+      'Por atender',
+      'Copias',
+    ]) {
+      expect(find.text(titulo), findsOneWidget);
+      await tester.ensureVisible(find.text(titulo));
+      await tester.tap(find.text(titulo));
+      await tester.pumpAndSettle();
+      expect(find.text('No hay notas en esta bandeja.'), findsOneWidget);
+    }
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    final acceso = find.descendant(
+      of: find.byType(Drawer),
+      matching: find.text('Notas internas'),
+    );
+    await tester.ensureVisible(acceso);
+    await tester.tap(acceso);
+    await tester.pumpAndSettle();
+    expect(find.text('Por revisar'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('deslizar sincroniza pestañas y conserva guía y búsqueda', (
     tester,
   ) async {
     await _preparar(tester);
     final paginas = find.byKey(const ValueKey('secciones-deslizables'));
-    await tester.drag(paginas, const Offset(-330, 0));
+    Future<void> deslizar(double desplazamiento) => tester.dragFrom(
+      tester.getTopLeft(paginas) + const Offset(195, 30),
+      Offset(desplazamiento, 0),
+    );
+    // Deslizar desde el encabezado: un campo de texto consume sus propios
+    // gestos horizontales para seleccionar y desplazar el texto.
+    await deslizar(-330);
     await tester.pumpAndSettle();
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       1,
     );
     await tester.enterText(find.byType(TextField), 'Secretaría');
-    await tester.drag(paginas, const Offset(-330, 0));
+    await deslizar(-330);
     await tester.pumpAndSettle();
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       2,
     );
     await tester.enterText(find.byType(TextFormField), 'COR-DESLIZAR');
-    await tester.drag(paginas, const Offset(-330, 0));
+    await deslizar(-330);
     await tester.pumpAndSettle();
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       3,
     );
-    await tester.drag(paginas, const Offset(330, 0));
+    await deslizar(330);
     await tester.pumpAndSettle();
     expect(find.text('COR-DESLIZAR'), findsOneWidget);
-    await tester.drag(paginas, const Offset(330, 0));
+    await deslizar(330);
     await tester.pumpAndSettle();
     expect(find.text('Secretaría'), findsOneWidget);
-    await tester.drag(paginas, const Offset(330, 0));
+    await deslizar(330);
     await tester.pumpAndSettle();
     expect(find.text('Hola, Russell'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.menu));

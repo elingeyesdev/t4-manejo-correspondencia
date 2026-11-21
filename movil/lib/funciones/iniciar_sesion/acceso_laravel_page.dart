@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../compartido/diseno/sakai_theme.dart';
 import '../../compartido/diseno/sakai_widgets.dart';
+import '../../compartido/diseno/institucional.dart';
 
 import 'sesion_controller.dart';
 
@@ -33,6 +33,7 @@ class _AccesoLaravelPageState extends State<AccesoLaravelPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    appBar: const CabeceraInstitucional(titulo: 'Acceso institucional'),
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(
@@ -45,17 +46,8 @@ class _AccesoLaravelPageState extends State<AccesoLaravelPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Icon(
-                        PrimeIcons.folder,
-                        size: 48,
-                        color: Sakai.green,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
                     Text(
-                      'Correspondencia',
+                      'Acceso a tu cuenta',
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(fontWeight: FontWeight.w600),
                     ),

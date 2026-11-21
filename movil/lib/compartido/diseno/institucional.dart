@@ -8,7 +8,7 @@ abstract final class Institucional {
   static const secundario = Color(0xFF555B57);
   static const borde = Color(0xFFD4D8D5);
   static const neutro = Color(0xFFF0F2F0);
-  static const error = Color(0xFFB42318);
+  static const error = Color(0xFF941E15);
 
   static final tema = ThemeData(
     useMaterial3: true,
@@ -19,16 +19,41 @@ abstract final class Institucional {
       onPrimary: Colors.white,
       secondary: accion,
       onSecondary: Colors.white,
+      primaryContainer: Color(0xFFEAF4ED),
+      onPrimaryContainer: accion,
+      secondaryContainer: neutro,
+      onSecondaryContainer: tinta,
+      tertiary: accion,
+      onTertiary: Colors.white,
+      tertiaryContainer: neutro,
+      onTertiaryContainer: tinta,
       surface: Colors.white,
+      surfaceContainerLowest: Colors.white,
+      surfaceContainerLow: Colors.white,
+      surfaceContainer: neutro,
+      surfaceContainerHigh: neutro,
+      surfaceContainerHighest: neutro,
+      surfaceTint: Colors.transparent,
       onSurface: tinta,
       onSurfaceVariant: secundario,
       outline: secundario,
       outlineVariant: borde,
       error: error,
+      errorContainer: Color(0xFFFBECEA),
+      onErrorContainer: error,
+      inverseSurface: tinta,
+      onInverseSurface: Colors.white,
+      inversePrimary: Color(0xFFEAF4ED),
     ),
     textTheme: const TextTheme(
+      headlineMedium: TextStyle(
+        fontSize: 24,
+        height: 1.25,
+        fontWeight: FontWeight.w700,
+        color: tinta,
+      ),
       headlineSmall: TextStyle(
-        fontSize: 23,
+        fontSize: 21,
         height: 1.2,
         fontWeight: FontWeight.w700,
         color: tinta,
@@ -44,8 +69,8 @@ abstract final class Institucional {
         fontWeight: FontWeight.w600,
         color: tinta,
       ),
-      bodyLarge: TextStyle(fontSize: 16, height: 1.45, color: tinta),
-      bodyMedium: TextStyle(fontSize: 14, height: 1.45, color: tinta),
+      bodyLarge: TextStyle(fontSize: 15, height: 1.45, color: tinta),
+      bodyMedium: TextStyle(fontSize: 15, height: 1.45, color: tinta),
       bodySmall: TextStyle(fontSize: 12, height: 1.4, color: secundario),
       labelLarge: TextStyle(
         fontSize: 14,
@@ -54,12 +79,16 @@ abstract final class Institucional {
       ),
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: cabecera,
+      backgroundColor: Colors.white,
       foregroundColor: tinta,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
+      shape: Border(
+        top: BorderSide(color: cabecera, width: 3),
+        bottom: BorderSide(color: borde),
+      ),
       titleTextStyle: TextStyle(
         fontFamily: 'Roboto',
         fontSize: 20,
@@ -67,13 +96,13 @@ abstract final class Institucional {
         color: tinta,
       ),
       systemOverlayStyle: SystemUiOverlayStyle(
-        statusBarColor: cabecera,
+        statusBarColor: Colors.white,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
       ),
     ),
     tabBarTheme: const TabBarThemeData(
-      labelColor: tinta,
+      labelColor: accion,
       unselectedLabelColor: secundario,
       indicatorColor: accion,
       indicatorSize: TabBarIndicatorSize.tab,
@@ -118,9 +147,9 @@ abstract final class Institucional {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: accion,
+        foregroundColor: secundario,
         minimumSize: const Size(48, 48),
-        side: const BorderSide(color: accion),
+        side: const BorderSide(color: Color(0xFF777F79)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
     ),
@@ -134,13 +163,89 @@ abstract final class Institucional {
       color: Colors.white,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         side: const BorderSide(color: borde),
         borderRadius: BorderRadius.circular(4),
       ),
     ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: const Color(0xFFEAF4ED),
+      height: 72,
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          color: states.contains(WidgetState.selected) ? accion : secundario,
+        ),
+      ),
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => TextStyle(
+          fontSize: 12,
+          fontWeight: states.contains(WidgetState.selected)
+              ? FontWeight.w600
+              : FontWeight.w400,
+          color: states.contains(WidgetState.selected) ? accion : secundario,
+        ),
+      ),
+    ),
+    drawerTheme: const DrawerThemeData(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+    ),
+    listTileTheme: const ListTileThemeData(
+      selectedColor: accion,
+      selectedTileColor: Color(0xFFEAF4ED),
+      iconColor: secundario,
+      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+    ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(color: accion),
     textSelectionTheme: const TextSelectionThemeData(cursorColor: accion),
+  );
+}
+
+class BanderaSantaCruz extends StatelessWidget {
+  const BanderaSantaCruz({super.key});
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'Bandera de Santa Cruz',
+    image: true,
+    child: Container(
+      width: 26.4,
+      height: 18,
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF006B2E)),
+      ),
+      child: const Column(
+        children: [
+          Expanded(
+            child: ColoredBox(
+              color: Color(0xFF006B2E),
+              child: SizedBox.expand(),
+            ),
+          ),
+          Expanded(
+            child: ColoredBox(color: Colors.white, child: SizedBox.expand()),
+          ),
+          Expanded(
+            child: ColoredBox(
+              color: Color(0xFF006B2E),
+              child: SizedBox.expand(),
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 }
 
@@ -154,25 +259,115 @@ class InterfazInstitucional extends StatelessWidget {
   );
 }
 
+class CabeceraInstitucional extends StatelessWidget
+    implements PreferredSizeWidget {
+  const CabeceraInstitucional({
+    super.key,
+    required this.titulo,
+    this.leading,
+    this.actions = const [],
+  });
+  final String titulo;
+  final Widget? leading;
+  final List<Widget> actions;
+  @override
+  Size get preferredSize => const Size.fromHeight(64);
+  @override
+  Widget build(BuildContext context) => AppBar(
+    toolbarHeight: 64,
+    // El borde del Material puede quedar detrás de la barra de estado nativa.
+    // Pinta el filete dentro del área segura para que sea visible en Android.
+    flexibleSpace: const IgnorePointer(
+      child: SafeArea(
+        bottom: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: double.infinity,
+            height: 3,
+            child: ColoredBox(color: Institucional.cabecera),
+          ),
+        ),
+      ),
+    ),
+    leading: leading,
+    titleSpacing: 8,
+    title: Row(
+      children: [
+        const BanderaSantaCruz(),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Correspondencia institucional',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Institucional.tinta,
+                ),
+              ),
+              Text(
+                titulo,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Institucional.secundario,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+    actions: actions,
+  );
+}
+
 class EstadoInstitucional extends StatelessWidget {
   const EstadoInstitucional(this.texto, {super.key});
   final String texto;
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.centerLeft,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Institucional.neutro,
-        borderRadius: BorderRadius.circular(3),
+  Widget build(BuildContext context) {
+    final pendiente =
+        texto.startsWith('Pendiente') || texto == 'Emisión pendiente';
+    final activa = texto == 'Recibida' || texto == 'En atención';
+    final fondo = pendiente
+        ? const Color(0xFFFBF5E4)
+        : activa
+        ? const Color(0xFFEAF4ED)
+        : Institucional.neutro;
+    final tinta = pendiente
+        ? const Color(0xFF654A13)
+        : activa
+        ? const Color(0xFF174E2B)
+        : const Color(0xFF343A36);
+    final borde = pendiente
+        ? const Color(0xFFE4D3A4)
+        : activa
+        ? const Color(0xFFC4DCCC)
+        : Institucional.borde;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: fondo,
+          border: Border.all(color: borde),
+        ),
+        child: Text(
+          texto,
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: tinta, fontWeight: FontWeight.w600),
+        ),
       ),
-      child: Text(
-        texto,
-        style: Theme.of(context).textTheme.bodySmall
-            ?.copyWith(color: Institucional.tinta),
-      ),
-    ),
-  );
+    );
+  }
 }
 
 class DatoInstitucional extends StatelessWidget {

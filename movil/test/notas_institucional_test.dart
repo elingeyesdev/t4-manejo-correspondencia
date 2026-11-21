@@ -26,6 +26,8 @@ Map<String, dynamic> _nota(int index) => {
   'estado': 'pendiente_revision',
   'version': 3,
   'unidad_origen': {'id': 1, 'nombre': 'Departamento de Tecnología'},
+  'unidad_destinataria': {'id': 2, 'nombre': 'Asesoría Jurídica'},
+  'autor': {'id': 1, 'nombre': 'Funcionario de demostración'},
   'unidad_actual': {'id': 1, 'nombre': 'Jefatura de unidad'},
   'destino_pendiente': null,
   'documento_id': null,
@@ -91,7 +93,7 @@ void main() {
   });
 
   test(
-    'verde claro con texto negro y acciones mantienen contraste legible',
+    'cabecera blanca y acciones institucionales mantienen contraste legible',
     () {
       double contraste(Color a, Color b) {
         final valores = [a.computeLuminance(), b.computeLuminance()]..sort();
@@ -99,7 +101,7 @@ void main() {
       }
 
       expect(
-        contraste(Institucional.cabecera, Institucional.tinta),
+        contraste(Colors.white, Institucional.tinta),
         greaterThanOrEqualTo(4.5),
       );
       expect(
@@ -108,6 +110,81 @@ void main() {
       );
     },
   );
+
+  testWidgets('comparacion visual del mismo expediente real ficticio', (
+    tester,
+  ) async {
+    final reference = jsonDecode(
+      File(const String.fromEnvironment('REFERENCIA_API_NOTAS'))
+          .readAsStringSync(),
+    ) as Map;
+    final detail = reference['detalle'] as Map;
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final api =
+        ApiLaravel(
+            baseUrl: 'http://captura.test',
+            client: MockClient(
+              (r) async => http.Response(
+                jsonEncode(
+                  r.url.path.endsWith('/${reference['id']}')
+                      ? detail
+                      : reference['bandeja'],
+                ),
+                200,
+                headers: {'content-type': 'application/json; charset=utf-8'},
+              ),
+            ),
+          )
+          ..token = 'captura-sin-credenciales'
+          ..cuentaId = '1';
+    addTearDown(api.close);
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: const ValueKey('captura-institucional'),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: BandejaNotasPage(api: api),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('buscar-notas')),
+      reference['cite'] as String,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(ListTile),
+        matching: find.text(reference['cite'] as String),
+      ),
+      findsOneWidget,
+    );
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await _capturar(tester, 'bandeja_misma_nota');
+    final row = find.byKey(ValueKey(reference['id'] as String));
+    if (row.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        row,
+        200,
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            )
+            .last,
+      );
+    }
+    await tester.ensureVisible(row);
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    expect(find.text('Dar conformidad'), findsOneWidget);
+    expect(find.text(reference['cite'] as String), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _capturar(tester, 'detalle_misma_nota');
+  }, skip: const String.fromEnvironment('REFERENCIA_API_NOTAS').isEmpty);
 
   testWidgets(
     'bandeja y detalle institucional conservan datos, búsqueda y acciones',
@@ -153,7 +230,7 @@ void main() {
         Theme.of(tester.element(find.byType(AppBar)))
             .appBarTheme
             .backgroundColor,
-        Institucional.cabecera,
+        Colors.white,
       );
       expect(tester.takeException(), isNull);
       await _capturar(tester, 'bandeja_notas');

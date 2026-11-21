@@ -1,0 +1,20 @@
+[
+  {
+    "caso": "directa",
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000028",
+    "documento": "55d0553a-adb8-48b4-803f-a9ec95985e47",
+    "hoja": "94eb17ba-4bac-4b4b-92ec-91a7135187b8",
+    "estado_api": "cerrada",
+    "estado_web": "Cerrada",
+    "resultado": "PASS"
+  },
+  {
+    "caso": "dos_vias",
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000029",
+    "documento": "ee70b8f1-912f-4c41-9b61-c1e1c52cce15",
+    "hoja": "c850d93d-27d9-43e2-ad35-9af1a46626a6",
+    "estado_api": "cerrada",
+    "estado_web": "Cerrada",
+    "resultado": "PASS"
+  }
+]

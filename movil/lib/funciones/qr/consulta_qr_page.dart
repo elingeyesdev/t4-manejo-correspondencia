@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../compartido/api/laravel_api.dart';
 import '../../compartido/diseno/sakai_widgets.dart';
+import '../../compartido/diseno/institucional.dart';
 import '../mi_bandeja/detalle_laravel_page.dart';
 import '../recorrido/recorrido_api.dart';
 
@@ -153,7 +154,7 @@ class _ConsultaQrPageState extends State<ConsultaQrPage>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Localizar por QR')),
+    appBar: const CabeceraInstitucional(titulo: 'Localizar por QR'),
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -171,7 +172,7 @@ class _ConsultaQrPageState extends State<ConsultaQrPage>
                 SizedBox(
                   height: 300,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(4),
                     child: MobileScanner(
                       controller: _camara,
                       onDetect: (captura) {

@@ -115,8 +115,8 @@ class _BandejaNotasPageState extends State<BandejaNotasPage> {
   Widget _construir(BuildContext context) => DefaultTabController(
     length: BandejaNota.values.length,
     child: Scaffold(
-      appBar: AppBar(
-        title: const Text('Correspondencia'),
+      appBar: CabeceraInstitucional(
+        titulo: 'Notas internas',
         actions: [
           IconButton(
             tooltip: 'Actualizar notas',
@@ -205,7 +205,8 @@ class _BandejaNotasPageState extends State<BandejaNotasPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 4),
-                    Text('Origen: ${nota.origen}'),
+                    Text('Unidad de origen: ${nota.origen}'),
+                    Text('Unidad destinataria: ${nota.destinataria}'),
                     Text(
                       sakaiDate(nota.datos['fecha_ultimo_movimiento']),
                       style: Theme.of(context).textTheme.bodySmall,

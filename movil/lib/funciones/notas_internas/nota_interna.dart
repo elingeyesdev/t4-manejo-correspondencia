@@ -25,6 +25,8 @@ class NotaInterna {
         acciones is! List ||
         acciones.any((a) => a is! String) ||
         !_unidadValida(datos['unidad_origen']) ||
+        !_unidadValida(datos['unidad_destinataria'], opcional: true) ||
+        !_unidadValida(datos['autor'], opcional: true) ||
         !_unidadValida(datos['unidad_actual'], opcional: true) ||
         !_unidadValida(datos['destino_pendiente'], opcional: true) ||
         !_textoOpcional(datos['cite']) ||
@@ -68,6 +70,15 @@ class NotaInterna {
   String get estado => datos['estado'] as String;
   int get version => datos['version'] as int;
   String get origen => (datos['unidad_origen'] as Map)['nombre'] as String;
+  String get emisor {
+    final nombre = (datos['autor'] as Map?)?['nombre'];
+    return nombre is String && nombre.isNotEmpty ? '$nombre · $origen' : origen;
+  }
+
+  String get destinataria =>
+      (datos['unidad_destinataria'] as Map?)?['nombre'] as String? ??
+      (datos['destino_pendiente'] as Map?)?['nombre'] as String? ??
+      'No indicada';
   String? get cuerpo => datos['cuerpo'] as String?;
   String? get documentoId => datos['documento_id'] as String?;
   String? get hojaId => datos['hoja_id'] as String?;

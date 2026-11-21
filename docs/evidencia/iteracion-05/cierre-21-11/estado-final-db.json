@@ -1,0 +1,104 @@
+[
+  {
+    "nota": "01a1ff99-9dc9-7121-b9d6-10a26d9f74ea",
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000029",
+    "documento": "ee70b8f1-912f-4c41-9b61-c1e1c52cce15",
+    "hoja": "c850d93d-27d9-43e2-ad35-9af1a46626a6",
+    "estado": "CERRADA",
+    "historial": [
+      {
+        "accion": "RECEPCION",
+        "estado": "RECIBIDA",
+        "version": 1,
+        "fecha": "2026-11-21T15:40:58-04:00"
+      },
+      {
+        "accion": "ATENCION",
+        "estado": "EN_ATENCION",
+        "version": 2,
+        "fecha": "2026-11-21T15:41:09-04:00"
+      },
+      {
+        "accion": "DERIVACION",
+        "estado": "PENDIENTE_RECEPCION",
+        "version": 3,
+        "fecha": "2026-11-21T15:41:12-04:00"
+      },
+      {
+        "accion": "RECEPCION",
+        "estado": "RECIBIDA",
+        "version": 4,
+        "fecha": "2026-11-21T15:41:32-04:00"
+      },
+      {
+        "accion": "ATENCION",
+        "estado": "EN_ATENCION",
+        "version": 5,
+        "fecha": "2026-11-21T15:41:35-04:00"
+      },
+      {
+        "accion": "RESPUESTA",
+        "estado": "EN_ATENCION",
+        "version": 6,
+        "fecha": "2026-11-21T15:41:42-04:00"
+      },
+      {
+        "accion": "CIERRE",
+        "estado": "CERRADA",
+        "version": 7,
+        "fecha": "2026-11-21T15:41:50-04:00"
+      }
+    ],
+    "recepciones": 2
+  },
+  {
+    "nota": "01a1ff86-cc77-72f5-acc6-75bfd6b525c8",
+    "cite": "NI/DEMO/RECEPCION/2026/000001",
+    "documento": "83595500-fd3e-43d0-9058-9734e945d52a",
+    "hoja": "c71ffbd1-4cdb-4b29-a549-3e6866451c92",
+    "estado": "EN_ATENCION",
+    "historial": [
+      {
+        "accion": "RECEPCION",
+        "estado": "RECIBIDA",
+        "version": 1,
+        "fecha": "2026-11-21T15:39:26-04:00"
+      },
+      {
+        "accion": "ATENCION",
+        "estado": "EN_ATENCION",
+        "version": 2,
+        "fecha": "2026-11-21T15:39:29-04:00"
+      }
+    ],
+    "recepciones": 1
+  },
+  {
+    "nota": "01a1ff99-9173-729c-a763-f012e6372234",
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000028",
+    "documento": "55d0553a-adb8-48b4-803f-a9ec95985e47",
+    "hoja": "94eb17ba-4bac-4b4b-92ec-91a7135187b8",
+    "estado": "CERRADA",
+    "historial": [
+      {
+        "accion": "RECEPCION",
+        "estado": "RECIBIDA",
+        "version": 1,
+        "fecha": "2026-11-21T15:40:02-04:00"
+      },
+      {
+        "accion": "ATENCION",
+        "estado": "EN_ATENCION",
+        "version": 2,
+        "fecha": "2026-11-21T15:40:09-04:00"
+      },
+      {
+        "accion": "CIERRE",
+        "estado": "CERRADA",
+        "version": 3,
+        "fecha": "2026-11-21T15:40:13-04:00"
+      }
+    ],
+    "recepciones": 1
+  }
+]
