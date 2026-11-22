@@ -73,7 +73,7 @@ void main() {
       );
       expect(find.text('Cerrada'), findsOneWidget);
       expect(
-        find.widgetWithText(FilledButton, 'Dar conformidad'),
+        find.widgetWithText(FilledButton, 'Firmar y dar conformidad'),
         findsNothing,
       );
       expect(

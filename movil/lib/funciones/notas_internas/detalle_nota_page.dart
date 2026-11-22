@@ -7,6 +7,8 @@ import '../mi_bandeja/detalle_laravel_page.dart';
 import '../recorrido/recorrido_documento.dart';
 import 'nota_interna.dart';
 import 'notas_api.dart';
+import 'firma_nota.dart';
+import 'firmar_nota_page.dart';
 
 class DetalleNotaPage extends StatefulWidget {
   const DetalleNotaPage({
@@ -69,13 +71,25 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
       final nota = await servicio.detalle(widget.id);
       if (!mounted) return;
       if (pendiente != null &&
+          await servicio.descartarFirmaDesactualizada(nota, pendiente)) {
+        if (!mounted) return;
+        setState(() {
+          _pendiente = null;
+          _mensaje = 'La nota cambió. Revisa el contenido y firma la nueva versión cuando esté disponible.';
+        });
+      } else if (pendiente != null &&
           await servicio.confirmarSiAplicado(nota, pendiente)) {
         if (!mounted) return;
         setState(() {
           _pendiente = null;
-          _mensaje = pendiente.accion == AccionNota.conformidad
-              ? 'La conformidad ya está registrada. Estado actualizado.'
-              : 'La recepción ya está registrada. Estado actualizado.';
+          _mensaje = switch (pendiente.accion) {
+            AccionNota.conformidad =>
+              'La conformidad ya está registrada. Estado actualizado.',
+            AccionNota.primeraRecepcion =>
+              'La recepción ya está registrada. Estado actualizado.',
+            AccionNota.firmaRemitente =>
+              'La firma ya está registrada. Puedes emitir desde web.',
+          };
         });
       }
       Map<String, dynamic>? vinculado;
@@ -153,35 +167,57 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
       final nota = _nota!;
       final token = widget.api.token;
       final cuenta = widget.api.cuentaId;
-      final permiso = accion == AccionNota.conformidad
-          ? 'dar_conformidad'
-          : 'confirmar_primera_recepcion';
+      final permiso = switch (accion) {
+        AccionNota.conformidad => 'dar_conformidad',
+        AccionNota.primeraRecepcion => 'confirmar_primera_recepcion',
+        AccionNota.firmaRemitente => 'firmar_borrador',
+      };
       if (_errorCarga != null || !nota.permite(permiso)) return;
       setState(() => _confirmando = true);
-      final aceptar = await showDialog<bool>(
-        context: context,
-        builder: (context) => InterfazInstitucional(
-          builder: (context) => AlertDialog(
-            title: Text('¿${accion.titulo}?'),
-            content: Text(
-              '${nota.cite}\n${nota.asunto}\nVersión ${nota.version}',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Confirmar'),
-              ),
-            ],
+      FirmaNota? firma;
+      final bool aceptar;
+      if (accion != AccionNota.primeraRecepcion) {
+        if (nota.cuerpo == null || nota.cuerpo!.trim().isEmpty) {
+          setState(() {
+            _confirmando = false;
+            _errorAccion = 'No se pudo cargar el contenido completo. Actualiza la nota antes de firmar.';
+          });
+          return;
+        }
+        firma = await Navigator.of(context).push<FirmaNota>(
+          MaterialPageRoute(
+            builder: (_) => FirmarNotaPage(nota: nota, titulo: accion.titulo),
           ),
-        ),
-      );
+        );
+        aceptar = firma != null;
+      } else {
+        aceptar =
+            await showDialog<bool>(
+              context: context,
+              builder: (context) => InterfazInstitucional(
+                builder: (context) => AlertDialog(
+                  title: Text('¿${accion.titulo}?'),
+                  content: Text(
+                    '${nota.cite}\n${nota.asunto}\nVersión ${nota.version}',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancelar'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Confirmar'),
+                    ),
+                  ],
+                ),
+              ),
+            ) ==
+            true;
+      }
       if (!mounted) return;
       setState(() => _confirmando = false);
-      if (aceptar != true) return;
+      if (!aceptar) return;
       if (token != widget.api.token || cuenta != widget.api.cuentaId) {
         setState(() {
           _limpiar();
@@ -194,6 +230,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
         accion: accion,
         token: widget.api.token,
         cuentaId: widget.api.cuentaId,
+        firma: firma,
       );
     }
     setState(() {
@@ -209,9 +246,12 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
         _pendiente = null;
         _nota = nota;
         _documento = null;
-        _mensaje = solicitud.accion == AccionNota.conformidad
-            ? 'Conformidad registrada.'
-            : 'Recepción confirmada.';
+        _mensaje = switch (solicitud.accion) {
+          AccionNota.conformidad => 'Conformidad registrada.',
+          AccionNota.primeraRecepcion => 'Recepción confirmada.',
+          AccionNota.firmaRemitente =>
+            'Firma registrada. Vuelve a web para emitir la nota.',
+        };
       });
       await _cargar();
     } on ErrorLaravel catch (e) {
@@ -315,12 +355,19 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
     final puedeActuar = !_ocupada && !_sinConfirmar && _errorCarga == null;
     final acciones = <Widget>[
       if (!widget.soloLectura && nota != null && _pendiente == null) ...[
+        if (nota.permite('firmar_borrador'))
+          FilledButton(
+            onPressed: puedeActuar
+                ? () => _ejecutar(AccionNota.firmaRemitente)
+                : null,
+            child: const Text('Firmar borrador'),
+          ),
         if (nota.permite('dar_conformidad'))
           FilledButton(
             onPressed: puedeActuar
                 ? () => _ejecutar(AccionNota.conformidad)
                 : null,
-            child: const Text('Dar conformidad'),
+            child: const Text('Firmar y dar conformidad'),
           ),
         if (nota.permite('confirmar_primera_recepcion'))
           FilledButton(
@@ -412,6 +459,14 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
               Text(nota.cite, style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 12),
               EstadoInstitucional(nota.etiquetaEstado),
+              if (nota.estadoFirma != null) ...[
+                const SizedBox(height: 8),
+                Text(switch (nota.estadoFirma) {
+                  'pendiente' => 'Pendiente de firma del remitente',
+                  'firmada' => 'Borrador firmado. Emisión disponible en web.',
+                  _ => 'La firma todavía no fue solicitada desde web.',
+                }),
+              ],
               const SizedBox(height: 12),
               DatoInstitucional('DE', nota.emisor),
               DatoInstitucional('A', nota.destinataria),

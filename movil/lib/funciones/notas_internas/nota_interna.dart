@@ -1,6 +1,7 @@
 import '../../compartido/api/laravel_api.dart';
 
 enum BandejaNota {
+  firmar('por_firmar', 'Por firmar'),
   revisar('por_revisar', 'Por revisar'),
   recibir('por_recibir', 'Por recibir'),
   atender('por_atender', 'Por atender'),
@@ -34,6 +35,12 @@ class NotaInterna {
         !_textoOpcional(datos['referencia']) ||
         !_textoOpcional(datos['documento_id']) ||
         !_textoOpcional(datos['hoja_id']) ||
+        (datos['estado_firma'] != null &&
+            !{
+              'sin_solicitar',
+              'pendiente',
+              'firmada',
+            }.contains(datos['estado_firma'])) ||
         datos['fecha_ultimo_movimiento'] is! String ||
         DateTime.tryParse(datos['fecha_ultimo_movimiento'] as String) == null) {
       throw const ErrorLaravel(
@@ -80,6 +87,7 @@ class NotaInterna {
       (datos['destino_pendiente'] as Map?)?['nombre'] as String? ??
       'No indicada';
   String? get cuerpo => datos['cuerpo'] as String?;
+  String? get estadoFirma => datos['estado_firma'] as String?;
   String? get documentoId => datos['documento_id'] as String?;
   String? get hojaId => datos['hoja_id'] as String?;
   List<String> get acciones => datos['acciones_permitidas'] as List<String>;
@@ -97,6 +105,7 @@ class NotaInterna {
   };
 
   String get siguienteAccion {
+    if (permite('firmar_borrador')) return 'Firmar borrador';
     if (permite('dar_conformidad')) return 'Revisar nota';
     if (permite('confirmar_primera_recepcion') ||
         permite('confirmar_recepcion_derivacion')) {

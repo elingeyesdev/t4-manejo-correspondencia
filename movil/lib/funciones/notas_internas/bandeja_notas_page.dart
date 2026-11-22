@@ -114,6 +114,7 @@ class _BandejaNotasPageState extends State<BandejaNotasPage> {
 
   Widget _construir(BuildContext context) => DefaultTabController(
     length: BandejaNota.values.length,
+    initialIndex: BandejaNota.revisar.index,
     child: Scaffold(
       appBar: CabeceraInstitucional(
         titulo: 'Notas internas',

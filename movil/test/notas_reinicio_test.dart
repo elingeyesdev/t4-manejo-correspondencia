@@ -94,7 +94,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
-  for (final accion in AccionNota.values) {
+  for (final accion in [AccionNota.conformidad, AccionNota.primeraRecepcion]) {
     for (final fallo in [
       '202',
       'respuesta perdida antes de aplicar',
@@ -205,7 +205,7 @@ void main() {
     }
   }
 
-  for (final accion in AccionNota.values) {
+  for (final accion in [AccionNota.conformidad, AccionNota.primeraRecepcion]) {
     testWidgets(
       '${accion.name}: reserva tras 429 conserva clave y versión al reiniciar',
       (tester) async {
@@ -276,9 +276,11 @@ void main() {
         expect(posts.map((r) => r.headers['Idempotency-Key']).toSet(), {
           claveReservada,
         });
-        expect(posts.map((r) => r.body).toSet(), {
-          jsonEncode({'version': 3}),
-        });
+        expect(posts.map((r) => r.body).toSet().length, 1);
+        expect(jsonDecode(posts.first.body)['version'], 3);
+        if (accion == AccionNota.conformidad) {
+          expect(jsonDecode(posts.first.body)['firma'], isNotEmpty);
+        }
         expect(posts.last.headers['Authorization'], 'Bearer sesion-renovada');
         expect(aplicaciones, 1);
         expect(await const FlutterSecureStorage().readAll(), isEmpty);

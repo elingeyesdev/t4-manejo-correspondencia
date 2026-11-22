@@ -321,11 +321,25 @@ void main() {
 
       Future<void> action(String title, String message) async {
         await tap(find.widgetWithText(FilledButton, title));
+        final firmar = title == 'Firmar y dar conformidad';
+        if (firmar) {
+          final area = find.byKey(const ValueKey('area-firma'));
+          await until(() => area.evaluate().isNotEmpty, 'Área de firma');
+          await tester.ensureVisible(area);
+          await tester.pumpAndSettle();
+          final inicio = tester.getTopLeft(area) + const Offset(25, 35);
+          final trazo = await tester.startGesture(inicio);
+          await trazo.moveBy(const Offset(70, 35));
+          await trazo.moveBy(const Offset(45, -20));
+          await trazo.up();
+          await tester.pumpAndSettle();
+        }
+        final confirmar = firmar ? 'Confirmar firma' : 'Confirmar';
         await until(
-          () => find.text('Confirmar').evaluate().isNotEmpty,
+          () => find.text(confirmar).evaluate().isNotEmpty,
           'Confirmación explícita de $title',
         );
-        await tap(find.widgetWithText(FilledButton, 'Confirmar'));
+        await tap(find.widgetWithText(FilledButton, confirmar));
         // La indexación real del motor puede devolver 202. Se usa el botón
         // público de reintento, que conserva la clave y la versión originales.
         for (var retry = 0; retry < 8; retry++) {
@@ -602,17 +616,17 @@ void main() {
         await screenshot('comparacion_bandeja_android');
         await open(_vias, _citeVias);
         await screenshot('comparacion_detalle_android');
-        await action('Dar conformidad', 'Conformidad registrada.');
+        await action('Firmar y dar conformidad', 'Conformidad registrada.');
         expect((await note(_vias))['estado'], 'pendiente_revision');
         expect(
-          find.widgetWithText(FilledButton, 'Dar conformidad'),
+          find.widgetWithText(FilledButton, 'Firmar y dar conformidad'),
           findsNothing,
         );
         await screenshot('primera_via_confirmada_android');
 
         await login('via2');
         await open(_vias, _citeVias);
-        await action('Dar conformidad', 'Conformidad registrada.');
+        await action('Firmar y dar conformidad', 'Conformidad registrada.');
         expect((await note(_vias))['estado'], 'pendiente_recepcion');
         await screenshot('segunda_via_confirmada_android');
 
@@ -634,7 +648,7 @@ void main() {
         );
         expect(find.text('Copia para conocimiento.'), findsOneWidget);
         expect(
-          find.widgetWithText(FilledButton, 'Dar conformidad'),
+          find.widgetWithText(FilledButton, 'Firmar y dar conformidad'),
           findsNothing,
         );
         expect(
