@@ -23,6 +23,8 @@ Route::middleware(['auth', 'operational'])->group(function () {
         Route::get('/{id}', 'show')->whereUuid('id')->name('show');
         Route::get('/{id}/editar', 'edit')->whereUuid('id')->name('edit');
         Route::patch('/{id}', 'update')->whereUuid('id')->name('update');
+        Route::post('/{id}/solicitud-firma', 'requestSignature')->whereUuid('id')->name('request-signature');
+        Route::post('/{id}/firmas', 'sign')->whereUuid('id')->name('sign');
         Route::post('/{id}/emision', 'emit')->whereUuid('id')->name('emit');
         Route::post('/{id}/conformidades', 'approve')->whereUuid('id')->name('approve');
         Route::post('/{id}/recepciones', 'receive')->whereUuid('id')->name('receive');

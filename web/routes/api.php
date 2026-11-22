@@ -17,6 +17,8 @@ Route::middleware(['auth:sanctum', 'operational'])->group(function () {
         Route::post('/', 'store');
         Route::get('/{id}', 'show')->whereUuid('id');
         Route::patch('/{id}', 'update')->whereUuid('id');
+        Route::post('/{id}/solicitud-firma', 'requestSignature')->whereUuid('id');
+        Route::post('/{id}/firmas', 'sign')->whereUuid('id');
         Route::post('/{id}/emision', 'emit')->whereUuid('id');
         Route::post('/{id}/conformidades', 'approve')->whereUuid('id');
         Route::post('/{id}/recepciones', 'receive')->whereUuid('id');

@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trimStrings(except: ['motivo', 'observacion']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['firma']);
+
         $exceptions->render(function (AuthenticationException $error, Request $request) {
             if ($request->routeIs('api.route-sheets.*')) {
                 return response()->json([

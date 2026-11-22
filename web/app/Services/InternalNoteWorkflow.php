@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\InternalNote;
+use App\Models\InternalNoteSignature;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\Camunda\NotaInternaEngine;
@@ -31,8 +32,8 @@ class InternalNoteWorkflow
             abort_unless($note->author_id === $actor->id && $note->origin_unit_id === $actor->unit_id, 403);
             abort_unless($note->state === InternalNote::DRAFT && (! $draft || $note->version === (int) $data['version']), 409);
 
-            $via = $data['vias_usuario_ids'] ?? [];
-            $cc = $data['cc_usuario_ids'] ?? [];
+            $via = array_values(array_map('intval', $data['vias_usuario_ids'] ?? []));
+            $cc = array_values(array_map('intval', $data['cc_usuario_ids'] ?? []));
             $this->validateRecipients($actor, (int) $data['destinatario_unidad_id'], $via, $cc);
 
             $note->fill([
@@ -40,8 +41,15 @@ class InternalNoteWorkflow
                 'subject' => $data['asunto'],
                 'reference' => $data['referencia'] ?? null,
                 'body' => $data['cuerpo'],
-                'version' => $note->version + 1,
-            ])->save();
+            ]);
+            $participants = $note->exists ? $note->participants()->get()->groupBy('role') : collect();
+            if ($note->exists && ! $note->isDirty()
+                && $via === ($participants->get('via')?->pluck('user_id')->all() ?? [])
+                && $cc === ($participants->get('cc')?->pluck('user_id')->all() ?? [])) {
+                return $note;
+            }
+
+            $note->fill(['version' => $note->version + 1, 'signature_requested_at' => null])->save();
 
             $note->participants()->delete();
             foreach (['via' => $via, 'cc' => $cc] as $role => $accounts) {
@@ -54,11 +62,47 @@ class InternalNoteWorkflow
         }, 3);
     }
 
+    public function requestSignature(User $actor, InternalNote $note, int $version): InternalNote
+    {
+        return DB::transaction(function () use ($actor, $note, $version) {
+            $current = InternalNote::lockForUpdate()->findOrFail($note->id);
+            $this->assertAuthor($actor, $current);
+            abort_unless($current->state === InternalNote::DRAFT && $current->version === $version, 409);
+
+            if ($current->signature_requested_at === null && ! $current->senderSignatures()->where('note_version', $version)->exists()) {
+                $current->update(['signature_requested_at' => now()]);
+            }
+
+            return $current;
+        }, 3);
+    }
+
+    public function sign(User $actor, InternalNote $note, int $version, string $key, ?array $strokes): InternalNote
+    {
+        return DB::transaction(function () use ($actor, $note, $version, $key, $strokes) {
+            $current = InternalNote::lockForUpdate()->findOrFail($note->id);
+            $this->assertAuthor($actor, $current);
+
+            $existing = $current->senderSignatures()->where('user_id', $actor->id)->where('request_key', $key)->first();
+            if ($existing !== null) {
+                abort_unless($existing->note_version === $version && ($strokes === null || $existing->strokes === $strokes), 409);
+
+                return $current;
+            }
+
+            abort_unless($current->state === InternalNote::DRAFT && $current->version === $version && $current->signature_requested_at !== null, 409);
+            $this->recordSignature($current, $actor, InternalNoteSignature::SENDER, $version, $key, $strokes);
+            $current->update(['signature_requested_at' => null]);
+
+            return $current;
+        }, 3);
+    }
+
     public function emit(User $actor, InternalNote $note, int $version, string $key): InternalNote
     {
         $note = DB::transaction(function () use ($actor, $note, $version, $key) {
             $current = InternalNote::lockForUpdate()->findOrFail($note->id);
-            abort_unless($current->author_id === $actor->id && $current->origin_unit_id === $actor->unit_id, 403);
+            $this->assertAuthor($actor, $current);
 
             if ($current->emission_key !== null) {
                 abort_unless($current->emission_key === $key && $current->emission_version === $version, 409);
@@ -67,6 +111,9 @@ class InternalNoteWorkflow
             }
 
             abort_unless($current->state === InternalNote::DRAFT && $current->version === $version, 409);
+            if (! $current->senderSignatures()->where('user_id', $actor->id)->where('note_version', $version)->exists()) {
+                throw ValidationException::withMessages(['firma' => 'La versión vigente debe estar firmada antes de emitir la nota.']);
+            }
             $this->validateRecipients($actor, $current->recipient_unit_id, $current->participants()->where('role', 'via')->pluck('user_id')->all(),
                 $current->participants()->where('role', 'cc')->pluck('user_id')->all());
 
@@ -108,20 +155,28 @@ class InternalNoteWorkflow
         return $note->refresh();
     }
 
-    public function approve(User $actor, InternalNote $note, int $version, string $key): InternalNote
+    public function approve(User $actor, InternalNote $note, int $version, string $key, ?array $strokes): InternalNote
     {
-        $participant = DB::transaction(function () use ($actor, $note, $version, $key) {
+        $participant = DB::transaction(function () use ($actor, $note, $version, $key, $strokes) {
             $current = InternalNote::lockForUpdate()->findOrFail($note->id);
             $via = $current->participants()->where('role', 'via')->where('user_id', $actor->id)->first();
             abort_if($via === null, 403);
             if ($via->action_key !== null) {
                 abort_unless($via->action_key === $key && $via->action_version === $version, 409);
+                $existing = $current->signatures()->where('action', InternalNoteSignature::VIA)
+                    ->where('user_id', $actor->id)->where('request_key', $key)->first();
+                if ($existing !== null) {
+                    abort_unless($strokes === null || $existing->strokes === $strokes, 409);
+                } elseif ($via->confirmed_at === null) {
+                    $this->recordSignature($current, $actor, InternalNoteSignature::VIA, $version, $key, $strokes);
+                }
 
                 return $via;
             }
 
             abort_unless($current->state === InternalNote::REVIEW && $via->position === $current->active_position, 403);
             abort_unless($current->version === $version, 409);
+            $this->recordSignature($current, $actor, InternalNoteSignature::VIA, $version, $key, $strokes);
             $via->update(['action_key' => $key, 'action_version' => $version]);
 
             return $via;
@@ -164,6 +219,28 @@ class InternalNoteWorkflow
 
             return $current;
         }, 3);
+    }
+
+    private function assertAuthor(User $actor, InternalNote $note): void
+    {
+        abort_unless($note->author_id === $actor->id && $note->origin_unit_id === $actor->unit_id, 403);
+    }
+
+    private function recordSignature(InternalNote $note, User $actor, string $action, int $version, string $key, ?array $strokes): void
+    {
+        if ($strokes === null) {
+            throw ValidationException::withMessages(['firma' => 'Dibuja la firma antes de confirmar.']);
+        }
+
+        $note->signatures()->create([
+            'user_id' => $actor->id,
+            'unit_id' => $actor->unit_id,
+            'action' => $action,
+            'note_version' => $version,
+            'request_key' => $key,
+            'strokes' => $strokes,
+            'signed_at' => now(),
+        ]);
     }
 
     private function validateRecipients(User $actor, int $destination, array $via, array $cc): void
