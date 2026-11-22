@@ -33,6 +33,7 @@ class InternalNote extends Model
             'version' => 'integer',
             'emission_version' => 'integer',
             'emitted_at' => 'datetime',
+            'signature_requested_at' => 'datetime',
             'active_position' => 'integer',
             'receipt_actor_id' => 'integer',
             'receipt_version' => 'integer',
@@ -92,6 +93,16 @@ class InternalNote extends Model
     public function participants(): HasMany
     {
         return $this->hasMany(InternalNoteParticipant::class, 'note_id')->orderBy('position');
+    }
+
+    public function signatures(): HasMany
+    {
+        return $this->hasMany(InternalNoteSignature::class, 'note_id');
+    }
+
+    public function senderSignatures(): HasMany
+    {
+        return $this->signatures()->where('action', InternalNoteSignature::SENDER);
     }
 
     public function scopeVisibleTo(Builder $query, User $actor): Builder

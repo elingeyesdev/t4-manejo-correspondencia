@@ -111,6 +111,31 @@ El `id` identifica la nota. La primera recepción devuelve `200` con el detalle 
 - **Sello de recepción.** Generar una constancia visual al confirmar la recepción, con CITE, unidad receptora, fecha y hora del servidor e identificador de constancia. Mostrar **RECIBIDO · DEMOSTRACIÓN** en el detalle o PDF de prueba. La marca se genera con datos del registro confirmado y es de solo lectura. Mostrarla una sola vez si se repite la operación con la misma clave. La demo usa identidad y marca ficticias.
 - **Validación institucional.** Confirmar qué acciones exigen firma, quién puede firmar o sellar, la plantilla aprobada y si el Concejo requiere firma digital certificada u otro mecanismo oficial. En el prototipo, el trazo y el sello visual se presentan como evidencia del flujo. Ver [Ley N.º 164, art. 78](https://plantilla-gob-bo.aads.upat.agetic.gob.bo/wp-content/uploads/2024/04/ley-n-164-comprimido.pdf).
 
+#### API de firma para Android (#56, #61 y #62)
+
+Usar el token de la sesión y `Accept: application/json`. Las respuestas exitosas a escrituras devuelven el detalle actualizado de la nota.
+
+| Acción | Petición | Resultado |
+| --- | --- | --- |
+| Consultar **Por firmar** | `GET /api/notas-internas?bandeja=por_firmar` | `200` con `data` y `meta`. Incluye únicamente los borradores enviados a firma por el remitente autenticado en su unidad. |
+| Abrir la vista previa | `GET /api/notas-internas/{id}` | `200` con `asunto`, `referencia`, `cuerpo`, `version`, `estado_firma` y `acciones_permitidas`. Capturar la versión del detalle que se muestra. |
+| Enviar a firma | `POST /api/notas-internas/{id}/solicitud-firma` con `version` | `200`. Equivale a **Enviar a firma** en web. Repetir sobre el mismo borrador y versión conserva su estado. |
+| Firmar como remitente | `POST /api/notas-internas/{id}/firmas` con `version`, `firma` e `Idempotency-Key` | `200`. Retira el borrador de **Por firmar** y habilita `emitir` en web y API. |
+| Firmar y dar conformidad | `POST /api/notas-internas/{id}/conformidades` con `version`, `firma` e `Idempotency-Key` | `200` al confirmar el avance en Camunda. `202` si la conformidad sigue pendiente de confirmación. |
+
+`estado_firma` es `sin_solicitar`, `pendiente` o `firmada` en el borrador editable. Fuera del borrador es `null`. Habilitar la captura del remitente con `firmar_borrador` y la de VÍA con `dar_conformidad`. Si se modifica la nota, hay que enviarla a firma nuevamente. Camunda inicia al emitir.
+
+En el cuerpo JSON, `firma` contiene una lista de trazos. Cada trazo es una lista de puntos `[x, y]` de enteros entre 0 y 1000, normalizados respecto al ancho y alto del área de firma. Se permiten hasta 32 trazos y 2000 puntos en total, con al menos un segmento entre puntos distintos. `Idempotency-Key` es un UUID generado por el cliente para esa acción.
+
+```json
+{
+  "version": 3,
+  "firma": [[[180, 420], [310, 250], [460, 560]], [[530, 460], [720, 390]]]
+}
+```
+
+Ante `202`, `503` o una respuesta perdida, reintentar con la misma clave, versión y firma. Ante `409`, recargar el detalle y pedir una firma nueva si cambió la versión. `422` indica validación, incluida la emisión sin firma vigente. `401` indica sesión inválida. `403` o `404` indica que la acción o la nota quedó fuera del alcance de la cuenta. Tras un `200`, actualizar las bandejas desde el servidor. Laravel asigna actor, unidad y hora del servidor. El trazo se guarda cifrado y queda fuera de las respuestas.
+
 ## Notificaciones de Nota Interna
 
 **Alcance para la entrega.** Una nota con una tarea disponible genera un aviso persistente en Laravel y un push a los dispositivos Android habilitados. Web y Android consultan el mismo historial de avisos y comparten el estado de lectura. El push de esta entrega es para Android. La web muestra el aviso y el contador al consultar la API o refrescar la vista.

@@ -33,7 +33,21 @@
             @if (in_array('editar_borrador', $data['acciones_permitidas'], true))
                 <a class="btn btn-outline-secondary" href="{{ route('notes.edit', $note) }}">Editar borrador</a>
             @endif
-            @if (in_array('emitir', $data['acciones_permitidas'], true))
+            @if (in_array('enviar_a_firma', $data['acciones_permitidas'], true))
+                <form method="post" action="{{ route('notes.request-signature', $note) }}">
+                    @csrf
+                    <input type="hidden" name="version" value="{{ $note->version }}">
+                    <button type="submit" class="btn btn-primary">Enviar a firma</button>
+                </form>
+            @elseif (in_array('firmar_borrador', $data['acciones_permitidas'], true))
+                <form method="post" action="{{ route('notes.sign', $note) }}" data-note-signature>
+                    @csrf
+                    <input type="hidden" name="version" value="{{ $note->version }}">
+                    <input type="hidden" name="request_key" value="{{ $actionKey }}">
+                    @include('internal-notes.signature', ['version' => $note->version])
+                    <button type="submit" class="btn btn-primary">Firmar borrador</button>
+                </form>
+            @elseif (in_array('emitir', $data['acciones_permitidas'], true))
                 <form method="post" action="{{ route('notes.emit', $note) }}">
                     @csrf
                     <input type="hidden" name="version" value="{{ $note->emission_version ?? $note->version }}">
@@ -41,11 +55,14 @@
                     <button type="submit" class="btn btn-primary">{{ $note->emission_key ? 'Reintentar emisión' : 'Emitir Nota Interna' }}</button>
                 </form>
             @elseif (in_array('dar_conformidad', $data['acciones_permitidas'], true))
-                <form method="post" action="{{ route('notes.approve', $note) }}">
+                <form method="post" action="{{ route('notes.approve', $note) }}" @unless ($retryVia) data-note-signature @endunless>
                     @csrf
                     <input type="hidden" name="version" value="{{ $via->action_version ?? $note->version }}">
                     <input type="hidden" name="request_key" value="{{ $via->action_key ?? $actionKey }}">
-                    <button type="submit" class="btn btn-primary">{{ $via->action_key ? 'Reintentar conformidad' : 'Dar conformidad' }}</button>
+                    @unless ($retryVia)
+                        @include('internal-notes.signature', ['version' => $via->action_version ?? $note->version])
+                    @endunless
+                    <button type="submit" class="btn btn-primary">{{ $retryVia ? 'Reintentar conformidad' : 'Firmar y dar conformidad' }}</button>
                 </form>
             @elseif (in_array('confirmar_primera_recepcion', $data['acciones_permitidas'], true))
                 <form method="post" action="{{ route('notes.receive', $note) }}">

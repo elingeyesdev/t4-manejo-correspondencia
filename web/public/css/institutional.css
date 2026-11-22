@@ -405,6 +405,17 @@ h3 {
     background: #f7f9f7;
 }
 
+.note-signature canvas {
+    display: block;
+    width: 100%;
+    max-width: 480px;
+    height: auto;
+    margin-bottom: .5rem;
+    border: 1px solid var(--notes-rule);
+    background: #fff;
+    touch-action: none;
+}
+
 .note-history {
     margin: 0;
     padding: 0;

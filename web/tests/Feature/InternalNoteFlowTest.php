@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\InternalNoteSignature;
 use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Http\Client\Request;
@@ -14,6 +15,8 @@ use Tests\TestCase;
 class InternalNoteFlowTest extends TestCase
 {
     private const ENGINE = 'http://camunda.test/v2';
+
+    private const SIGNATURE = [[[100, 200], [300, 400]]];
 
     private User $author;
 
@@ -54,8 +57,15 @@ class InternalNoteFlowTest extends TestCase
         $create = $this->post(route('notes.store'), $this->draft());
         $create->assertRedirect();
         $note = DB::table('internal_notes')->first();
-        $this->get(route('notes.show', $note->id))->assertOk()->assertSee('Emitir Nota Interna');
+        $show = route('notes.show', $note->id);
+        $this->get($show)->assertOk()->assertSee('Enviar a firma')->assertDontSee('Emitir Nota Interna');
         $action = ['version' => $note->version, 'request_key' => (string) Str::uuid()];
+        $this->from($show)->post(route('notes.emit', $note->id), $action)
+            ->assertRedirect($show)->assertSessionHasErrors('firma');
+        $this->post(route('notes.request-signature', $note->id), ['version' => $note->version])->assertRedirect($show);
+        $this->get($show)->assertOk()->assertSee('Pendiente de firma')->assertSee('Firmar borrador');
+        $this->post(route('notes.sign', $note->id), $action + ['firma' => json_encode(self::SIGNATURE)])->assertRedirect($show);
+        $this->get($show)->assertOk()->assertSee('Borrador firmado')->assertSee('Emitir Nota Interna');
         $this->post(route('notes.emit', $note->id), $action)->assertRedirect();
         $first = DB::table('internal_notes')->first();
         $this->post(route('notes.emit', $note->id), $action)->assertRedirect();
@@ -97,9 +107,9 @@ class InternalNoteFlowTest extends TestCase
             self::ENGINE.'/user-tasks/search' => Http::sequence()
                 ->push(['items' => [['userTaskKey' => '201']]])
                 ->push(['items' => [['userTaskKey' => '202']]]),
-            self::ENGINE.'/user-tasks/201' => Http::response(['state' => 'CREATED']),
+            self::ENGINE.'/user-tasks/201' => Http::sequence()->push(['state' => 'CREATED'])->push(['state' => 'COMPLETED']),
             self::ENGINE.'/user-tasks/202' => Http::response(['state' => 'CREATED']),
-            self::ENGINE.'/user-tasks/201/completion' => Http::response(null, 204),
+            self::ENGINE.'/user-tasks/201/completion' => Http::response(null, 504),
             self::ENGINE.'/user-tasks/202/completion' => Http::response(null, 204),
         ]);
 
@@ -107,6 +117,7 @@ class InternalNoteFlowTest extends TestCase
         $draft = $this->postJson('/api/notas-internas', $this->draft([$via1->id, $via2->id]))
             ->assertCreated()->assertJsonPath('estado', 'borrador');
         $uri = '/api/notas-internas/'.$draft->json('id');
+        $this->signDraft($uri, $draft->json('version'));
         $sent = $this->postJson($uri.'/emision', ['version' => $draft->json('version')], $this->key())
             ->assertOk()->assertJsonPath('estado', 'pendiente_revision');
         Http::assertSent(fn (Request $request): bool => $request->url() === self::ENGINE.'/process-instances'
@@ -120,13 +131,30 @@ class InternalNoteFlowTest extends TestCase
         Sanctum::actingAs($via1);
         $this->getJson('/api/notas-internas?bandeja=por_revisar')->assertOk()->assertJsonPath('meta.total', 1);
         $via1Key = $this->key();
-        $step = $this->postJson($uri.'/conformidades', ['version' => $sent->json('version')], $via1Key)->assertOk();
-        $this->postJson($uri.'/conformidades', ['version' => $sent->json('version')], $via1Key)->assertOk()
+        $via1Action = ['version' => $sent->json('version'), 'firma' => self::SIGNATURE];
+        $this->postJson($uri.'/conformidades', ['version' => $sent->json('version')], $via1Key)
+            ->assertUnprocessable()->assertJsonValidationErrors('firma');
+        $this->postJson($uri.'/conformidades', $via1Action, $via1Key)->assertAccepted()
+            ->assertJsonPath('version', $sent->json('version'))->assertJsonCount(1, 'movimientos_nota');
+
+        Sanctum::actingAs($via2);
+        $this->postJson($uri.'/conformidades', $via1Action, $this->key())->assertNotFound();
+        Sanctum::actingAs($via1);
+        $this->postJson($uri.'/conformidades', array_replace($via1Action, ['firma' => [[[10, 20], [30, 40]]]]), $via1Key)->assertConflict();
+        $step = $this->postJson($uri.'/conformidades', $via1Action, $via1Key)->assertOk();
+        $this->postJson($uri.'/conformidades', $via1Action, $via1Key)->assertOk()
             ->assertJsonPath('version', $step->json('version'));
 
         Sanctum::actingAs($via2);
-        $this->postJson($uri.'/conformidades', ['version' => $step->json('version')], $this->key())
+        $this->postJson($uri.'/conformidades', ['version' => $step->json('version'), 'firma' => self::SIGNATURE], $this->key())
             ->assertOk()->assertJsonPath('estado', 'pendiente_recepcion')->assertJsonCount(3, 'movimientos_nota');
+        $this->assertDatabaseCount('internal_note_signatures', 3);
+        foreach ([$via1->id => $sent->json('version'), $via2->id => $step->json('version')] as $reviewer => $version) {
+            $this->assertDatabaseHas('internal_note_signatures', [
+                'note_id' => $draft->json('id'), 'action' => 'conformidad_via', 'user_id' => $reviewer, 'note_version' => $version,
+            ]);
+        }
+        Http::assertSentCount(8);
 
         Sanctum::actingAs($this->recipient);
         $this->getJson('/api/notas-internas?bandeja=por_recibir')->assertOk()->assertJsonPath('meta.total', 1);
@@ -136,6 +164,56 @@ class InternalNoteFlowTest extends TestCase
         $this->postJson($uri.'/conformidades', ['version' => 1], $this->key())->assertForbidden();
         Sanctum::actingAs($this->outsider);
         $this->getJson($uri)->assertNotFound();
+    }
+
+    public function test_only_the_author_can_sign_the_requested_version_and_edits_require_a_new_signature(): void
+    {
+        Http::fake([self::ENGINE.'/process-instances' => Http::response(['processInstanceKey' => '501'])]);
+        Sanctum::actingAs($this->author);
+        $draft = $this->postJson('/api/notas-internas', $this->draft())->assertCreated();
+        $id = $draft->json('id');
+        $uri = '/api/notas-internas/'.$id;
+        $action = ['version' => $draft->json('version')];
+        $signature = $action + ['firma' => self::SIGNATURE];
+        $key = $this->key();
+        $tray = '/api/notas-internas?bandeja=por_firmar';
+
+        $this->getJson($tray)->assertOk()->assertJsonPath('meta.total', 0);
+        $this->postJson($uri.'/emision', $action, $this->key())->assertUnprocessable()->assertJsonValidationErrors('firma');
+        $this->postJson($uri.'/firmas', $signature, $key)->assertConflict();
+        $this->postJson($uri.'/solicitud-firma', $action)->assertOk()->assertJsonPath('estado_firma', 'pendiente');
+        $this->getJson($tray)->assertOk()->assertJsonPath('data.0.id', $id)->assertJsonPath('meta.total', 1);
+
+        Sanctum::actingAs($this->recipient);
+        $this->getJson($tray)->assertOk()->assertJsonPath('meta.total', 0);
+        $this->postJson($uri.'/firmas', $signature, $key)->assertNotFound();
+
+        Sanctum::actingAs($this->author);
+        $this->postJson($uri.'/firmas', $action + ['firma' => [[[0, 0], [0, 0]]]], $key)
+            ->assertUnprocessable()->assertJsonValidationErrors('firma');
+        $this->postJson($uri.'/firmas', $signature, $key)->assertOk()->assertJsonPath('estado_firma', 'firmada')
+            ->assertJsonPath('acciones_permitidas', ['editar_borrador', 'emitir'])->assertJsonMissingPath('firma');
+        $this->postJson($uri.'/firmas', $signature, $key)->assertOk();
+        $this->getJson($tray)->assertOk()->assertJsonPath('meta.total', 0);
+        $this->assertDatabaseCount('internal_note_signatures', 1);
+        $stored = InternalNoteSignature::firstOrFail();
+        $this->assertSame(self::SIGNATURE, $stored->strokes);
+        $this->assertNotSame(json_encode(self::SIGNATURE), $stored->getRawOriginal('strokes'));
+        $this->assertSame($this->author->id, $stored->user_id);
+        $this->assertSame($this->author->unit_id, $stored->unit_id);
+        $this->assertNotNull($stored->signed_at);
+
+        $this->patchJson($uri, $this->draft() + $action)->assertOk()->assertJsonPath('estado_firma', 'firmada');
+        $edited = $this->patchJson($uri, array_replace($this->draft(), ['cuerpo' => 'Contenido corregido']) + $action)
+            ->assertOk()->assertJsonPath('estado_firma', 'sin_solicitar');
+        $this->postJson($uri.'/emision', $action, $this->key())->assertConflict();
+        $this->postJson($uri.'/emision', ['version' => $edited->json('version')], $this->key())
+            ->assertUnprocessable()->assertJsonValidationErrors('firma');
+        Http::assertNothingSent();
+        $this->signDraft($uri, $edited->json('version'));
+        $this->postJson($uri.'/emision', ['version' => $edited->json('version')], $this->key())
+            ->assertOk()->assertJsonPath('estado', 'pendiente_recepcion');
+        Http::assertSentCount(1);
     }
 
     public function test_note_receipt_and_route_sheet_are_confirmed_once_by_camunda(): void
@@ -164,6 +242,7 @@ class InternalNoteFlowTest extends TestCase
         Sanctum::actingAs($this->author);
         $draft = $this->postJson('/api/notas-internas', $this->draft())->assertCreated();
         $uri = '/api/notas-internas/'.$draft->json('id');
+        $this->signDraft($uri, $draft->json('version'));
         $emitted = $this->postJson($uri.'/emision', ['version' => $draft->json('version')], $this->key())->assertOk();
         $payload = ['version' => $emitted->json('version')];
 
@@ -246,6 +325,7 @@ class InternalNoteFlowTest extends TestCase
         Sanctum::actingAs($this->author);
         $draft = $this->postJson('/api/notas-internas', $this->draft())->assertCreated();
         $note = '/api/notas-internas/'.$draft->json('id');
+        $this->signDraft($note, $draft->json('version'));
         $emitted = $this->postJson($note.'/emision', ['version' => $draft->json('version')], $this->key())->assertOk();
         $payload = ['version' => $emitted->json('version')];
 
@@ -276,6 +356,12 @@ class InternalNoteFlowTest extends TestCase
         $this->assertDatabaseCount('route_sheets', 1);
         $this->assertDatabaseCount('movements', 1);
         Http::assertSentCount(5);
+    }
+
+    private function signDraft(string $uri, int $version): void
+    {
+        $this->postJson($uri.'/solicitud-firma', ['version' => $version])->assertOk();
+        $this->postJson($uri.'/firmas', ['version' => $version, 'firma' => self::SIGNATURE], $this->key())->assertOk();
     }
 
     private function account(Unit $unit): User

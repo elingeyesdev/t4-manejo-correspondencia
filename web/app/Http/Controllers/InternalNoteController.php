@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\InternalNoteDraftRequest;
 use App\Models\Document;
 use App\Models\InternalNote;
+use App\Models\InternalNoteSignature;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\InternalNoteWorkflow;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class InternalNoteController extends Controller
 {
@@ -21,15 +23,17 @@ class InternalNoteController extends Controller
         $actor = $request->user();
         $api = $request->is('api/*');
         $filters = $request->validate([
-            'bandeja' => ['sometimes', Rule::in(['mis_notas', 'por_revisar', 'por_recibir', 'por_atender', 'copias'])],
+            'bandeja' => ['sometimes', Rule::in(['mis_notas', 'por_firmar', 'por_revisar', 'por_recibir', 'por_atender', 'copias'])],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ]);
         $tray = $filters['bandeja'] ?? ($api ? 'por_revisar' : 'mis_notas');
-        $query = InternalNote::visibleTo($actor)->with(['origin', 'recipient', 'participants', 'document.sheet.currentUnit', 'document.sheet.pendingUnit']);
+        $query = $this->visibleNotes($actor);
 
         match ($tray) {
             'mis_notas' => $query->where('author_id', $actor->id),
+            'por_firmar' => $query->where('author_id', $actor->id)->where('origin_unit_id', $actor->unit_id)
+                ->where('state', InternalNote::DRAFT)->whereNotNull('signature_requested_at'),
             'por_revisar' => $query->where('state', InternalNote::REVIEW)
                 ->whereHas('participants', fn ($via) => $via->where('role', 'via')->where('user_id', $actor->id)
                     ->whereColumn('position', 'internal_notes.active_position')),
@@ -90,9 +94,11 @@ class InternalNoteController extends Controller
         $actionKey = (string) Str::uuid();
 
         $canOpenSheet = $note->document_id !== null && Document::visibleTo($actor)->whereKey($note->document_id)->exists();
+        $retryVia = $via?->action_key !== null && $note->signatures()->where('action', InternalNoteSignature::VIA)
+            ->where('user_id', $actor->id)->where('request_key', $via->action_key)->exists();
         $note->load('document.sheet.movements.actor', 'document.sheet.movements.destinationUnit');
 
-        return view('internal-notes.show', compact('note', 'via', 'data', 'actionKey', 'canOpenSheet'));
+        return view('internal-notes.show', compact('note', 'via', 'data', 'actionKey', 'canOpenSheet', 'retryVia'));
     }
 
     public function store(InternalNoteDraftRequest $request, InternalNoteWorkflow $workflow)
@@ -118,10 +124,28 @@ class InternalNoteController extends Controller
         return $this->result($request, $note, $pending ? 'Emisión pendiente. Puedes reintentar desde esta nota.' : 'Nota emitida.', $pending ? 202 : 200);
     }
 
+    public function requestSignature(Request $request, string $id, InternalNoteWorkflow $workflow)
+    {
+        $data = $request->validate(['version' => ['required', 'integer', 'min:1']]);
+        $note = $workflow->requestSignature($request->user(), $this->find($request->user(), $id), (int) $data['version']);
+
+        return $this->result($request, $note, 'Borrador enviado a firma.');
+    }
+
+    public function sign(Request $request, string $id, InternalNoteWorkflow $workflow)
+    {
+        $data = $this->action($request);
+        $note = $workflow->sign($request->user(), $this->find($request->user(), $id), (int) $data['version'],
+            $data['request_key'], $this->signature($request));
+
+        return $this->result($request, $note, 'Firma registrada.');
+    }
+
     public function approve(Request $request, string $id, InternalNoteWorkflow $workflow)
     {
         $data = $this->action($request);
-        $note = $workflow->approve($request->user(), $this->find($request->user(), $id), (int) $data['version'], $data['request_key']);
+        $note = $workflow->approve($request->user(), $this->find($request->user(), $id), (int) $data['version'],
+            $data['request_key'], $this->signature($request));
         $pending = $note->participants()->where('role', 'via')->where('user_id', $request->user()->id)->whereNull('confirmed_at')->exists();
 
         return $this->result($request, $note, $pending ? 'Conformidad pendiente. Puedes reintentar desde esta nota.' : 'Conformidad registrada.', $pending ? 202 : 200);
@@ -146,9 +170,60 @@ class InternalNoteController extends Controller
         return $request->validate(['version' => ['required', 'integer', 'min:1'], 'request_key' => ['required', 'uuid']]);
     }
 
+    private function signature(Request $request): ?array
+    {
+        $signature = $request->input('firma');
+        if ($signature === null) {
+            return null;
+        }
+
+        if (! $request->is('api/*') && is_string($signature) && strlen($signature) <= 30000) {
+            $signature = json_decode($signature, true, 5);
+        }
+
+        $invalid = fn () => ValidationException::withMessages(['firma' => 'La firma debe contener un trazo válido.']);
+        if (! is_array($signature) || ! array_is_list($signature) || count($signature) > 32) {
+            throw $invalid();
+        }
+
+        $points = 0;
+        $hasStroke = false;
+        foreach ($signature as $stroke) {
+            if (! is_array($stroke) || ! array_is_list($stroke) || $stroke === [] || ($points += count($stroke)) > 2000) {
+                throw $invalid();
+            }
+            foreach ($stroke as $point) {
+                if (! is_array($point) || array_keys($point) !== [0, 1]
+                    || ! is_int($point[0]) || ! is_int($point[1])
+                    || min($point) < 0 || max($point) > 1000) {
+                    throw $invalid();
+                }
+                $hasStroke = $hasStroke || $point !== $stroke[0];
+            }
+        }
+
+        if (! $hasStroke) {
+            throw $invalid();
+        }
+
+        return $signature;
+    }
+
+    private function currentSenderSignature(): array
+    {
+        return ['senderSignatures as current_sender_signed' => fn ($signature) => $signature
+            ->whereColumn('note_version', 'internal_notes.version')->whereColumn('user_id', 'internal_notes.author_id')];
+    }
+
+    private function visibleNotes(User $actor): Builder
+    {
+        return InternalNote::visibleTo($actor)->withExists($this->currentSenderSignature())
+            ->with(['origin', 'recipient', 'participants', 'document.sheet.currentUnit', 'document.sheet.pendingUnit']);
+    }
+
     private function find(User $actor, string $id): InternalNote
     {
-        return InternalNote::visibleTo($actor)->with(['origin', 'recipient', 'participants', 'document.sheet.currentUnit', 'document.sheet.pendingUnit'])->findOrFail($id);
+        return $this->visibleNotes($actor)->findOrFail($id);
     }
 
     private function canEdit(InternalNote $note, User $actor): bool
@@ -167,6 +242,8 @@ class InternalNoteController extends Controller
     private function result(Request $request, InternalNote $note, string $message, int $status = 200)
     {
         if ($request->is('api/*')) {
+            $note->loadExists($this->currentSenderSignature());
+
             return response()->json($this->payload($note->loadMissing('origin', 'recipient', 'participants.user', 'author'), $request->user(), true), $status);
         }
 
@@ -177,8 +254,14 @@ class InternalNoteController extends Controller
     {
         $sheet = $note->document?->sheet;
         $actions = [];
+        $signatureState = null;
         if ($this->canEdit($note, $actor)) {
-            $actions = ['editar_borrador', 'emitir'];
+            [$signatureState, $action] = match (true) {
+                (bool) $note->current_sender_signed => ['firmada', 'emitir'],
+                $note->signature_requested_at !== null => ['pendiente', 'firmar_borrador'],
+                default => ['sin_solicitar', 'enviar_a_firma'],
+            };
+            $actions = ['editar_borrador', $action];
         } elseif ($note->state === InternalNote::EMITTING && $note->author_id === $actor->id && $note->origin_unit_id === $actor->unit_id) {
             $actions = ['emitir'];
         } elseif ($note->state === InternalNote::REVIEW && $note->participants->contains(fn ($via) => $via->role === 'via'
@@ -204,6 +287,7 @@ class InternalNoteController extends Controller
             'unidad_actual' => ['id' => $current->id, 'nombre' => $current->name],
             'destino_pendiente' => $pending ? ['id' => $pending->id, 'nombre' => $pending->name] : null,
             'estado' => $note->displayState(),
+            'estado_firma' => $signatureState,
             'version' => $note->version,
             'fecha_ultimo_movimiento' => ($sheet?->updated_at ?? $note->updated_at)->toISOString(),
             'documento_id' => $note->document_id,

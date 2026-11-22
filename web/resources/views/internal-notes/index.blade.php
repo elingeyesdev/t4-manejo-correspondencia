@@ -8,7 +8,7 @@
     </header>
 
     <nav class="nav nav-tabs tray-nav" aria-label="Bandejas de Nota Interna">
-        @foreach (['mis_notas' => 'Mis notas', 'por_revisar' => 'Por revisar', 'por_recibir' => 'Por recibir', 'por_atender' => 'Por atender', 'copias' => 'Copias'] as $key => $label)
+        @foreach (['mis_notas' => 'Mis notas', 'por_firmar' => 'Por firmar', 'por_revisar' => 'Por revisar', 'por_recibir' => 'Por recibir', 'por_atender' => 'Por atender', 'copias' => 'Copias'] as $key => $label)
             <a class="nav-link @if ($tray === $key) active @endif" href="{{ route('notes.index', ['bandeja' => $key]) }}"
                @if ($tray === $key) aria-current="page" @endif>{{ $label }}</a>
         @endforeach
