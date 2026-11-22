@@ -136,6 +136,14 @@ En el cuerpo JSON, `firma` contiene una lista de trazos. Cada trazo es una lista
 
 Ante `202`, `503` o una respuesta perdida, reintentar con la misma clave, versión y firma. Ante `409`, recargar el detalle y pedir una firma nueva si cambió la versión. `422` indica validación, incluida la emisión sin firma vigente. `401` indica sesión inválida. `403` o `404` indica que la acción o la nota quedó fuera del alcance de la cuenta. Tras un `200`, actualizar las bandejas desde el servidor. Laravel asigna actor, unidad y hora del servidor. El trazo se guarda cifrado y queda fuera de las respuestas.
 
+### Seguimiento del detalle web y Android
+
+`GET /api/notas-internas/{id}` devuelve `seguimiento` en el detalle autenticado. El objeto contiene `etapa`, `etiqueta` y `unidad` con `id` y `nombre`. Las etapas son `preparacion`, `revision`, `recepcion`, `atencion` y `cierre`. En una revisión se muestra la unidad de la VÍA activa. Cuando hay una recepción pendiente, la barra señala la unidad de destino, mientras `unidad_actual` conserva la unidad que tiene la custodia. Este criterio se mantiene en cada derivación.
+
+La web consulta su ruta de seguimiento cada dos segundos con el detalle visible. Android puede usar el detalle autenticado con el mismo intervalo y refrescar al volver a primer plano. La interfaz conserva el último estado confirmado si una consulta falla. La barra presenta el recorrido que Laravel registró tras la confirmación correspondiente.
+
+Para verificar el objetivo de cinco segundos con datos ficticios, abrir la misma nota en web y Android. Confirmar desde otra sesión la recepción inicial, dos derivaciones con sus recepciones y el cierre. Medir desde cada confirmación hasta que aparezcan la nueva etapa y unidad en ambas pantallas. Registrar los tiempos por transición sin recargar ni cerrar el detalle.
+
 ## Notificaciones de Nota Interna
 
 **Alcance para la entrega.** Una nota con una tarea disponible genera un aviso persistente en Laravel y un push a los dispositivos Android habilitados. Web y Android consultan el mismo historial de avisos y comparten el estado de lectura. El push de esta entrega es para Android. La web muestra el aviso y el contador al consultar la API o refrescar la vista.

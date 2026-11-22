@@ -80,6 +80,15 @@ class InternalNoteController extends Controller
         return $this->form($request->user(), $note);
     }
 
+    public function tracking(Request $request, string $id)
+    {
+        $note = $this->find($request->user(), $id);
+        $summary = $this->routeSummary($note);
+
+        return response()->json($summary + ['seguimiento' => $this->progress($note, $summary)])
+            ->header('Cache-Control', 'private, no-store');
+    }
+
     public function show(Request $request, string $id)
     {
         $actor = $request->user();
@@ -276,26 +285,21 @@ class InternalNoteController extends Controller
         }
 
         $origin = ['id' => $note->origin->id, 'nombre' => $note->origin->name];
-        $current = $sheet?->currentUnit ?? $note->origin;
-        $pending = $note->state === InternalNote::RECEIVE ? $note->recipient : $sheet?->pendingUnit;
         $data = [
             'id' => $note->id,
-            'cite' => $note->cite,
             'asunto' => $note->subject,
             'unidad_origen' => $origin,
             'unidad_destinataria' => ['id' => $note->recipient->id, 'nombre' => $note->recipient->name],
-            'unidad_actual' => ['id' => $current->id, 'nombre' => $current->name],
-            'destino_pendiente' => $pending ? ['id' => $pending->id, 'nombre' => $pending->name] : null,
-            'estado' => $note->displayState(),
             'estado_firma' => $signatureState,
             'version' => $note->version,
             'fecha_ultimo_movimiento' => ($sheet?->updated_at ?? $note->updated_at)->toISOString(),
             'documento_id' => $note->document_id,
             'hoja_id' => $sheet?->id,
             'acciones_permitidas' => $actions,
-        ];
+        ] + $this->routeSummary($note);
 
         if ($detail) {
+            $data['seguimiento'] = $this->progress($note, $data);
             $data['autor'] = ['id' => $note->author->id, 'nombre' => $note->author->name];
             $data['referencia'] = $note->reference;
             $data['cuerpo'] = $note->body;
@@ -319,5 +323,49 @@ class InternalNoteController extends Controller
         }
 
         return $data;
+    }
+
+    private function routeSummary(InternalNote $note): array
+    {
+        $sheet = $note->document?->sheet;
+        $current = $sheet?->currentUnit ?? $note->origin;
+        $pending = $sheet === null && $note->state === InternalNote::RECEIVE ? $note->recipient : $sheet?->pendingUnit;
+
+        return [
+            'cite' => $note->cite,
+            'estado' => $note->displayState(),
+            'etiqueta_estado' => $note->stateLabel(),
+            'unidad_actual' => ['id' => $current->id, 'nombre' => $current->name],
+            'destino_pendiente' => $pending ? ['id' => $pending->id, 'nombre' => $pending->name] : null,
+        ];
+    }
+
+    private function progress(InternalNote $note, array $summary): array
+    {
+        $unit = $summary['unidad_actual'];
+        $label = $summary['etiqueta_estado'];
+        $stage = match ($summary['estado']) {
+            InternalNote::REVIEW => 'revision',
+            InternalNote::RECEIVE, InternalNote::RECEIVED => 'recepcion',
+            'en_atencion' => 'atencion',
+            'cerrada' => 'cierre',
+            default => 'preparacion',
+        };
+
+        if ($stage === 'revision') {
+            $active = $note->participants->where('role', 'via')->firstWhere('position', $note->active_position);
+            $reviewUnit = $active?->user?->unit;
+            if ($reviewUnit !== null) {
+                $unit = ['id' => $reviewUnit->id, 'nombre' => $reviewUnit->name];
+            }
+            $label = 'Pendiente de revisión VÍA';
+        } elseif ($summary['destino_pendiente'] !== null) {
+            $unit = $summary['destino_pendiente'];
+            if ($note->document?->sheet !== null) {
+                $label = 'Recepción por derivación pendiente';
+            }
+        }
+
+        return ['etapa' => $stage, 'etiqueta' => $label, 'unidad' => $unit];
     }
 }
