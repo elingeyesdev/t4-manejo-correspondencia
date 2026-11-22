@@ -1,7 +1,7 @@
 # Firma en Android · tareas #61 y #62
 
-Avance local del 22 de noviembre de 2026. Base: PR #67 de Mathew,
-commit `e7141794c84c03da788489489b606c2d03fa7437`.
+Implementación y validación del 22 de noviembre de 2026. Base: PR #67 de Mathew,
+integrado a `develop` en `f4dee7d28bc37ceadaa4edf388b0dc118138d6be`.
 
 ## Implementado
 
@@ -22,29 +22,47 @@ commit `e7141794c84c03da788489489b606c2d03fa7437`.
 
 - PR #67: comprobaciones de Laravel en GitHub en verde al revisar.
 - `InternalNoteFlowTest`: 6 pruebas, 194 aserciones, con motor simulado.
-- Suite completa de Flutter: 172 pruebas aprobadas y una captura visual opcional
-  omitida por no proporcionarse su referencia. Incluye pruebas existentes con
-  Laravel y PostgreSQL aislado; no acredita el flujo firmado con Camunda real.
-- Subconjunto de notas y firmas: 58 pruebas aprobadas, con bandejas, captura,
+- Suite completa de Flutter: 174 pruebas aprobadas. Incluye pruebas
+  existentes con Laravel y PostgreSQL aislado y una captura visual opcional
+  omitida por no proporcionarse su referencia.
+- Subconjunto de notas y firmas: 60 pruebas aprobadas, con bandejas, captura,
   permisos, versión, reintentos y recuperación.
 - Analizador de Dart sobre `lib`, `test` e `integration_test`: sin observaciones.
-- El ensayo existente `notas_camunda_real_test.dart` se adaptó para dibujar y
-  confirmar la firma de cada VÍA. Requiere notas ficticias emitidas con la firma
-  de remitente vigente; aún no se ejecutó este ensayo adaptado en el piloto.
+- Regresión del táctil: los trazos verticales lentos reproducían el desplazamiento
+  de la página antes del cambio. El área de firma captura el gesto desde el
+  primer contacto; los dos bordes aceptan trazos y el documento sigue desplazándose
+  fuera del recuadro.
+- `firma_dos_vias_real_test.dart`: ejecución aprobada en el teléfono físico con
+  web, Laravel, PostgreSQL y Camunda reales. Las credenciales se proporcionaron
+  desde un archivo privado. La sesión normal se conservó mediante un almacén
+  separado y se restauró el APK normal al terminar.
+- El ensayo anterior `notas_camunda_real_test.dart` se adaptó a los botones de
+  firma; la nueva ejecución específica de firma es la evidencia de este cambio.
 
-## Prueba manual pendiente en el piloto
+## Recorrido comprobado en Android y web
 
-1. En web, crear un borrador con destino y dos autoridades VÍA. Pulsar **Enviar a firma**.
-2. En Android, entrar como remitente: **Notas internas → Por firmar → abrir nota →
-   Firmar borrador**. Revisar el contenido, dibujar y confirmar.
-3. En web, comprobar que **Emitir** se habilite. Editar el contenido: debe exigir
-   enviar a firma y firmar nuevamente desde Android antes de emitir.
-4. Emitir la versión firmada. Con la cuenta de la segunda VÍA, comprobar que aún
-   no se pueda aprobar. Con la primera: **Por revisar → abrir nota → Firmar y dar
-   conformidad**. Luego repetir con la segunda VÍA.
-5. Comprobar en web la misma nota y CITE, las conformidades en orden y el paso a
-   recepción. Contrastar el avance con Camunda real.
+1. Borrador creado y enviado a firma mediante los formularios HTTP de la web.
+2. Remitente autenticado en Android: **Notas internas → Por firmar**, revisión
+   y firma del borrador. Web habilitó **Emitir**.
+3. Edición por formulario web: la emisión devolvió 422 hasta solicitar otra firma
+   y firmar la nueva versión desde Android. Se emitió después desde web.
+4. Segunda VÍA autenticada antes de su turno: no vio la nota y su intento API
+   recibió 404. Primera VÍA firmó y dio conformidad desde Android.
+5. Segunda VÍA pudo entonces abrir, firmar y dar conformidad desde Android. Web
+   mostró ambas conformidades y el estado **Pendiente de recepción** con el mismo CITE.
+6. Consulta independiente de Camunda: dos tareas `RevisarVia` completadas en orden,
+   asignadas a usuarios distintos, y tarea `RecibirNota` activa. La base conservó
+   cuatro firmas cifradas: dos versiones del remitente y una de cada VÍA.
 
-Esta preparación no cierra los issues ni acredita despliegue, firma digital
-certificada, notificaciones push, sello o seguimiento en vivo. Falta la prueba
-con Android físico y la dirección accesible del servidor de Mathew, sin USB.
+[Resultado y capturas del mismo ensayo](../evidencia/iteracion-06/firmas-android-22-11/resultado.json).
+
+Capturas: [remitente firmado](../evidencia/iteracion-06/firmas-android-22-11/remitente_firmado_android.png),
+[primera VÍA](../evidencia/iteracion-06/firmas-android-22-11/primera_via_confirmada_android.png),
+[segunda VÍA](../evidencia/iteracion-06/firmas-android-22-11/segunda_via_confirmada_android.png) y
+[resultado web](../evidencia/iteracion-06/firmas-android-22-11/web_dos_vias_confirmadas.png).
+
+El USB se usó para instalar y controlar la automatización. La API se consumió por
+Wi-Fi local. La prueba corresponde al servidor Windows del equipo de desarrollo;
+la validación del servidor desplegado de Mathew y la entrega final permanecen en
+#60/#65. La firma capturada es evidencia del prototipo. #63/#64 cubren seguimiento,
+constancias y avisos; la revisión cruzada de estas dos tareas corresponde a Mathew.

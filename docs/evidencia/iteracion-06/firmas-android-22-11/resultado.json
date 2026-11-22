@@ -1,0 +1,112 @@
+{
+  "fecha": "2026-11-22",
+  "ejecutor": "RazzellRC",
+  "dispositivo": "POCO F3 M2012K11AG físico",
+  "servidor": "Laravel/PostgreSQL local en Windows y Camunda real 8.9.28",
+  "conexion_api": "WiFi local, sin redirección USB de la API",
+  "control_del_ensayo": "USB para instalar y ejecutar los widgets de prueba en Android",
+  "resultado": "PASS",
+  "flujo": {
+    "nota": "01a204cf-bf94-700d-b3f2-59866dfb7314",
+    "conexion": "WiFi",
+    "autoridades": [
+      4,
+      5
+    ],
+    "versiones_firmadas_remitente": [
+      1,
+      2
+    ],
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000030",
+    "segunda_via_anticipada": 404,
+    "primera_via_confirmada": true,
+    "conformidades_en_orden": [
+      4,
+      5
+    ],
+    "estado_tras_vias": "pendiente_recepcion"
+  },
+  "persistencia": {
+    "nota": "01a204cf-bf94-700d-b3f2-59866dfb7314",
+    "cite": "NI/E5220261119025527/ORIGEN/2026/000030",
+    "estado": "pendiente_recepcion",
+    "version": 6,
+    "revisiones": [
+      {
+        "actor": 4,
+        "posicion": 1,
+        "confirmada": true
+      },
+      {
+        "actor": 5,
+        "posicion": 2,
+        "confirmada": true
+      }
+    ],
+    "firmas": [
+      {
+        "actor": 3,
+        "accion": "firma_remitente",
+        "version": 1,
+        "fecha": "2026-11-22T19:53:18Z",
+        "cifrada": true
+      },
+      {
+        "actor": 3,
+        "accion": "firma_remitente",
+        "version": 2,
+        "fecha": "2026-11-22T19:53:27Z",
+        "cifrada": true
+      },
+      {
+        "actor": 4,
+        "accion": "conformidad_via",
+        "version": 4,
+        "fecha": "2026-11-22T19:53:41Z",
+        "cifrada": true
+      },
+      {
+        "actor": 5,
+        "accion": "conformidad_via",
+        "version": 5,
+        "fecha": "2026-11-22T19:53:50Z",
+        "cifrada": true
+      }
+    ],
+    "cantidad_firmas": 4,
+    "instancia": "2251799813743496"
+  },
+  "camunda": [
+    {
+      "elementId": "RevisarVia",
+      "assignee": "4",
+      "state": "COMPLETED",
+      "creationDate": "2026-11-22T19:53:29.252Z",
+      "completionDate": "2026-11-22T19:53:41.66Z",
+      "userTaskKey": "2251799813743505"
+    },
+    {
+      "elementId": "RevisarVia",
+      "assignee": "5",
+      "state": "COMPLETED",
+      "creationDate": "2026-11-22T19:53:41.66Z",
+      "completionDate": "2026-11-22T19:53:50.62Z",
+      "userTaskKey": "2251799813743521"
+    },
+    {
+      "elementId": "RecibirNota",
+      "assignee": null,
+      "state": "CREATED",
+      "creationDate": "2026-11-22T19:53:50.62Z",
+      "completionDate": null,
+      "userTaskKey": "2251799813743530"
+    }
+  ],
+  "validacion_codigo": {
+    "flutter_aprobadas": 174,
+    "captura_opcional_omitida": 1,
+    "notas_firmas_aprobadas": 60,
+    "analisis_dart": "Sin observaciones",
+    "ensayo_android_real": "PASS"
+  }
+}
