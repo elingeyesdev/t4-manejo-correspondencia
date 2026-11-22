@@ -182,6 +182,8 @@ Todas las operaciones requieren autenticación y usan el usuario de la sesión. 
 
 Una sesión ausente o vencida recibe `401`. Parámetros inválidos reciben `422`. Abrir desde un push requiere resolver el aviso y cargar el detalle con la sesión vigente. Solo entonces se marca como leído. Si el aviso o la nota ya no están disponibles, mostrar «Esta notificación ya no está disponible» y volver a la bandeja. Si había una acción y otro funcionario ya la realizó, mostrar el estado actualizado y las acciones que Laravel todavía autoriza.
 
+Antes de activar el envío del #59, configurar `FCM_PROJECT_ID` en Laravel y montar fuera del repositorio el archivo de cuenta de servicio en la ruta de `GOOGLE_APPLICATION_CREDENTIALS`, accesible por el proceso del programador. Mantener `FCM_ANDROID_CHANNEL=correspondencia` en coordinación con Android. Ejecutar `php artisan schedule:run` cada minuto, o iniciar un proceso supervisado con `php artisan schedule:work`. Para probar una ejecución desde el entorno de Laravel, usar `php artisan correspondencia:enviar-avisos`. Con `FCM_PROJECT_ID` vacío, los avisos persistentes siguen disponibles y las entregas quedan en espera.
+
 ### Russel · Flutter para Android
 
 1. Configurar Firebase para el identificador de la app, agregar `firebase_core` y `firebase_messaging`, y crear el canal de correspondencia. Solicitar el permiso de notificaciones en Android 13 o posterior. Tras el inicio de sesión y con permiso concedido, registrar `getToken()` y actualizar el registro con `onTokenRefresh`. Desvincular al salir antes de revocar la sesión y evitar reutilizar avisos de otra cuenta al cambiar de usuario. Si se deniega el permiso, la bandeja y el centro de avisos siguen funcionando.

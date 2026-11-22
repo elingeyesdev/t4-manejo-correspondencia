@@ -19,7 +19,10 @@ use UnexpectedValueException;
 
 class RouteSheetWorkflow
 {
-    public function __construct(private readonly NotaInternaEngine $engine) {}
+    public function __construct(
+        private readonly NotaInternaEngine $engine,
+        private readonly NoteNotices $notices,
+    ) {}
 
     public function derive(User $actor, string $sheetId, array $data): array
     {
@@ -190,6 +193,9 @@ class RouteSheetWorkflow
                     : ($intent['motivo'] ?? $intent['observacion'] ?? null),
                 'occurred_at' => $instant,
             ]);
+            if ($noteId !== null && $operation === 'derivacion') {
+                $this->notices->forDerivedReceipt($noteId, $destinationUnitId, $sheet->version, $movement->id);
+            }
 
             $payload = [
                 'documento_id' => $document->id,

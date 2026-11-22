@@ -21,6 +21,9 @@
                 <ul class="navbar-nav">
                     <li class="nav-item"><a @class(['nav-link', 'active' => request()->routeIs('documents.*', 'route-sheets.*')]) @if (request()->routeIs('documents.*', 'route-sheets.*')) aria-current="true" @endif href="{{ route('documents.index') }}">Documentos</a></li>
                     <li class="nav-item"><a @class(['nav-link', 'active' => request()->routeIs('notes.*')]) @if (request()->routeIs('notes.*')) aria-current="true" @endif href="{{ route('notes.index') }}">Nota Interna</a></li>
+                    @if (auth()->user()->isOperational())
+                        <li class="nav-item"><a @class(['nav-link', 'active' => request()->routeIs('notices.*')]) @if (request()->routeIs('notices.*')) aria-current="page" @endif href="{{ route('notices.index') }}">Avisos{{ $unreadNoticeCount ? ' ('.$unreadNoticeCount.')' : '' }}</a></li>
+                    @endif
                     @if (auth()->user()->canRegister())
                         <li class="nav-item"><a class="nav-link" href="{{ route('documents.create') }}">Registrar</a></li>
                     @endif
