@@ -18,6 +18,7 @@ class InternalNoteWorkflow
     public function __construct(
         private readonly StartNotaInterna $start,
         private readonly NotaInternaEngine $engine,
+        private readonly NoteNotices $notices,
     ) {}
 
     public function save(User $actor, array $data, ?InternalNote $draft = null): InternalNote
@@ -144,12 +145,20 @@ class InternalNoteWorkflow
         $instance = $this->fromEngine(fn () => $this->start->execute($note->id, $reviewers));
 
         if ($instance !== null) {
-            InternalNote::whereKey($note->id)->where('state', InternalNote::EMITTING)->update([
-                'state' => $reviewers === [] ? InternalNote::RECEIVE : InternalNote::REVIEW,
-                'active_position' => $reviewers === [] ? null : 1,
-                'version' => $note->version + 1,
-                'emitted_at' => now(),
-            ]);
+            DB::transaction(function () use ($note, $reviewers): void {
+                $current = InternalNote::lockForUpdate()->findOrFail($note->id);
+                if ($current->state !== InternalNote::EMITTING) {
+                    return;
+                }
+
+                $current->update([
+                    'state' => $reviewers === [] ? InternalNote::RECEIVE : InternalNote::REVIEW,
+                    'active_position' => $reviewers === [] ? null : 1,
+                    'version' => $current->version + 1,
+                    'emitted_at' => now(),
+                ]);
+                $this->notices->forPendingNote($current);
+            }, 3);
         }
 
         return $note->refresh();
@@ -215,6 +224,7 @@ class InternalNoteWorkflow
                     'active_position' => $hasNext ? $participant->position + 1 : null,
                     'version' => $current->version + 1,
                 ]);
+                $this->notices->forPendingNote($current);
             }
 
             return $current;

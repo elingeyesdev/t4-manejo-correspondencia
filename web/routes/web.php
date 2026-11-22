@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AttachmentWebController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\InternalNoteController;
+use App\Http\Controllers\NoteNoticeController;
 use App\Http\Controllers\RouteSheetController;
 use App\Http\Controllers\RouteSheetQrController;
 use App\Http\Controllers\SessionController;
@@ -16,6 +17,8 @@ Route::middleware('guest')->group(function () {
 });
 Route::post('/salir', [SessionController::class, 'destroy'])->middleware('auth')->name('logout');
 Route::middleware(['auth', 'operational'])->group(function () {
+    Route::get('/notificaciones', [NoteNoticeController::class, 'index'])->name('notices.index');
+    Route::put('/notificaciones/{id}/lectura', [NoteNoticeController::class, 'read'])->whereUuid('id')->name('notices.read');
     Route::prefix('notas-internas')->name('notes.')->controller(InternalNoteController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/nueva', 'create')->name('create');

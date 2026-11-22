@@ -5,6 +5,7 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DocumentHistoryController;
 use App\Http\Controllers\InternalNoteController;
+use App\Http\Controllers\NoteNoticeController;
 use App\Http\Controllers\RouteSheetController;
 use App\Http\Controllers\RouteSheetQrController;
 use App\Http\Controllers\SessionController;
@@ -12,6 +13,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/sesiones', [SessionController::class, 'token'])->middleware('throttle:5,1');
 Route::middleware(['auth:sanctum', 'operational'])->group(function () {
+    Route::prefix('notificaciones')->controller(NoteNoticeController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::get('/{id}', 'show')->whereUuid('id');
+        Route::put('/{id}/lectura', 'read')->whereUuid('id');
+        Route::put('/dispositivos/{installation}', 'register')->whereUuid('installation');
+        Route::delete('/dispositivos/{installation}', 'unregister')->whereUuid('installation');
+    });
     Route::prefix('notas-internas')->controller(InternalNoteController::class)->group(function () {
         Route::get('/', 'index');
         Route::post('/', 'store');

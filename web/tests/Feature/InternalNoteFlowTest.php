@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\InternalNoteSignature;
+use App\Models\NoteNotice;
+use App\Models\NoteNoticeDevice;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\DeliverNoteNotices;
+use App\Services\FcmNoticeTransport;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -72,6 +76,10 @@ class InternalNoteFlowTest extends TestCase
         $this->get(route('notes.index'))->assertOk()->assertSee($first->cite);
         $this->assertDatabaseHas('internal_notes', ['id' => $note->id, 'cite' => $first->cite, 'state' => 'pendiente_recepcion']);
         $this->assertDatabaseHas('note_workflow_instances', ['note_id' => $note->id, 'instance_key' => '100']);
+        $this->assertDatabaseCount('note_notices', 1);
+        $this->assertDatabaseHas('note_notices', [
+            'note_id' => $note->id, 'user_id' => $this->recipient->id, 'type' => NoteNotice::INITIAL_RECEIPT,
+        ]);
         Http::assertSentCount(1);
     }
 
@@ -125,6 +133,9 @@ class InternalNoteFlowTest extends TestCase
         Http::assertSent(fn (Request $request): bool => $request->url() === self::ENGINE.'/process-instances'
             && $request['variables']['revisores'] === [(string) $via1->id, (string) $via2->id]);
 
+        $this->assertDatabaseCount('note_notices', 1);
+        $this->assertDatabaseHas('note_notices', ['user_id' => $via1->id, 'type' => NoteNotice::REVIEW]);
+
         foreach ([$via2, $this->recipient, $this->copy, $this->outsider] as $actor) {
             Sanctum::actingAs($actor);
             $this->getJson($uri)->assertNotFound();
@@ -138,6 +149,7 @@ class InternalNoteFlowTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('firma');
         $this->postJson($uri.'/conformidades', $via1Action, $via1Key)->assertAccepted()
             ->assertJsonPath('version', $sent->json('version'))->assertJsonCount(1, 'movimientos_nota');
+        $this->assertDatabaseCount('note_notices', 1);
 
         Sanctum::actingAs($via2);
         $this->postJson($uri.'/conformidades', $via1Action, $this->key())->assertNotFound();
@@ -151,6 +163,9 @@ class InternalNoteFlowTest extends TestCase
         Sanctum::actingAs($via2);
         $this->postJson($uri.'/conformidades', ['version' => $step->json('version'), 'firma' => self::SIGNATURE], $this->key())
             ->assertOk()->assertJsonPath('estado', 'pendiente_recepcion')->assertJsonCount(3, 'movimientos_nota');
+        $this->assertDatabaseCount('note_notices', 3);
+        $this->assertDatabaseHas('note_notices', ['user_id' => $via2->id, 'type' => NoteNotice::REVIEW]);
+        $this->assertDatabaseHas('note_notices', ['user_id' => $this->recipient->id, 'type' => NoteNotice::INITIAL_RECEIPT]);
         $this->assertDatabaseCount('internal_note_signatures', 3);
         foreach ([$via1->id => $sent->json('version'), $via2->id => $step->json('version')] as $reviewer => $version) {
             $this->assertDatabaseHas('internal_note_signatures', [
@@ -294,6 +309,8 @@ class InternalNoteFlowTest extends TestCase
         $this->postJson($route.'/derivaciones', $derivation, $this->key())->assertConflict();
         $this->postJson($route.'/derivaciones', $derivation, $deriveKey)->assertCreated();
         $this->postJson($route.'/derivaciones', $derivation, $deriveKey)->assertOk();
+        $this->assertDatabaseCount('note_notices', 2);
+        $this->assertDatabaseHas('note_notices', ['user_id' => $this->outsider->id, 'type' => NoteNotice::DERIVED_RECEIPT]);
         $this->getJson($uri)->assertJsonPath('unidad_actual.id', $this->recipient->unit_id)
             ->assertJsonPath('destino_pendiente.id', $this->outsider->unit_id)
             ->assertJsonPath('seguimiento.etiqueta', 'Recepción por derivación pendiente')
@@ -384,6 +401,114 @@ class InternalNoteFlowTest extends TestCase
         $this->assertDatabaseCount('route_sheets', 1);
         $this->assertDatabaseCount('movements', 1);
         Http::assertSentCount(5);
+    }
+
+    public function test_notice_is_private_and_read_state_is_shared_by_web_and_api(): void
+    {
+        Http::fake([self::ENGINE.'/process-instances' => Http::sequence()
+            ->push(['processInstanceKey' => '1000'])->push(['processInstanceKey' => '1001'])]);
+        $noteId = $this->emitDirectNote();
+        $notice = NoteNotice::where('note_id', $noteId)->sole();
+        $uri = '/api/notificaciones/'.$notice->id;
+
+        Sanctum::actingAs($this->copy);
+        $this->getJson($uri)->assertNotFound();
+        $this->putJson($uri.'/lectura')->assertNotFound();
+
+        Sanctum::actingAs($this->recipient);
+        $this->getJson('/api/notificaciones')->assertOk()->assertJsonPath('no_leidas', 1)
+            ->assertJsonPath('data.0.nota_id', $noteId)->assertJsonPath('data.0.leida_en', null);
+        $this->getJson($uri)->assertOk()->assertJsonPath('tipo', NoteNotice::INITIAL_RECEIPT);
+        $this->actingAs($this->recipient, 'web')->get(route('notices.index'))->assertOk()->assertSee('Avisos (1)');
+        $this->put(route('notices.read', $notice->id))->assertRedirect(route('notices.index'));
+
+        Sanctum::actingAs($this->recipient);
+        $readAt = $this->getJson($uri)->assertOk()->json('leida_en');
+        $this->assertNotNull($readAt);
+        $this->travel(1)->minutes();
+        $this->putJson($uri.'/lectura')->assertNoContent();
+        $this->getJson($uri)->assertOk()->assertJsonPath('leida_en', $readAt);
+        $this->getJson('/api/notificaciones')->assertOk()->assertJsonPath('no_leidas', 0)->assertJsonCount(1, 'data');
+    }
+
+    public function test_push_retries_with_rotated_token_and_revocation_keeps_the_notice(): void
+    {
+        config(['fcm.project_id' => 'ficticio']);
+        $session = $this->recipient->createToken('Android');
+        $headers = ['Authorization' => 'Bearer '.$session->plainTextToken];
+        $firstId = (string) Str::uuid();
+        $secondId = (string) Str::uuid();
+        $first = '/api/notificaciones/dispositivos/'.$firstId;
+        $this->putJson($first, ['token_fcm' => 'original', 'plataforma' => 'android'], $headers)->assertNoContent();
+        $this->putJson('/api/notificaciones/dispositivos/'.$secondId, ['token_fcm' => 'invalido', 'plataforma' => 'android'], $headers)
+            ->assertNoContent();
+        Http::fake([self::ENGINE.'/process-instances' => Http::sequence()
+            ->push(['processInstanceKey' => '1000'])->push(['processInstanceKey' => '1001'])]);
+        $noteId = $this->emitDirectNote();
+        $notice = NoteNotice::where('note_id', $noteId)->sole();
+        $this->assertDatabaseCount('note_notice_deliveries', 2);
+
+        $this->mock(FcmNoticeTransport::class, function ($transport) use ($notice): void {
+            $transport->shouldReceive('send')->once()->with('original', $notice->id)->andReturn(['outcome' => 'retry']);
+            $transport->shouldReceive('send')->once()->with('invalido', $notice->id)->andReturn(['outcome' => 'unregistered']);
+        });
+        $this->assertSame(2, app(DeliverNoteNotices::class)->run());
+        $this->assertSame(0, app(DeliverNoteNotices::class)->run());
+        $this->assertNull(NoteNoticeDevice::findOrFail($secondId)->access_token_id);
+
+        app('auth')->forgetGuards();
+        $this->putJson($first, ['token_fcm' => 'rotado', 'plataforma' => 'android'], $headers)->assertNoContent();
+        $this->assertNotSame('rotado', NoteNoticeDevice::findOrFail($firstId)->getRawOriginal('fcm_token'));
+        $this->travel(1)->minutes();
+        $this->mock(FcmNoticeTransport::class, function ($transport) use ($notice): void {
+            $transport->shouldReceive('send')->once()->with('rotado', $notice->id)->andReturn(['outcome' => 'accepted']);
+        });
+        $this->assertSame(1, app(DeliverNoteNotices::class)->run());
+        $this->assertDatabaseHas('note_notice_deliveries', ['device_id' => $firstId, 'outcome' => 'accepted', 'attempts' => 2]);
+
+        $anotherNote = $this->emitDirectNote();
+        $session->accessToken->delete();
+        $this->assertNull(NoteNoticeDevice::findOrFail($firstId)->access_token_id);
+        $this->assertSame(1, app(DeliverNoteNotices::class)->run());
+        $this->assertDatabaseHas('note_notice_deliveries', [
+            'notice_id' => NoteNotice::where('note_id', $anotherNote)->sole()->id, 'outcome' => 'skipped',
+        ]);
+        $this->assertDatabaseCount('note_notices', 2);
+    }
+
+    public function test_reassigning_an_installation_skips_the_previous_accounts_delivery(): void
+    {
+        config(['fcm.project_id' => 'ficticio']);
+        Http::fake([self::ENGINE.'/process-instances' => Http::response(['processInstanceKey' => '1000'])]);
+        $installation = (string) Str::uuid();
+        $uri = '/api/notificaciones/dispositivos/'.$installation;
+        $device = ['token_fcm' => 'instalacion-compartida', 'plataforma' => 'android'];
+        $recipient = ['Authorization' => 'Bearer '.$this->recipient->createToken('Android')->plainTextToken];
+        $copy = ['Authorization' => 'Bearer '.$this->copy->createToken('Android')->plainTextToken];
+
+        $this->putJson($uri, $device, $recipient)->assertNoContent();
+        $this->emitDirectNote();
+        app('auth')->forgetGuards();
+        $this->putJson($uri, $device, $copy)->assertNoContent();
+        app('auth')->forgetGuards();
+        $this->deleteJson($uri, [], $recipient)->assertNoContent();
+
+        $this->mock(FcmNoticeTransport::class, fn ($transport) => $transport->shouldNotReceive('send'));
+        $this->assertSame(1, app(DeliverNoteNotices::class)->run());
+        $this->assertDatabaseHas('note_notice_deliveries', ['device_id' => $installation, 'outcome' => 'skipped']);
+        $this->assertDatabaseHas('note_notice_devices', ['id' => $installation, 'user_id' => $this->copy->id]);
+        $this->assertNotNull(NoteNoticeDevice::findOrFail($installation)->access_token_id);
+    }
+
+    private function emitDirectNote(): string
+    {
+        Sanctum::actingAs($this->author);
+        $draft = $this->postJson('/api/notas-internas', $this->draft())->assertCreated();
+        $uri = '/api/notas-internas/'.$draft->json('id');
+        $this->signDraft($uri, $draft->json('version'));
+        $this->postJson($uri.'/emision', ['version' => $draft->json('version')], $this->key())->assertOk();
+
+        return $draft->json('id');
     }
 
     private function signDraft(string $uri, int $version): void

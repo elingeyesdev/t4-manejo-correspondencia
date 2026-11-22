@@ -2,7 +2,9 @@
 
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\DeliverNoteNotices;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 
@@ -31,3 +33,9 @@ Artisan::command('correspondencia:administrador', function () {
 
     return 0;
 })->purpose('Crear el administrador inicial con contraseña privada');
+
+Artisan::command('correspondencia:enviar-avisos', function (DeliverNoteNotices $deliveries): void {
+    $this->info('Avisos procesados: '.$deliveries->run());
+})->purpose('Procesar avisos de Nota Interna pendientes de envío');
+
+Schedule::command('correspondencia:enviar-avisos')->everyMinute()->when(fn () => (bool) config('fcm.project_id'));
