@@ -372,6 +372,46 @@ h3 {
     border-top: 1px solid var(--notes-rule);
 }
 
+.note-tracking {
+    margin: 1rem 0;
+    padding: .75rem 1rem;
+    border: 1px solid var(--notes-rule);
+    background: #f7f9f7;
+}
+
+.note-tracking-stages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1rem;
+    padding: 0;
+    margin: 0 0 .4rem;
+    list-style: none;
+    font-size: .875rem;
+    color: var(--notes-muted);
+}
+
+.note-tracking-stages [aria-current="step"] {
+    color: var(--notes-action);
+    font-weight: 700;
+}
+
+.note-tracking-envelope {
+    display: none;
+}
+
+[aria-current="step"] .note-tracking-envelope {
+    display: inline;
+    margin-right: .2rem;
+}
+
+.note-tracking-summary, .note-tracking-message {
+    margin: 0;
+}
+
+.note-tracking-summary span::before {
+    content: ' · ';
+}
+
 .note-record {
     margin-bottom: 1rem;
 }
@@ -381,6 +421,10 @@ h3 {
     grid-template-columns: minmax(7rem, 10rem) minmax(0, 1fr);
     gap: .25rem .75rem;
     padding: .375rem 0;
+}
+
+.note-record > div[hidden] {
+    display: none;
 }
 
 .note-record dt {

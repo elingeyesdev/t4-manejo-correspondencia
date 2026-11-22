@@ -21,6 +21,7 @@ Route::middleware(['auth', 'operational'])->group(function () {
         Route::get('/nueva', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/{id}', 'show')->whereUuid('id')->name('show');
+        Route::get('/{id}/seguimiento', 'tracking')->whereUuid('id')->name('tracking');
         Route::get('/{id}/editar', 'edit')->whereUuid('id')->name('edit');
         Route::patch('/{id}', 'update')->whereUuid('id')->name('update');
         Route::post('/{id}/solicitud-firma', 'requestSignature')->whereUuid('id')->name('request-signature');

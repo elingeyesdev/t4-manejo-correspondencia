@@ -6,20 +6,22 @@
     <header class="page-heading note-heading">
         <div>
             <h1>{{ $note->subject }}</h1>
-            <p class="note-cite"><strong>CITE</strong> {{ $note->cite ?? 'Por asignar' }}</p>
+            <p class="note-cite"><strong>CITE</strong> <span data-tracking-cite>{{ $note->cite ?? 'Por asignar' }}</span></p>
         </div>
         @include('internal-notes.state', ['note' => $note])
     </header>
+
+    @include('internal-notes.tracking', ['progress' => $data['seguimiento']])
 
     <section class="note-section" aria-labelledby="datos-nota">
         <h2 id="datos-nota">Datos de la nota</h2>
         <dl class="note-record">
             <div><dt>DE</dt><dd>{{ $note->author->name }} · {{ $note->origin->name }}</dd></div>
             <div><dt>A</dt><dd>{{ $note->recipient->name }}</dd></div>
-            <div><dt>Unidad actual</dt><dd>{{ $data['unidad_actual']['nombre'] }}</dd></div>
-            @if ($data['destino_pendiente'])
-                <div><dt>Recepción pendiente en</dt><dd>{{ $data['destino_pendiente']['nombre'] }}</dd></div>
-            @endif
+            <div><dt>Unidad actual</dt><dd data-tracking-current>{{ $data['unidad_actual']['nombre'] }}</dd></div>
+            <div data-tracking-destination @if ($data['destino_pendiente'] === null) hidden @endif>
+                <dt>Recepción pendiente en</dt><dd>{{ $data['destino_pendiente']['nombre'] ?? '' }}</dd>
+            </div>
             @if ($note->reference)
                 <div><dt>Referencia</dt><dd>{{ $note->reference }}</dd></div>
             @endif
@@ -75,8 +77,6 @@
                 <a class="btn btn-primary" href="{{ route('documents.show', $note->document_id) }}">
                     {{ in_array('confirmar_recepcion_derivacion', $data['acciones_permitidas'], true) ? 'Abrir hoja para confirmar recepción' : 'Abrir hoja de ruta' }}
                 </a>
-            @elseif ($note->state === $note::RECEIVE)
-                <p>Queda pendiente la recepción en {{ $note->recipient->name }}.</p>
             @else
                 <p>No tienes una acción pendiente para esta nota.</p>
             @endif
@@ -117,4 +117,5 @@
             <p class="text-secondary mb-0">Todavía no hay movimientos registrados.</p>
         @endif
     </section>
+    <script src="{{ asset('js/note-tracking.js') }}" defer></script>
 @endsection

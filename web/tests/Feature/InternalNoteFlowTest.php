@@ -101,7 +101,7 @@ class InternalNoteFlowTest extends TestCase
     public function test_via_advances_in_order_and_cc_has_read_only_visibility_after_delivery(): void
     {
         $via1 = $this->account($this->author->unit);
-        $via2 = $this->account($this->author->unit);
+        $via2 = $this->account($this->copy->unit);
         Http::fake([
             self::ENGINE.'/process-instances' => Http::response(['processInstanceKey' => '200']),
             self::ENGINE.'/user-tasks/search' => Http::sequence()
@@ -119,7 +119,9 @@ class InternalNoteFlowTest extends TestCase
         $uri = '/api/notas-internas/'.$draft->json('id');
         $this->signDraft($uri, $draft->json('version'));
         $sent = $this->postJson($uri.'/emision', ['version' => $draft->json('version')], $this->key())
-            ->assertOk()->assertJsonPath('estado', 'pendiente_revision');
+            ->assertOk()->assertJsonPath('estado', 'pendiente_revision')
+            ->assertJsonPath('seguimiento.etapa', 'revision')
+            ->assertJsonPath('seguimiento.unidad.id', $via1->unit_id);
         Http::assertSent(fn (Request $request): bool => $request->url() === self::ENGINE.'/process-instances'
             && $request['variables']['revisores'] === [(string) $via1->id, (string) $via2->id]);
 
@@ -141,7 +143,8 @@ class InternalNoteFlowTest extends TestCase
         $this->postJson($uri.'/conformidades', $via1Action, $this->key())->assertNotFound();
         Sanctum::actingAs($via1);
         $this->postJson($uri.'/conformidades', array_replace($via1Action, ['firma' => [[[10, 20], [30, 40]]]]), $via1Key)->assertConflict();
-        $step = $this->postJson($uri.'/conformidades', $via1Action, $via1Key)->assertOk();
+        $step = $this->postJson($uri.'/conformidades', $via1Action, $via1Key)->assertOk()
+            ->assertJsonPath('seguimiento.unidad.id', $via2->unit_id);
         $this->postJson($uri.'/conformidades', $via1Action, $via1Key)->assertOk()
             ->assertJsonPath('version', $step->json('version'));
 
@@ -224,6 +227,8 @@ class InternalNoteFlowTest extends TestCase
                 ->push(['items' => [['userTaskKey' => '301']]])
                 ->push(['items' => [['userTaskKey' => '302']]])
                 ->push(['items' => [['userTaskKey' => '303']]])
+                ->push(['items' => [['userTaskKey' => '306']]])
+                ->push(['items' => [['userTaskKey' => '307']]])
                 ->push(['items' => [['userTaskKey' => '304']]])
                 ->push(['items' => [['userTaskKey' => '304']]])
                 ->push(['items' => [['userTaskKey' => '305']]]),
@@ -237,6 +242,10 @@ class InternalNoteFlowTest extends TestCase
             self::ENGINE.'/user-tasks/304/completion' => Http::response(null, 204),
             self::ENGINE.'/user-tasks/305' => Http::response(['state' => 'CREATED']),
             self::ENGINE.'/user-tasks/305/completion' => Http::response(null, 204),
+            self::ENGINE.'/user-tasks/306' => Http::response(['state' => 'CREATED']),
+            self::ENGINE.'/user-tasks/306/completion' => Http::response(null, 204),
+            self::ENGINE.'/user-tasks/307' => Http::response(['state' => 'CREATED']),
+            self::ENGINE.'/user-tasks/307/completion' => Http::response(null, 204),
         ]);
 
         Sanctum::actingAs($this->author);
@@ -245,19 +254,25 @@ class InternalNoteFlowTest extends TestCase
         $this->signDraft($uri, $draft->json('version'));
         $emitted = $this->postJson($uri.'/emision', ['version' => $draft->json('version')], $this->key())->assertOk();
         $payload = ['version' => $emitted->json('version')];
+        $tracking = route('notes.tracking', $draft->json('id'));
+        $this->actingAs($this->outsider, 'web')->getJson($tracking)->assertNotFound();
 
         Sanctum::actingAs($this->copy);
         $this->postJson($uri.'/recepciones', $payload, $this->key())->assertForbidden();
         $this->actingAs($this->recipient, 'web')->get(route('notes.show', $draft->json('id')))
-            ->assertOk()->assertSee('Confirmar recepción');
+            ->assertOk()->assertSee('Confirmar recepción')->assertSee('aria-current="step"', false);
+        $this->getJson($tracking)->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('seguimiento', $emitted->json('seguimiento'))->assertJsonMissingPath('cuerpo');
         Sanctum::actingAs($this->recipient);
         $key = $this->key();
         $this->getJson($uri)->assertJsonPath('acciones_permitidas', ['confirmar_primera_recepcion']);
         $this->postJson($uri.'/recepciones', $payload, $key)->assertAccepted()->assertJsonPath('hoja_id', null);
+        $this->getJson($uri)->assertJsonPath('seguimiento.etiqueta', 'Pendiente de recepción');
         $this->assertDatabaseCount('route_sheets', 0);
         $this->postJson($uri.'/recepciones', $payload, $this->key())->assertConflict();
         $receipt = $this->postJson($uri.'/recepciones', $payload, $key)->assertOk()
-            ->assertJsonPath('estado', 'recibida')->assertJsonPath('cite', $emitted->json('cite'));
+            ->assertJsonPath('estado', 'recibida')->assertJsonPath('cite', $emitted->json('cite'))
+            ->assertJsonPath('seguimiento.etiqueta', 'Recibida')->assertJsonPath('seguimiento.unidad.id', $this->recipient->unit_id);
         $sheet = $receipt->json('hoja_id');
         $document = $receipt->json('documento_id');
         $this->postJson($uri.'/recepciones', $payload, $key)->assertOk()->assertJsonPath('hoja_id', $sheet);
@@ -274,29 +289,42 @@ class InternalNoteFlowTest extends TestCase
         $derivation = ['version' => 1, 'destino_unidad_id' => $this->outsider->unit_id, 'motivo' => 'Revisar el inventario'];
         $deriveKey = $this->key();
         $this->postJson($route.'/derivaciones', $derivation, $deriveKey)->assertServiceUnavailable();
+        $this->getJson($uri)->assertJsonPath('destino_pendiente', null);
         $this->assertDatabaseCount('movements', 1);
         $this->postJson($route.'/derivaciones', $derivation, $this->key())->assertConflict();
         $this->postJson($route.'/derivaciones', $derivation, $deriveKey)->assertCreated();
         $this->postJson($route.'/derivaciones', $derivation, $deriveKey)->assertOk();
         $this->getJson($uri)->assertJsonPath('unidad_actual.id', $this->recipient->unit_id)
-            ->assertJsonPath('destino_pendiente.id', $this->outsider->unit_id);
+            ->assertJsonPath('destino_pendiente.id', $this->outsider->unit_id)
+            ->assertJsonPath('seguimiento.etiqueta', 'Recepción por derivación pendiente')
+            ->assertJsonPath('seguimiento.unidad.id', $this->outsider->unit_id);
         $this->postJson($route.'/recepciones', ['version' => 2], $this->key())->assertForbidden();
 
         Sanctum::actingAs($this->outsider);
         $this->getJson('/api/notas-internas?bandeja=por_recibir')->assertOk()->assertJsonPath('meta.total', 1);
         $this->postJson($route.'/recepciones', ['version' => 2], $this->key())->assertCreated();
-        $this->postJson($route.'/atenciones', ['version' => 3, 'observacion' => 'Inventario revisado'], $this->key())->assertCreated();
+        $this->postJson($route.'/derivaciones', ['version' => 3, 'destino_unidad_id' => $this->copy->unit_id, 'motivo' => 'Validación final'], $this->key())->assertCreated();
+        $this->actingAs($this->author, 'web')->getJson($tracking)->assertOk()
+            ->assertJsonPath('unidad_actual.id', $this->outsider->unit_id)
+            ->assertJsonPath('destino_pendiente.id', $this->copy->unit_id)
+            ->assertJsonPath('seguimiento.unidad.id', $this->copy->unit_id);
+
+        Sanctum::actingAs($this->copy);
+        $this->postJson($route.'/recepciones', ['version' => 4], $this->key())->assertCreated();
+        $this->postJson($route.'/atenciones', ['version' => 5, 'observacion' => 'Inventario revisado'], $this->key())->assertCreated();
+        $this->getJson($uri)->assertJsonPath('seguimiento.etapa', 'atencion')->assertJsonPath('destino_pendiente', null);
         $this->postJson('/api/documentos/'.$document.'/respuestas', [
-            'version' => 4, 'remitente' => 'Unidad Delta', 'asunto' => 'Resultado de prueba', 'fecha' => '2026-11-18',
+            'version' => 6, 'remitente' => 'Unidad Gamma', 'asunto' => 'Resultado de prueba', 'fecha' => '2026-11-18',
             'tipo_id' => DB::table('catalogs')->where('kind', 'tipo')->value('id'),
             'prioridad_id' => DB::table('catalogs')->where('kind', 'prioridad')->value('id'),
         ], $this->key())->assertCreated();
-        $closure = ['version' => 5, 'motivo' => 'Expediente atendido'];
+        $closure = ['version' => 7, 'motivo' => 'Expediente atendido'];
         $closeKey = $this->key();
         $this->postJson($route.'/cierre', $closure, $closeKey)->assertServiceUnavailable();
         $this->postJson($route.'/cierre', $closure, $closeKey)->assertOk();
-        $this->getJson($uri)->assertOk()->assertJsonPath('estado', 'cerrada')->assertJsonPath('acciones_permitidas', []);
-        $this->assertDatabaseCount('movements', 6);
+        $this->getJson($uri)->assertOk()->assertJsonPath('estado', 'cerrada')->assertJsonPath('acciones_permitidas', [])
+            ->assertJsonPath('seguimiento.etapa', 'cierre')->assertJsonPath('seguimiento.unidad.id', $this->copy->unit_id);
+        $this->assertDatabaseCount('movements', 8);
 
         Sanctum::actingAs($this->copy);
         $this->getJson('/api/notas-internas?bandeja=copias')->assertOk()->assertJsonPath('meta.total', 1);

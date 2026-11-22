@@ -43,7 +43,11 @@ class InternalNote extends Model
     public function stateLabel(): string
     {
         return match ($this->displayState()) {
-            self::DRAFT => 'Borrador',
+            self::DRAFT => match (true) {
+                (bool) $this->current_sender_signed => 'Borrador firmado',
+                $this->signature_requested_at !== null => 'Pendiente de firma',
+                default => 'Borrador',
+            },
             self::EMITTING => 'Emisión pendiente',
             self::REVIEW => 'Pendiente de revisión',
             self::RECEIVE => 'Pendiente de recepción',
