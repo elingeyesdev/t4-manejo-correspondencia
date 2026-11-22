@@ -310,4 +310,104 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('los trazos verticales lentos no desplazan el documento', (
+    tester,
+  ) async {
+    final datos = _borrador()
+      ..['cuerpo'] = List.filled(
+        30,
+        'Texto de la nota para revisar.',
+      ).join('\n');
+    await fixture.abrir(
+      tester,
+      FirmarNotaPage(
+        nota: NotaInterna.desdeJson(datos),
+        titulo: 'Firmar borrador',
+      ),
+    );
+    final area = find.byKey(const ValueKey('area-firma'));
+    if (area.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        area,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+    }
+    await tester.ensureVisible(area);
+    await tester.pumpAndSettle();
+    final scroll = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    final posicion = scroll.position.pixels;
+    final gesto = await tester.startGesture(
+      tester.getCenter(area) - const Offset(0, 40),
+    );
+    for (var i = 0; i < 9; i++) {
+      await gesto.moveBy(const Offset(0, 6));
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    await gesto.up();
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Confirmar firma'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    expect(scroll.position.pixels, closeTo(posicion, 0.1));
+    await tester.dragFrom(
+      Offset(5, tester.getCenter(find.byType(ListView)).dy),
+      const Offset(0, 70),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      scroll.position.pixels,
+      lessThan(posicion),
+      reason: 'Fuera del recuadro se puede seguir desplazando el documento.',
+    );
+  });
+
+  testWidgets('se puede firmar cerca de los dos bordes laterales', (
+    tester,
+  ) async {
+    await fixture.abrir(
+      tester,
+      FirmarNotaPage(
+        nota: NotaInterna.desdeJson(_borrador()),
+        titulo: 'Firmar borrador',
+      ),
+    );
+    final area = find.byKey(const ValueKey('area-firma'));
+    await tester.ensureVisible(area);
+    await tester.pumpAndSettle();
+    for (final derecha in [false, true]) {
+      final rect = tester.getRect(area);
+      final gesto = await tester.startGesture(
+        Offset(derecha ? rect.right - 4 : rect.left + 4, rect.center.dy - 25),
+      );
+      for (var i = 0; i < 8; i++) {
+        await gesto.moveBy(const Offset(0, 6));
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      await gesto.up();
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Confirmar firma'),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      await fixture.pulsar(tester, 'Limpiar firma');
+    }
+  });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 
 import '../../compartido/diseno/institucional.dart';
 import 'firma_nota.dart';
@@ -18,6 +19,7 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
   final _trazos = <List<List<int>>>[];
   bool _dibujando = false;
   bool _confirmada = false;
+  int? _puntero;
   String? _aviso;
 
   FirmaNota? get _firma {
@@ -29,7 +31,7 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
   }
 
   void _confirmar() {
-    if (_confirmada || _dibujando) return;
+    if (_confirmada || _dibujando || _puntero != null) return;
     final firma = _firma;
     if (firma == null) return;
     setState(() => _confirmada = true);
@@ -62,6 +64,14 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
       return;
     }
     setState(() => trazo.add(xy));
+  }
+
+  void _terminar(int puntero) {
+    if (_puntero != puntero) return;
+    setState(() {
+      _puntero = null;
+      _dibujando = false;
+    });
   }
 
   @override
@@ -107,21 +117,36 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
                 ),
                 child: Semantics(
                   label: 'Área para dibujar la firma',
-                  child: GestureDetector(
+                  child: RawGestureDetector(
                     key: const ValueKey('area-firma'),
                     behavior: HitTestBehavior.opaque,
-                    onPanDown: (d) =>
-                        _punto(d.localPosition, limites.biggest, inicio: true),
-                    onPanUpdate: (d) =>
-                        _punto(d.localPosition, limites.biggest),
-                    onPanEnd: (_) => setState(() => _dibujando = false),
-                    onPanCancel: () => setState(() => _dibujando = false),
-                    child: CustomPaint(
-                      painter: _TrazoFirma([
-                        for (final t in _trazos)
-                          [for (final p in t) List<int>.of(p)],
-                      ]),
-                      child: const SizedBox.expand(),
+                    gestures: {
+                      EagerGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                            EagerGestureRecognizer
+                          >(() => EagerGestureRecognizer(), (_) {}),
+                    },
+                    child: Listener(
+                      behavior: HitTestBehavior.opaque,
+                      onPointerDown: (e) {
+                        if (_puntero != null || _confirmada) return;
+                        _puntero = e.pointer;
+                        _punto(e.localPosition, limites.biggest, inicio: true);
+                      },
+                      onPointerMove: (e) {
+                        if (e.pointer == _puntero && _dibujando) {
+                          _punto(e.localPosition, limites.biggest);
+                        }
+                      },
+                      onPointerUp: (e) => _terminar(e.pointer),
+                      onPointerCancel: (e) => _terminar(e.pointer),
+                      child: CustomPaint(
+                        painter: _TrazoFirma([
+                          for (final t in _trazos)
+                            [for (final p in t) List<int>.of(p)],
+                        ]),
+                        child: const SizedBox.expand(),
+                      ),
                     ),
                   ),
                 ),
@@ -134,6 +159,7 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
                 : () => setState(() {
                     _trazos.clear();
                     _dibujando = false;
+                    _puntero = null;
                     _aviso = null;
                   }),
             icon: const Icon(Icons.clear),
@@ -150,7 +176,8 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: FilledButton(
-            onPressed: _confirmada || _dibujando || _firma == null
+            onPressed:
+                _confirmada || _dibujando || _puntero != null || _firma == null
                 ? null
                 : _confirmar,
             child: const Text('Confirmar firma'),
