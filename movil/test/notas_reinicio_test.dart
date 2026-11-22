@@ -11,6 +11,7 @@ import 'package:t4_movil/funciones/notas_internas/almacen_intentos_nota.dart';
 import 'package:t4_movil/funciones/notas_internas/detalle_nota_page.dart';
 import 'package:t4_movil/funciones/notas_internas/nota_interna.dart';
 import 'package:t4_movil/funciones/notas_internas/notas_api.dart';
+import 'package:t4_movil/funciones/notas_internas/firma_nota.dart';
 
 import 'notas_internas_test.dart' as fixture;
 
@@ -86,6 +87,9 @@ SolicitudNota _solicitud(
 ]) => SolicitudNota(
   nota: NotaInterna.desdeJson(_estado(accion, false)),
   accion: accion,
+  firma: accion == AccionNota.conformidad
+      ? FirmaNota.desdeJson(fixture.firmaPrueba)
+      : null,
   token: api.token,
   cuentaId: api.cuentaId,
 );
@@ -94,7 +98,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
-  for (final accion in AccionNota.values) {
+  for (final accion in [AccionNota.conformidad, AccionNota.primeraRecepcion]) {
     for (final fallo in [
       '202',
       'respuesta perdida antes de aplicar',
@@ -205,7 +209,7 @@ void main() {
     }
   }
 
-  for (final accion in AccionNota.values) {
+  for (final accion in [AccionNota.conformidad, AccionNota.primeraRecepcion]) {
     testWidgets(
       '${accion.name}: reserva tras 429 conserva clave y versión al reiniciar',
       (tester) async {
@@ -276,9 +280,11 @@ void main() {
         expect(posts.map((r) => r.headers['Idempotency-Key']).toSet(), {
           claveReservada,
         });
-        expect(posts.map((r) => r.body).toSet(), {
-          jsonEncode({'version': 3}),
-        });
+        expect(posts.map((r) => r.body).toSet().length, 1);
+        expect(jsonDecode(posts.first.body)['version'], 3);
+        if (accion == AccionNota.conformidad) {
+          expect(jsonDecode(posts.first.body)['firma'], isNotEmpty);
+        }
         expect(posts.last.headers['Authorization'], 'Bearer sesion-renovada');
         expect(aplicaciones, 1);
         expect(await const FlutterSecureStorage().readAll(), isEmpty);
@@ -329,6 +335,7 @@ void main() {
       'accion',
       'clave',
       'version',
+      'firma',
     });
     expect(almacen.datos.values.single.contains('token-1'), isFalse);
     final otra = _api((r) async => fixture.respuesta({}), cuenta: '2');

@@ -1,5 +1,26 @@
 # Ensayo de nota interna con servidor y motor reales
 
+## Firma y dos autoridades VÍA · #61 y #62
+
+`firma_dos_vias_real_test.dart` usa un borrador ficticio ya enviado a firma,
+su remitente y dos cuentas VÍA distintas. Firma desde los widgets de Android,
+edita por formulario web, exige volver a firmar, emite en web y completa ambas
+conformidades en su turno. La segunda VÍA se comprueba también antes de su turno.
+
+Proporcionar desde un JSON privado `API_BASE_URL`, `FIRMA22_PASSWORD`,
+`FIRMA22_NOTA`, `FIRMA22_DESTINO`, `FIRMA22_VIA1_ID`, `FIRMA22_VIA2_ID`,
+`FIRMA22_AUTOR`, `FIRMA22_VIA1` y `FIRMA22_VIA2`. Las tres cuentas de ensayo deben
+compartir esa contraseña de prueba y pertenecer a la misma institución. El
+borrador debe asignar a esas dos VÍAS, en el mismo orden, y al destino indicado.
+El ensayo modifica esa nota y captura trazos ficticios; requiere Camunda real.
+
+Ejecutar con el driver `test_driver/notas_camunda_driver.dart` y el target
+`integration_test/firma_dos_vias_real_test.dart`, usando `--dart-define-from-file`
+con el JSON privado. El almacén de sesión del ensayo está separado de la sesión
+normal. Al terminar se debe reinstalar el APK normal, sin credenciales de prueba.
+
+[Evidencia aprobada del 22/11](../../docs/entregas/iteracion-06-firma-android.md).
+
 Estas pruebas son optativas: requieren Laravel con PostgreSQL de desarrollo,
 Camunda con `web/resources/bpmn/nota-interna.bpmn` desplegado y Android conectado.
 No ejecutarlas contra información de producción. Se crean y modifican expedientes.

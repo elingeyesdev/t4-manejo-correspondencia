@@ -11,6 +11,15 @@ import 'package:t4_movil/funciones/notas_internas/bandeja_notas_page.dart';
 import 'package:t4_movil/funciones/notas_internas/detalle_nota_page.dart';
 import 'package:t4_movil/funciones/notas_internas/nota_interna.dart';
 import 'package:t4_movil/funciones/notas_internas/notas_api.dart';
+import 'package:t4_movil/funciones/notas_internas/firmar_nota_page.dart';
+import 'package:t4_movil/funciones/notas_internas/firma_nota.dart';
+
+const firmaPrueba = [
+  [
+    [100, 200],
+    [300, 400],
+  ],
+];
 
 Map<String, dynamic> nota({
   String id = 'nota-1',
@@ -81,6 +90,19 @@ Future<void> abrir(WidgetTester tester, Widget pantalla) async {
 }
 
 Future<void> pulsar(WidgetTester tester, String texto) async {
+  if (texto == 'Confirmar' &&
+      find.byType(FirmarNotaPage).evaluate().isNotEmpty) {
+    final area = find.byKey(const ValueKey('area-firma'));
+    await tester.ensureVisible(area);
+    await tester.pumpAndSettle();
+    final inicio = tester.getTopLeft(area) + const Offset(30, 30);
+    final gesto = await tester.startGesture(inicio);
+    await gesto.moveBy(const Offset(65, 35));
+    await gesto.moveBy(const Offset(35, -20));
+    await gesto.up();
+    await tester.pumpAndSettle();
+    texto = 'Confirmar firma';
+  }
   if (find.text(texto).evaluate().isEmpty) {
     await tester.scrollUntilVisible(
       find.text(texto),
@@ -98,7 +120,7 @@ Future<void> pulsar(WidgetTester tester, String texto) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
-  test('consulta las cuatro bandejas con paginación del contrato', () async {
+  test('consulta las cinco bandejas con paginación del contrato', () async {
     final rutas = <Uri>[];
     final api = conectar((r) async {
       rutas.add(r.url);
@@ -109,6 +131,7 @@ void main() {
       expect(resultado.notas.single.origen, 'Tecnología');
     }
     expect(rutas.map((r) => r.queryParameters['bandeja']), [
+      'por_firmar',
       'por_revisar',
       'por_recibir',
       'por_atender',
@@ -145,6 +168,7 @@ void main() {
       final solicitud = SolicitudNota(
         nota: NotaInterna.desdeJson(nota()),
         accion: AccionNota.conformidad,
+        firma: FirmaNota.desdeJson(firmaPrueba),
         token: api.token,
         cuentaId: api.cuentaId,
       );
@@ -159,7 +183,10 @@ void main() {
         peticiones[1].headers['Idempotency-Key'],
       );
       expect(peticiones[0].body, peticiones[1].body);
-      expect(jsonDecode(peticiones[0].body), {'version': 3});
+      expect(jsonDecode(peticiones[0].body), {
+        'version': 3,
+        'firma': firmaPrueba,
+      });
     });
   }
 
@@ -203,6 +230,7 @@ void main() {
     final solicitud = SolicitudNota(
       nota: NotaInterna.desdeJson(nota()),
       accion: AccionNota.conformidad,
+      firma: FirmaNota.desdeJson(firmaPrueba),
       token: api.token,
       cuentaId: api.cuentaId,
     );
@@ -232,7 +260,7 @@ void main() {
       );
     });
     await abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
-    await pulsar(tester, 'Dar conformidad');
+    await pulsar(tester, 'Firmar y dar conformidad');
     await pulsar(tester, 'Confirmar');
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
@@ -242,7 +270,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Dar conformidad'), findsNothing);
+    expect(find.text('Firmar y dar conformidad'), findsNothing);
     await pulsar(tester, 'Comprobar mismo intento');
     expect(claves.length, 2);
     expect(claves[0], claves[1]);
@@ -331,7 +359,7 @@ void main() {
         DetalleNotaPage(api: api, id: 'nota-1', soloLectura: true),
       );
       expect(find.text('Copia para conocimiento.'), findsOneWidget);
-      expect(find.text('Dar conformidad'), findsNothing);
+      expect(find.text('Firmar y dar conformidad'), findsNothing);
       expect(find.text('Confirmar recepción'), findsNothing);
       expect(posts, 0);
     },
@@ -361,7 +389,7 @@ void main() {
         find.textContaining('Tu cuenta puede consultar la nota'),
         findsOneWidget,
       );
-      expect(find.text('Dar conformidad'), findsNothing);
+      expect(find.text('Firmar y dar conformidad'), findsNothing);
       expect(find.text('Confirmar recepción'), findsNothing);
       expect(find.text('Registrar atención'), findsNothing);
       expect(
@@ -412,10 +440,10 @@ void main() {
       );
     });
     await abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
-    await pulsar(tester, 'Dar conformidad');
+    await pulsar(tester, 'Firmar y dar conformidad');
     await pulsar(tester, 'Confirmar');
     expect(find.byKey(const ValueKey('nota-confirmada')), findsNothing);
-    expect(find.text('Dar conformidad'), findsNothing);
+    expect(find.text('Firmar y dar conformidad'), findsNothing);
     await pulsar(tester, 'Comprobar mismo intento');
     expect(find.text('Conformidad registrada.'), findsOneWidget);
     expect(posts.length, 2);
@@ -423,7 +451,7 @@ void main() {
       posts[0].headers['Idempotency-Key'],
       posts[1].headers['Idempotency-Key'],
     );
-    expect(find.text('Dar conformidad'), findsNothing);
+    expect(find.text('Firmar y dar conformidad'), findsNothing);
   });
 
   testWidgets('Copias mantiene consulta al abrir el expediente vinculado', (
@@ -467,7 +495,7 @@ void main() {
       return respuesta(nota());
     });
     await abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
-    await pulsar(tester, 'Dar conformidad');
+    await pulsar(tester, 'Firmar y dar conformidad');
     api.token = 'cuenta-distinta';
     await pulsar(tester, 'Confirmar');
     expect(posts, 0);
@@ -496,11 +524,11 @@ void main() {
       );
     });
     await abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
-    await pulsar(tester, 'Dar conformidad');
+    await pulsar(tester, 'Firmar y dar conformidad');
     await pulsar(tester, 'Confirmar');
     expect(find.textContaining('La nota cambió.'), findsOneWidget);
     expect(find.text('Versión 4'), findsOneWidget);
-    await pulsar(tester, 'Dar conformidad');
+    await pulsar(tester, 'Firmar y dar conformidad');
     await pulsar(tester, 'Confirmar');
     expect(versiones, [3, 4]);
     expect(claves[0], isNot(claves[1]));
@@ -524,7 +552,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Solicitud de inspección nota-1'), findsNothing);
       expect(find.textContaining('Funcionario de prueba'), findsNothing);
-      expect(find.text('Dar conformidad'), findsNothing);
+      expect(find.text('Firmar y dar conformidad'), findsNothing);
       expect(vencimientos, status == 401 ? 1 : 0);
     });
   }
@@ -543,10 +571,13 @@ void main() {
       );
     });
     await abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
-    await tester.tap(find.text('Dar conformidad'));
-    await tester.tap(find.text('Dar conformidad'), warnIfMissed: false);
+    await tester.tap(find.text('Firmar y dar conformidad'));
+    await tester.tap(
+      find.text('Firmar y dar conformidad'),
+      warnIfMissed: false,
+    );
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byType(FirmarNotaPage), findsOneWidget);
     await pulsar(tester, 'Confirmar');
     expect(posts, 1);
   });
@@ -689,7 +720,7 @@ void main() {
     expect(tester.takeException(), isNull);
     await pulsar(tester, 'Solicitud de inspección nota-1');
     expect(tester.takeException(), isNull);
-    await pulsar(tester, 'Dar conformidad');
+    await pulsar(tester, 'Firmar y dar conformidad');
     expect(tester.takeException(), isNull);
   });
 }

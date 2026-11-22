@@ -3,11 +3,13 @@ import 'dart:convert';
 
 import '../../compartido/api/laravel_api.dart';
 import 'almacen_intentos_nota.dart';
+import 'firma_nota.dart';
 import 'nota_interna.dart';
 
 enum AccionNota {
-  conformidad('conformidades', 'Dar conformidad'),
-  primeraRecepcion('recepciones', 'Confirmar recepción');
+  conformidad('conformidades', 'Firmar y dar conformidad'),
+  primeraRecepcion('recepciones', 'Confirmar recepción'),
+  firmaRemitente('firmas', 'Firmar borrador');
 
   const AccionNota(this.ruta, this.titulo);
   final String ruta, titulo;
@@ -19,6 +21,7 @@ class SolicitudNota {
     required this.accion,
     required this.token,
     required this.cuentaId,
+    this.firma,
   }) : notaId = nota.id,
        version = nota.version,
        clave = nuevaClaveSolicitud();
@@ -28,6 +31,24 @@ class SolicitudNota {
   final String? token;
   final String? cuentaId;
   final AccionNota accion;
+  final FirmaNota? firma;
+  bool get requiereFirma =>
+      accion != AccionNota.primeraRecepcion && firma == null;
+
+  SolicitudNota conFirma(FirmaNota trazo) {
+    if (!requiereFirma) {
+      throw StateError('El intento ya tiene una firma o no la requiere.');
+    }
+    return SolicitudNota._(
+      notaId: notaId,
+      clave: clave,
+      version: version,
+      accion: accion,
+      token: token,
+      cuentaId: cuentaId,
+      firma: trazo,
+    );
+  }
 
   const SolicitudNota._({
     required this.notaId,
@@ -36,6 +57,7 @@ class SolicitudNota {
     required this.accion,
     required this.token,
     required this.cuentaId,
+    this.firma,
   });
 }
 
@@ -102,7 +124,7 @@ class NotasApi {
         if (guardado == null) continue;
         final datos = jsonDecode(guardado);
         if (datos is! Map ||
-            datos['schema'] != 1 ||
+            !{1, 2}.contains(datos['schema']) ||
             datos['origen'] != identidad.origen ||
             datos['cuenta'] != identidad.cuenta ||
             datos['nota'] != id ||
@@ -123,7 +145,13 @@ class NotasApi {
           accion: accion,
           token: identidad.token,
           cuentaId: identidad.cuenta,
+          firma: datos['firma'] == null
+              ? null
+              : FirmaNota.desdeJson(datos['firma']),
         );
+        if (datos['schema'] == 2 && pendiente.firma == null) {
+          throw const FormatException('Firma guardada inválida');
+        }
       }
       return pendiente;
     } on ErrorLaravel {
@@ -160,10 +188,12 @@ class NotasApi {
 
   Future<bool> confirmarSiAplicado(NotaInterna nota, SolicitudNota solicitud) =>
       _exclusiva(nota.id, () async {
-        if (nota.id != solicitud.notaId || nota.version <= solicitud.version) {
-          return false;
-        }
-        final aplicada = solicitud.accion == AccionNota.primeraRecepcion
+        if (nota.id != solicitud.notaId) return false;
+        final aplicada = solicitud.accion == AccionNota.firmaRemitente
+            ? nota.version == solicitud.version && nota.estadoFirma == 'firmada'
+            : nota.version <= solicitud.version
+            ? false
+            : solicitud.accion == AccionNota.primeraRecepcion
             ? nota.documentoId != null && nota.hojaId != null
             : (nota.datos['movimientos_nota'] as List? ?? []).any(
                 (m) =>
@@ -176,6 +206,19 @@ class NotasApi {
         await _eliminar(solicitud);
         return true;
       });
+
+  Future<bool> descartarFirmaDesactualizada(
+    NotaInterna nota,
+    SolicitudNota solicitud,
+  ) => _exclusiva(nota.id, () async {
+    if (nota.id != solicitud.notaId ||
+        solicitud.accion != AccionNota.firmaRemitente ||
+        nota.version <= solicitud.version) {
+      return false;
+    }
+    await _eliminar(solicitud);
+    return true;
+  });
 
   Future<PaginaNotas> bandeja(BandejaNota bandeja, {int pagina = 1}) async {
     final resultado = await api.enviar(
@@ -220,7 +263,12 @@ class NotasApi {
     solicitud.notaId,
     () async {
       final anterior = await pendientePara(solicitud.notaId);
-      if (anterior != null && anterior.clave != solicitud.clave) {
+      if (anterior != null &&
+          (anterior.clave != solicitud.clave ||
+              anterior.version != solicitud.version ||
+              anterior.accion != solicitud.accion ||
+              (anterior.firma != null &&
+                  jsonEncode(anterior.firma) != jsonEncode(solicitud.firma)))) {
         throw const ErrorLaravel(
           'Comprueba el intento pendiente antes de realizar otra acción.',
           codigo: 'INTENTO_EXISTENTE',
@@ -233,18 +281,25 @@ class NotasApi {
           estado: 401,
         );
       }
+      if (solicitud.requiereFirma) {
+        throw const ErrorLaravel(
+          'Revisa la versión pendiente y añade la firma para recuperar el mismo intento.',
+          codigo: 'FIRMA_PENDIENTE',
+        );
+      }
       final identidad = _identidad();
       try {
         await almacen.guardar(
           _clave(solicitud.notaId, solicitud.accion, identidad),
           jsonEncode({
-            'schema': 1,
+            'schema': solicitud.firma == null ? 1 : 2,
             'origen': identidad.origen,
             'cuenta': identidad.cuenta,
             'nota': solicitud.notaId,
             'accion': solicitud.accion.name,
             'clave': solicitud.clave,
             'version': solicitud.version,
+            if (solicitud.firma != null) 'firma': solicitud.firma!.toJson(),
           }),
         );
       } catch (_) {
@@ -259,7 +314,8 @@ class NotasApi {
         await _eliminar(solicitud);
         return nota;
       } on ErrorLaravel catch (e) {
-        if (rechazoDefinitivo(e) && !{401, 403, 404}.contains(e.estado)) {
+        if (rechazoDefinitivo(e, solicitud: solicitud) &&
+            !{401, 403, 404}.contains(e.estado)) {
           await _eliminar(solicitud);
         }
         rethrow;
@@ -267,11 +323,12 @@ class NotasApi {
     },
   );
 
-  static bool rechazoDefinitivo(ErrorLaravel e) =>
+  static bool rechazoDefinitivo(ErrorLaravel e, {SolicitudNota? solicitud}) =>
       e.estado != null &&
       e.estado! >= 400 &&
       e.estado! < 500 &&
-      !{408, 425, 429}.contains(e.estado);
+      !{408, 425, 429}.contains(e.estado) &&
+      !(e.estado == 422 && solicitud?.accion == AccionNota.conformidad);
 
   Future<NotaInterna> _enviar(SolicitudNota solicitud) async {
     if (api.token != solicitud.token) {
@@ -283,7 +340,10 @@ class NotasApi {
     final respuesta = await api.enviarConEstado(
       'POST',
       'notas-internas/${Uri.encodeComponent(solicitud.notaId)}/${solicitud.accion.ruta}',
-      datos: {'version': solicitud.version},
+      datos: {
+        'version': solicitud.version,
+        if (solicitud.firma != null) 'firma': solicitud.firma!.toJson(),
+      },
       cabeceras: {'Idempotency-Key': solicitud.clave},
     );
     if (respuesta.estado == 202) {
@@ -301,8 +361,19 @@ class NotasApi {
         codigo: 'RESPUESTA_INCIERTA',
       );
     }
+    final firmaRemitente = solicitud.accion == AccionNota.firmaRemitente;
+    if (firmaRemitente &&
+        nota.id == solicitud.notaId &&
+        nota.version > solicitud.version) {
+      throw const ErrorLaravel(
+        'El borrador cambió. Revisa y firma la versión actual.',
+        estado: 409,
+      );
+    }
     if (nota.id != solicitud.notaId ||
-        nota.version <= solicitud.version ||
+        (firmaRemitente
+            ? nota.version != solicitud.version || nota.estadoFirma != 'firmada'
+            : nota.version <= solicitud.version) ||
         (solicitud.accion == AccionNota.primeraRecepcion &&
             (nota.documentoId == null || nota.hojaId == null))) {
       throw const ErrorLaravel(

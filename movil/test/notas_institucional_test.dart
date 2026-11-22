@@ -13,6 +13,7 @@ import 'package:t4_movil/compartido/api/laravel_api.dart';
 import 'package:t4_movil/compartido/diseno/institucional.dart';
 import 'package:t4_movil/funciones/notas_internas/bandeja_notas_page.dart';
 import 'package:t4_movil/funciones/notas_internas/detalle_nota_page.dart';
+import 'package:t4_movil/funciones/notas_internas/firmar_nota_page.dart';
 
 Map<String, dynamic> _nota(int index) => {
   'id': 'nota-$index',
@@ -180,7 +181,7 @@ void main() {
     await tester.ensureVisible(row);
     await tester.tap(row);
     await tester.pumpAndSettle();
-    expect(find.text('Dar conformidad'), findsOneWidget);
+    expect(find.text('Firmar y dar conformidad'), findsOneWidget);
     expect(find.text(reference['cite'] as String), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _capturar(tester, 'detalle_misma_nota');
@@ -243,7 +244,7 @@ void main() {
       expect(find.text('Revisión de inventario'), findsNothing);
       await tester.tap(find.text('Solicitud de materiales'));
       await tester.pumpAndSettle();
-      expect(find.text('Dar conformidad'), findsOneWidget);
+      expect(find.text('Firmar y dar conformidad'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await _capturar(tester, 'detalle_nota');
       await tester.binding.setSurfaceSize(const Size(320, 568));
@@ -251,12 +252,15 @@ void main() {
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.text('Dar conformidad').hitTestable(), findsOneWidget);
-      await tester.tap(find.text('Dar conformidad'));
+      expect(
+        find.text('Firmar y dar conformidad').hitTestable(),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Firmar y dar conformidad'));
       await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(FirmarNotaPage), findsOneWidget);
       expect(tester.takeException(), isNull);
-      expect(find.byType(DetalleNotaPage), findsOneWidget);
+      expect(find.byType(DetalleNotaPage, skipOffstage: false), findsOneWidget);
     },
   );
 }
