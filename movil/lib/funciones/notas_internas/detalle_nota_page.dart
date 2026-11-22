@@ -160,8 +160,84 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
   }
 
   Future<void> _ejecutar(AccionNota accion) async {
-    if (_ocupada || widget.soloLectura || _nota == null || _hojaPendiente) {
+    if (_ocupada ||
+        widget.soloLectura ||
+        (_nota == null && !(_pendiente?.requiereFirma ?? false)) ||
+        _hojaPendiente) {
       return;
+    }
+    if (_pendiente?.requiereFirma ?? false) {
+      final anterior = _pendiente!;
+      final token = widget.api.token;
+      final cuenta = widget.api.cuentaId;
+      setState(() {
+        _confirmando = true;
+        _errorAccion = null;
+      });
+      try {
+        final servicio = NotasApi(widget.api);
+        final actual = await servicio.detalle(widget.id);
+        if (!mounted) return;
+        if (token != widget.api.token ||
+            cuenta != widget.api.cuentaId ||
+            anterior.token != token ||
+            anterior.cuentaId != cuenta) {
+          throw const ErrorLaravel(
+            'Tu sesión cambió. Vuelve a abrir la nota.',
+            estado: 401,
+          );
+        }
+        if (await servicio.confirmarSiAplicado(actual, anterior)) {
+          if (!mounted) return;
+          setState(() {
+            _pendiente = null;
+            _nota = actual;
+            _mensaje =
+                'La acción anterior ya está registrada. Estado actualizado.';
+          });
+          await _cargar();
+          return;
+        }
+        if (!mounted) return;
+        final permiso = anterior.accion == AccionNota.conformidad
+            ? 'dar_conformidad'
+            : 'firmar_borrador';
+        if (actual.version != anterior.version ||
+            !actual.permite(permiso) ||
+            actual.cuerpo == null ||
+            actual.cuerpo!.trim().isEmpty) {
+          throw const ErrorLaravel(
+            'No se puede firmar el intento anterior con esta versión o permiso. Se conservó su reserva; vuelve a comprobar la nota.',
+            codigo: 'VERSION_PENDIENTE',
+          );
+        }
+        setState(() => _nota = actual);
+        final firma = await Navigator.of(context).push<FirmaNota>(
+          MaterialPageRoute(
+            builder: (_) => FirmarNotaPage(
+              nota: actual,
+              titulo: 'Recuperar firma pendiente',
+            ),
+          ),
+        );
+        if (!mounted || firma == null) return;
+        if (token != widget.api.token || cuenta != widget.api.cuentaId) {
+          throw const ErrorLaravel(
+            'Tu sesión cambió. Vuelve a abrir la nota.',
+            estado: 401,
+          );
+        }
+        _pendiente = anterior.conFirma(firma);
+      } on ErrorLaravel catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _errorAccion = e.mensaje;
+          if ({401, 403, 404}.contains(e.estado)) _limpiar();
+        });
+        return;
+      } finally {
+        if (mounted) setState(() => _confirmando = false);
+      }
     }
     if (_pendiente == null) {
       final nota = _nota!;
@@ -256,7 +332,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
       await _cargar();
     } on ErrorLaravel catch (e) {
       if (!mounted) return;
-      final rechazo = NotasApi.rechazoDefinitivo(e);
+      final rechazo = NotasApi.rechazoDefinitivo(e, solicitud: _pendiente);
       setState(() {
         if (rechazo) _pendiente = null;
         _errorAccion = e.estado == 409
@@ -380,7 +456,11 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
       if (_pendiente != null)
         FilledButton(
           onPressed: _ocupada ? null : () => _ejecutar(_pendiente!.accion),
-          child: const Text('Comprobar mismo intento'),
+          child: Text(
+            _pendiente!.requiereFirma
+                ? 'Firmar y recuperar el mismo intento'
+                : 'Comprobar mismo intento',
+          ),
         ),
     ];
     return PopScope(

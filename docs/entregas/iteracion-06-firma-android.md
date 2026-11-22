@@ -22,7 +22,7 @@ integrado a `develop` en `f4dee7d28bc37ceadaa4edf388b0dc118138d6be`.
 
 - PR #67: comprobaciones de Laravel en GitHub en verde al revisar.
 - `InternalNoteFlowTest`: 6 pruebas, 194 aserciones, con motor simulado.
-- Suite completa de Flutter: 174 pruebas aprobadas. Incluye pruebas
+- Suite completa de Flutter: 182 pruebas aprobadas. Incluye pruebas
   existentes con Laravel y PostgreSQL aislado y una captura visual opcional
   omitida por no proporcionarse su referencia.
 - Subconjunto de notas y firmas: 60 pruebas aprobadas, con bandejas, captura,
@@ -66,3 +66,23 @@ Wi-Fi local. La prueba corresponde al servidor Windows del equipo de desarrollo;
 la validación del servidor desplegado de Mathew y la entrega final permanecen en
 #60/#65. La firma capturada es evidencia del prototipo. #63/#64 cubren seguimiento,
 constancias y avisos; la revisión cruzada de estas dos tareas corresponde a Mathew.
+
+## Corrección tras la revisión de Mathew: actualización con una VÍA pendiente
+
+Una instalación anterior podía conservar una conformidad sin firma cuya clave ya
+estaba reservada en Laravel. El reenvío sin firma recibía 422 y borraba el intento;
+crear otra clave al firmar provocaba después un 409.
+
+Ahora Android recupera el registro anterior, consulta la nota y pide la firma
+únicamente si el contenido y el permiso corresponden a la versión original.
+Conserva la clave y la versión, guarda el trazo antes del POST y no envía la
+conformidad sin firma. Si la acción ya figura confirmada, actualiza la pantalla y
+limpia el intento. Cancelar, cambiar de cuenta o encontrar otra versión no borra
+la reserva. Un 422 de conformidad tampoco la elimina.
+
+`actualizacion_firma_test.dart`: ocho regresiones aprobadas con registros del
+almacenamiento anterior y respuestas HTTP controladas. Cubren recuperación tras
+reiniciar, cancelación, otra versión, acción ya aplicada, cambio de cuenta, 422,
+capturas simultáneas y bloqueo del envío sin firma. La reproducción antes de la
+corrección falló al perderse el registro reservado. Estas pruebas de actualización
+son automatizadas; no equivalen a una actualización instalada en el teléfono.

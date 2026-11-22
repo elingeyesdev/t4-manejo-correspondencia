@@ -32,6 +32,23 @@ class SolicitudNota {
   final String? cuentaId;
   final AccionNota accion;
   final FirmaNota? firma;
+  bool get requiereFirma =>
+      accion != AccionNota.primeraRecepcion && firma == null;
+
+  SolicitudNota conFirma(FirmaNota trazo) {
+    if (!requiereFirma) {
+      throw StateError('El intento ya tiene una firma o no la requiere.');
+    }
+    return SolicitudNota._(
+      notaId: notaId,
+      clave: clave,
+      version: version,
+      accion: accion,
+      token: token,
+      cuentaId: cuentaId,
+      firma: trazo,
+    );
+  }
 
   const SolicitudNota._({
     required this.notaId,
@@ -246,7 +263,12 @@ class NotasApi {
     solicitud.notaId,
     () async {
       final anterior = await pendientePara(solicitud.notaId);
-      if (anterior != null && anterior.clave != solicitud.clave) {
+      if (anterior != null &&
+          (anterior.clave != solicitud.clave ||
+              anterior.version != solicitud.version ||
+              anterior.accion != solicitud.accion ||
+              (anterior.firma != null &&
+                  jsonEncode(anterior.firma) != jsonEncode(solicitud.firma)))) {
         throw const ErrorLaravel(
           'Comprueba el intento pendiente antes de realizar otra acción.',
           codigo: 'INTENTO_EXISTENTE',
@@ -257,6 +279,12 @@ class NotasApi {
         throw const ErrorLaravel(
           'Tu sesión cambió. Vuelve a abrir la nota.',
           estado: 401,
+        );
+      }
+      if (solicitud.requiereFirma) {
+        throw const ErrorLaravel(
+          'Revisa la versión pendiente y añade la firma para recuperar el mismo intento.',
+          codigo: 'FIRMA_PENDIENTE',
         );
       }
       final identidad = _identidad();
@@ -286,7 +314,8 @@ class NotasApi {
         await _eliminar(solicitud);
         return nota;
       } on ErrorLaravel catch (e) {
-        if (rechazoDefinitivo(e) && !{401, 403, 404}.contains(e.estado)) {
+        if (rechazoDefinitivo(e, solicitud: solicitud) &&
+            !{401, 403, 404}.contains(e.estado)) {
           await _eliminar(solicitud);
         }
         rethrow;
@@ -294,11 +323,12 @@ class NotasApi {
     },
   );
 
-  static bool rechazoDefinitivo(ErrorLaravel e) =>
+  static bool rechazoDefinitivo(ErrorLaravel e, {SolicitudNota? solicitud}) =>
       e.estado != null &&
       e.estado! >= 400 &&
       e.estado! < 500 &&
-      !{408, 425, 429}.contains(e.estado);
+      !{408, 425, 429}.contains(e.estado) &&
+      !(e.estado == 422 && solicitud?.accion == AccionNota.conformidad);
 
   Future<NotaInterna> _enviar(SolicitudNota solicitud) async {
     if (api.token != solicitud.token) {

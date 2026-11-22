@@ -11,6 +11,7 @@ import 'package:t4_movil/funciones/notas_internas/almacen_intentos_nota.dart';
 import 'package:t4_movil/funciones/notas_internas/detalle_nota_page.dart';
 import 'package:t4_movil/funciones/notas_internas/nota_interna.dart';
 import 'package:t4_movil/funciones/notas_internas/notas_api.dart';
+import 'package:t4_movil/funciones/notas_internas/firma_nota.dart';
 
 import 'notas_internas_test.dart' as fixture;
 
@@ -86,6 +87,9 @@ SolicitudNota _solicitud(
 ]) => SolicitudNota(
   nota: NotaInterna.desdeJson(_estado(accion, false)),
   accion: accion,
+  firma: accion == AccionNota.conformidad
+      ? FirmaNota.desdeJson(fixture.firmaPrueba)
+      : null,
   token: api.token,
   cuentaId: api.cuentaId,
 );
@@ -331,6 +335,7 @@ void main() {
       'accion',
       'clave',
       'version',
+      'firma',
     });
     expect(almacen.datos.values.single.contains('token-1'), isFalse);
     final otra = _api((r) async => fixture.respuesta({}), cuenta: '2');

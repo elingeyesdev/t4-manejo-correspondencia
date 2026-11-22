@@ -12,6 +12,14 @@ import 'package:t4_movil/funciones/notas_internas/detalle_nota_page.dart';
 import 'package:t4_movil/funciones/notas_internas/nota_interna.dart';
 import 'package:t4_movil/funciones/notas_internas/notas_api.dart';
 import 'package:t4_movil/funciones/notas_internas/firmar_nota_page.dart';
+import 'package:t4_movil/funciones/notas_internas/firma_nota.dart';
+
+const firmaPrueba = [
+  [
+    [100, 200],
+    [300, 400],
+  ],
+];
 
 Map<String, dynamic> nota({
   String id = 'nota-1',
@@ -160,6 +168,7 @@ void main() {
       final solicitud = SolicitudNota(
         nota: NotaInterna.desdeJson(nota()),
         accion: AccionNota.conformidad,
+        firma: FirmaNota.desdeJson(firmaPrueba),
         token: api.token,
         cuentaId: api.cuentaId,
       );
@@ -174,7 +183,10 @@ void main() {
         peticiones[1].headers['Idempotency-Key'],
       );
       expect(peticiones[0].body, peticiones[1].body);
-      expect(jsonDecode(peticiones[0].body), {'version': 3});
+      expect(jsonDecode(peticiones[0].body), {
+        'version': 3,
+        'firma': firmaPrueba,
+      });
     });
   }
 
@@ -218,6 +230,7 @@ void main() {
     final solicitud = SolicitudNota(
       nota: NotaInterna.desdeJson(nota()),
       accion: AccionNota.conformidad,
+      firma: FirmaNota.desdeJson(firmaPrueba),
       token: api.token,
       cuentaId: api.cuentaId,
     );
