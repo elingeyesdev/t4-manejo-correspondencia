@@ -1,0 +1,26 @@
+{
+  "base": "461c9af1b7576d79d252f9a8f7e1e28631e944f0",
+  "web": 200,
+  "camunda": "8.9.28",
+  "directa": {
+    "cite": "NI/DEMO/EMISOR/2026/000001",
+    "nota": "01a200e4-632a-7243-8ddb-fd9e046086a4",
+    "instancia": "2251799813685687",
+    "recepcion": "recibida",
+    "estado_final": "cerrada",
+    "camunda_final": "COMPLETED",
+    "hoja": "fa94af44-a100-4fbb-a231-930b26ce754f",
+    "consulta_qr": 200
+  },
+  "dos_vias": {
+    "cite": "NI/DEMO/EMISOR/2026/000002",
+    "fuera_de_turno": 404,
+    "nota": "01a200e4-6fd7-73cd-85c4-644eb852458a",
+    "instancia": "2251799813685701",
+    "recepcion": "recibida",
+    "estado_final": "cerrada",
+    "camunda_final": "COMPLETED",
+    "hoja": "de986c04-5b38-48f5-b615-80a911abf547",
+    "consulta_qr": 200
+  }
+}
