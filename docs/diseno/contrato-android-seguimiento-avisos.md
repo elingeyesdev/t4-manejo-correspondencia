@@ -53,8 +53,9 @@ se conserva como referencia documental. Al cerrar el trámite aparece
 Las notificaciones de #64 ya están integradas en #71. Su configuración y evidencia
 están en [notificaciones Android](notificaciones-android.md).
 
-Para cerrar #63 se debe registrar el cambio automático de recepción, derivación y
-cierre en el teléfono, medir el objetivo de hasta cinco segundos y comprobar el
-sello real. Las pruebas con respuestas controladas y los tiempos HTTP del servidor
-se documentan por separado; no reemplazan esa medición. #65 corresponde a repetir
-el recorrido sin USB contra el servidor Ubuntu desplegado y entregar el manual.
+La prueba física de #63 confirmó recepción, derivación y cierre automáticamente,
+con latencias entre 1193 y 1669 ms y sello real. Las mediciones se registran en
+[la evidencia](../evidencia/iteracion-06/seguimiento-sello-23-11/README.md).
+#65 corresponde a repetir el recorrido sin USB contra el servidor Ubuntu
+publicado por Mathew y entregar el manual. Esa validación es independiente del
+ensayo local Wi-Fi y sigue pendiente.

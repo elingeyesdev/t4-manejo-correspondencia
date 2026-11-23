@@ -42,10 +42,49 @@ Los tiempos `tiempo_http_ms` miden el formulario y las lecturas HTTP de ese ensa
 de hasta cinco segundos. El backend utilizado fue la instalación local Wi-Fi;
 esta ejecución no acredita el servidor Ubuntu final de #65.
 
-## Antes de publicar y cerrar #63
+## Prueba física aprobada · #63
 
-Instalar este APK en el teléfono físico, abrir la misma nota en web y Android y
-comprobar el sello real y la actualización automática de recepción, derivación y
-cierre, midiendo cada cambio sin tocar Actualizar ni reabrir. El teléfono dejó de
-aparecer conectado antes de instalar esta compilación. #63 permanece abierto y
-este trabajo se conserva local hasta completar esa validación.
+Se ejecutó `seguimiento_sello_real_test.dart` en un POCO F3 con Android 13,
+Laravel/PostgreSQL y Camunda reales. La nota fue emitida desde el formulario HTTP
+web. El teléfono mantuvo el mismo detalle abierto mientras se confirmaron las
+acciones mediante formularios web con sesiones independientes y CSRF.
+
+Desde la respuesta HTTP de la acción confirmada hasta observar la etiqueta,
+unidad y sobre correctos en los widgets reales de Android se midió:
+
+- Primera recepción: **1193 ms**.
+- Derivación: **1542 ms**.
+- Recepción en la unidad derivada: **1669 ms**.
+- Atención: **1336 ms**.
+- Cierre: **1359 ms**.
+
+Todos los cambios quedaron por debajo de cinco segundos sin tocar Actualizar ni
+reabrir el detalle. Se comprobó el sello real, su receptor y unidad, la ausencia
+de su ID en la pantalla y la resolución del QR hacia la misma nota. Al cierre se
+mostró **Trámite finalizado**. El sello no cambió y Camunda quedó `COMPLETED`, con
+cinco movimientos de hoja.
+
+El ensayo es automatizado sobre la app real en el teléfono; los formularios HTTP
+no se presentan como clics manuales en un navegador. El QR se comprobó mediante
+su resolución autorizada y pruebas de la apertura en Android; no se acredita un
+escaneo físico con cámara en esta ejecución.
+
+[Resultado del teléfono](resultado-telefono.json). La API circuló por Wi-Fi,
+sin `adb reverse`. El USB se utilizó para instalar y controlar el ensayo.
+Al terminar se reinstaló y abrió el APK normal, conservando los datos y sin las
+constantes privadas de la compilación de integración. El SHA-256 del APK normal
+se conserva arriba. La validación contra el servidor Ubuntu desplegado sigue
+correspondiendo a #65.
+
+El cambio queda listo para la revisión cruzada de Mathew. #63 se cerrará al
+fusionar su PR aprobado.
+
+## Capturas del teléfono
+
+La comprobación de lectura de la nota cerrada pasó también en el teléfono y
+confirmó el sello dentro de la vista previa. Estas imágenes provienen de esa
+ejecución real con datos ficticios.
+
+![Cierre y seguimiento en Android](cierre-android.png)
+
+![Firma y sello en vista previa](sello-vista-previa-android.png)
