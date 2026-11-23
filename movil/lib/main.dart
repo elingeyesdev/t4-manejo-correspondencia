@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +19,11 @@ import 'funciones/iniciar_sesion/sesion_controller.dart';
 import 'historico/registro_correspondencia_page.dart';
 import 'funciones/consultar_envio/consulta_envio_service.dart';
 import 'historico/correspondencia_api.dart';
+import 'funciones/notificaciones/avisos_controller.dart';
+import 'funciones/notificaciones/avisos_api.dart';
+import 'funciones/notificaciones/avisos_page.dart';
+import 'funciones/notificaciones/transporte_push.dart';
+import 'funciones/notas_internas/detalle_nota_page.dart';
 
 void main() {
   LicenseRegistry.addLicense(() async* {
@@ -38,10 +45,12 @@ class CorrespondenciaApp extends StatelessWidget {
     this.servicio,
     this.apiRegistro,
     this.sesion,
+    this.push,
   });
   final ConsultaEnvioService? servicio;
   final CorrespondenciaApi? apiRegistro;
   final SesionController? sesion;
+  final TransportePush? push;
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'Sistema de Correspondencia',
@@ -52,29 +61,144 @@ class CorrespondenciaApp extends StatelessWidget {
     theme: Institucional.tema,
     home: servicio != null || apiRegistro != null
         ? PantallaPrincipal(servicio: servicio, apiRegistro: apiRegistro)
-        : PuertaSesion(sesion: sesion),
+        : PuertaSesion(sesion: sesion, push: push),
   );
 }
 
 class PuertaSesion extends StatefulWidget {
-  const PuertaSesion({super.key, this.sesion});
+  const PuertaSesion({super.key, this.sesion, this.push});
   final SesionController? sesion;
+  final TransportePush? push;
   @override
   State<PuertaSesion> createState() => _PuertaSesionState();
 }
 
-class _PuertaSesionState extends State<PuertaSesion> {
+class _PuertaSesionState extends State<PuertaSesion>
+    with WidgetsBindingObserver {
   late final SesionController _sesion;
+  late final AvisosController _avisos;
+  bool _abriendoAviso = false;
+  String? _mostrado;
   final _navegador = GlobalKey<NavigatorState>();
   @override
   void initState() {
     super.initState();
     _sesion = widget.sesion ?? SesionController(api: ApiLaravel());
+    WidgetsBinding.instance.addObserver(this);
+    _avisos = AvisosController(
+      sesion: _sesion,
+      push: widget.push ?? FirebasePush(),
+    );
+    _avisos.addListener(_nuevoAviso);
+    unawaited(_avisos.iniciar());
     _sesion.restaurar();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _avisos.reanudar();
+  }
+
+  void _nuevoAviso() {
+    final id = _avisos.avisoVisible;
+    if (id == null) {
+      _mostrado = null;
+      return;
+    }
+    if (_mostrado == id) return;
+    _mostrado = id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_sesion.autenticada || _avisos.avisoVisible != id) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Tienes una nueva tarea'),
+          action: SnackBarAction(
+            label: 'Abrir',
+            onPressed: () => _avisos.abrir(id),
+          ),
+        ),
+      );
+    });
+  }
+
+  Future<void> _abrirAviso() async {
+    final id = _avisos.pendiente;
+    final navegador = _navegador.currentState;
+    if (!mounted ||
+        !_sesion.autenticada ||
+        id == null ||
+        navegador == null ||
+        _abriendoAviso) {
+      return;
+    }
+    _abriendoAviso = true;
+    _avisos.consumido(id);
+    final token = _sesion.api.token, cuenta = _sesion.api.cuentaId;
+    var abierta = false;
+    try {
+      final nota = await AvisosApi(_sesion.api).resolver(id);
+      if (!mounted ||
+          token != _sesion.api.token ||
+          cuenta != _sesion.api.cuentaId) {
+        return;
+      }
+      unawaited(
+        navegador.push<void>(
+          MaterialPageRoute(
+            builder: (_) => DetalleNotaPage(
+              api: _sesion.api,
+              id: nota.id,
+              puedeAdjuntar: _sesion.puedeRegistrar,
+            ),
+          ),
+        ),
+      );
+      abierta = true;
+    } on ErrorLaravel catch (e) {
+      if (!mounted ||
+          token != _sesion.api.token ||
+          cuenta != _sesion.api.cuentaId) {
+        return;
+      }
+      if (!navegador.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            {403, 404}.contains(e.estado)
+                ? 'Esta notificación ya no está disponible.'
+                : e.mensaje,
+          ),
+        ),
+      );
+    } finally {
+      _abriendoAviso = false;
+      if (mounted && _avisos.pendiente != null) unawaited(_abrirAviso());
+    }
+    if (!abierta ||
+        !mounted ||
+        token != _sesion.api.token ||
+        cuenta != _sesion.api.cuentaId) {
+      return;
+    }
+    try {
+      await AvisosApi(_sesion.api).leer(id);
+    } on ErrorLaravel {
+      /* Se recupera al volver al centro. */
+    }
+    if (mounted &&
+        token == _sesion.api.token &&
+        cuenta == _sesion.api.cuentaId) {
+      unawaited(_avisos.refrescar());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _avisos.removeListener(_nuevoAviso);
+    _avisos.dispose();
     if (widget.sesion == null) {
       _sesion.api.close();
       _sesion.dispose();
@@ -84,10 +208,13 @@ class _PuertaSesionState extends State<PuertaSesion> {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _sesion,
+    animation: Listenable.merge([_sesion, _avisos]),
     builder: (context, _) {
       if (!_sesion.inicializada) {
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+      if (_sesion.autenticada && _avisos.pendiente != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _abrirAviso());
       }
       return _sesion.autenticada
           ? NavigatorPopHandler(
@@ -95,8 +222,11 @@ class _PuertaSesionState extends State<PuertaSesion> {
               child: Navigator(
                 key: _navegador,
                 onGenerateRoute: (_) => MaterialPageRoute<void>(
-                  builder: (_) =>
-                      PantallaPrincipal(servicio: null, sesion: _sesion),
+                  builder: (_) => PantallaPrincipal(
+                    servicio: null,
+                    sesion: _sesion,
+                    avisos: _avisos,
+                  ),
                 ),
               ),
             )
@@ -111,10 +241,12 @@ class PantallaPrincipal extends StatefulWidget {
     required this.servicio,
     this.apiRegistro,
     this.sesion,
+    this.avisos,
   });
   final ConsultaEnvioService? servicio;
   final CorrespondenciaApi? apiRegistro;
   final SesionController? sesion;
+  final AvisosController? avisos;
   @override
   State<PantallaPrincipal> createState() => _PantallaPrincipalState();
 }
@@ -283,6 +415,15 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
     );
   }
 
+  void _abrirAvisos() {
+    if (widget.avisos == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AvisosPage(controller: widget.avisos!),
+      ),
+    );
+  }
+
   Widget _seccion(int pagina) => switch (pagina) {
     0 => HomePage(
       nombre: widget.sesion?.nombre ?? '',
@@ -325,6 +466,19 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
           _ => 'Inicio',
         },
         actions: [
+          if (widget.avisos != null)
+            AnimatedBuilder(
+              animation: widget.avisos!,
+              builder: (context, _) => IconButton(
+                tooltip: 'Avisos',
+                onPressed: _abrirAvisos,
+                icon: Badge(
+                  isLabelVisible: (widget.avisos!.pagina?.noLeidas ?? 0) > 0,
+                  label: Text('${widget.avisos!.pagina?.noLeidas ?? 0}'),
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+              ),
+            ),
           if (widget.sesion != null)
             Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -421,6 +575,15 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
                   onTap: () => _navegar(3),
                 ),
               if (widget.sesion != null) ...[
+                if (widget.avisos != null)
+                  ListTile(
+                    leading: const Icon(Icons.notifications_outlined),
+                    title: const Text('Avisos'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _abrirAvisos();
+                    },
+                  ),
                 ListTile(
                   leading: const Icon(Icons.description_outlined),
                   title: const Text('Notas internas'),
@@ -450,32 +613,38 @@ class _PantallaPrincipalState extends State<PantallaPrincipal> {
         ),
       ),
       body: SafeArea(
-        child: IndexedStack(
-          index: _pagina == 2 ? 1 : 0,
+        child: Column(
           children: [
-            if (widget.sesion != null)
-              PageView(
-                key: const ValueKey('secciones-deslizables'),
-                controller: _deslizador,
-                onPageChanged: _alDeslizar,
+            Expanded(
+              child: IndexedStack(
+                index: _pagina == 2 ? 1 : 0,
                 children: [
-                  for (final pagina in _ordenPestanas)
-                    _SeccionConservada(
-                      key: ValueKey(pagina),
-                      child: _seccion(pagina),
+                  if (widget.sesion != null)
+                    PageView(
+                      key: const ValueKey('secciones-deslizables'),
+                      controller: _deslizador,
+                      onPageChanged: _alDeslizar,
+                      children: [
+                        for (final pagina in _ordenPestanas)
+                          _SeccionConservada(
+                            key: ValueKey(pagina),
+                            child: _seccion(pagina),
+                          ),
+                      ],
+                    )
+                  else
+                    IndexedStack(
+                      index: _pagina == 1 ? 1 : 0,
+                      children: [_seccion(0), _seccion(1)],
                     ),
+                  !_visitadas.contains(2)
+                      ? const SizedBox.shrink()
+                      : widget.sesion != null
+                      ? RegistroLaravelPage(api: widget.sesion!.api)
+                      : RegistroCorrespondenciaPage(api: _registro),
                 ],
-              )
-            else
-              IndexedStack(
-                index: _pagina == 1 ? 1 : 0,
-                children: [_seccion(0), _seccion(1)],
               ),
-            !_visitadas.contains(2)
-                ? const SizedBox.shrink()
-                : widget.sesion != null
-                ? RegistroLaravelPage(api: widget.sesion!.api)
-                : RegistroCorrespondenciaPage(api: _registro),
+            ),
           ],
         ),
       ),

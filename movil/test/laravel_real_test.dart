@@ -21,13 +21,18 @@ class _ObservadorApi extends ApiLaravel {
     Map<String, dynamic>? datos,
     Map<String, String> cabeceras = const {},
     bool autenticado = true,
-  }) => pendiente = super.enviar(
-    metodo,
-    ruta,
-    datos: datos,
-    cabeceras: cabeceras,
-    autenticado: autenticado,
-  );
+  }) {
+    final respuesta = super.enviar(
+      metodo,
+      ruta,
+      datos: datos,
+      cabeceras: cabeceras,
+      autenticado: autenticado,
+    );
+    // El centro de avisos se sincroniza aparte del formulario bajo prueba.
+    if (!ruta.startsWith('notificaciones')) pendiente = respuesta;
+    return respuesta;
+  }
 }
 
 class _Almacen implements AlmacenSesion {
@@ -184,7 +189,14 @@ void main() {
         expect(detalle['acciones_permitidas'], contains('derivar'));
         expect(detalle['hoja']['unidad_vigente_id'], guardado['unidad']['id']);
       });
-      await tester.pumpWidget(CorrespondenciaApp(sesion: sesion));
+      await tester.runAsync(() async {
+        await tester.pumpWidget(CorrespondenciaApp(sesion: sesion));
+        await tester.pump();
+        await tester
+            .widget<PantallaPrincipal>(find.byType(PantallaPrincipal))
+            .avisos
+            ?.refrescar();
+      });
       await tester.pumpAndSettle();
       await tester.tap(find.text('Consultar envío'));
       await tester.pumpAndSettle();

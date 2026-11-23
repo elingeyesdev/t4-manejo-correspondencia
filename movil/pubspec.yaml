@@ -17,6 +17,8 @@ dependencies:
   open_filex: ^5.0.0
   path_provider: ^2.1.6
   http_parser: ^4.1.2
+  firebase_core: 4.0.0
+  firebase_messaging: 16.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
