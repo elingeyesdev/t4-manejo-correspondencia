@@ -74,7 +74,10 @@ class InternalNoteFlowTest extends TestCase
         $this->post(route('notes.emit', $note->id), $action)->assertRedirect();
         $first = DB::table('internal_notes')->first();
         $this->post(route('notes.emit', $note->id), $action)->assertRedirect();
-        $this->get(route('notes.index'))->assertOk()->assertSee($first->cite);
+        $this->get(route('notes.index'))->assertOk()
+            ->assertSeeInOrder([$first->subject, $first->body, 'De Unidad ALFA · Para Unidad BETA', 'Pendiente de recepción'])
+            ->assertDontSee($first->cite);
+        $this->get($show)->assertOk()->assertSee($first->cite);
         $this->assertDatabaseHas('internal_notes', ['id' => $note->id, 'cite' => $first->cite, 'state' => 'pendiente_recepcion']);
         $this->assertDatabaseHas('note_workflow_instances', ['note_id' => $note->id, 'instance_key' => '100']);
         $this->assertDatabaseCount('note_notices', 1);

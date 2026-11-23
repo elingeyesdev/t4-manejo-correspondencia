@@ -241,8 +241,28 @@ h3 {
     overflow-wrap: anywhere;
 }
 
-.notes-table .note-cite {
-    white-space: nowrap;
+.note-inbox {
+    min-width: 0;
+}
+
+.note-inbox .note-summary {
+    width: 62%;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+}
+
+.note-inbox .note-excerpt {
+    margin: .25rem 0;
+}
+
+.note-inbox .note-units {
+    color: var(--notes-muted);
+    font-size: .875rem;
+    margin: 0;
+}
+
+.note-inbox time {
+    white-space: normal;
 }
 
 .note-state {
