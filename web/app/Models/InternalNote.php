@@ -37,6 +37,7 @@ class InternalNote extends Model
             'active_position' => 'integer',
             'receipt_actor_id' => 'integer',
             'receipt_version' => 'integer',
+            'receipt_stamp' => 'array',
         ];
     }
 
@@ -77,6 +78,31 @@ class InternalNote extends Model
     public function document(): BelongsTo
     {
         return $this->belongsTo(Document::class);
+    }
+
+    public function receiptStamp(): ?array
+    {
+        if ($this->receipt_stamp !== null || $this->document_id === null) {
+            return $this->receipt_stamp;
+        }
+
+        // Notes received before the stamp was introduced still have an audited initial movement.
+        $movement = $this->document?->sheet?->movements()
+            ->with(['actor', 'destinationUnit'])->where('action', 'RECEPCION')
+            ->where('sheet_version', 1)->first();
+
+        return $movement ? $this->stampFrom($movement) : null;
+    }
+
+    public function stampFrom(Movement $movement): array
+    {
+        return [
+            'id' => $movement->id,
+            'cite' => $this->cite,
+            'unidad' => $movement->destinationUnit?->name,
+            'funcionario' => $movement->actor?->name,
+            'fecha_hora' => $movement->occurred_at->toISOString(),
+        ];
     }
 
     public function origin(): BelongsTo

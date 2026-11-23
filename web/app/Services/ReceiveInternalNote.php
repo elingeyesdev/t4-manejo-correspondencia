@@ -87,7 +87,7 @@ class ReceiveInternalNote
                 'current_unit_id' => $current->recipient_unit_id,
                 'version' => 1,
             ]);
-            $sheet->movements()->create([
+            $movement = $sheet->movements()->create([
                 'id' => (string) Str::uuid(),
                 'actor_id' => $actor->id,
                 'origin_unit_id' => $current->origin_unit_id,
@@ -97,7 +97,9 @@ class ReceiveInternalNote
                 'sheet_version' => 1,
                 'occurred_at' => $instant,
             ]);
+            $movement->setRelation('actor', $actor)->setRelation('destinationUnit', $actor->unit);
             $current->update([
+                'receipt_stamp' => $current->stampFrom($movement),
                 'document_id' => $document->id,
                 'state' => InternalNote::RECEIVED,
                 'version' => $current->version + 1,

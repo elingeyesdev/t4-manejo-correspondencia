@@ -13,6 +13,26 @@
 
     @include('internal-notes.tracking', ['progress' => $data['seguimiento']])
 
+    <section class="note-section" aria-labelledby="vista-previa-nota">
+        <h2 id="vista-previa-nota">Vista previa de la nota</h2>
+        <p class="note-body mb-0">{{ $note->body }}</p>
+    </section>
+    @if ($senderSignature || $note->participants->whereNotNull('confirmed_at')->isNotEmpty() || $data['sello_recepcion'])
+        <section class="note-section" aria-labelledby="constancias-nota">
+            <h2 id="constancias-nota">Constancias</h2>
+            <dl class="note-record">
+                @if ($senderSignature)
+                    <div><dt>Firma del remitente</dt><dd>{{ $note->author->name }} · {{ $senderSignature->signed_at->copy()->timezone('America/La_Paz')->format('d/m/Y H:i:s') }}</dd></div>
+                @endif
+                @foreach ($note->participants->whereNotNull('confirmed_at') as $review)
+                    <div><dt>Conformidad VÍA</dt><dd>{{ $review->user->name }} · {{ $review->confirmed_at->copy()->timezone('America/La_Paz')->format('d/m/Y H:i:s') }}</dd></div>
+                @endforeach
+            </dl>
+            @if ($data['sello_recepcion'])
+                @include('internal-notes.receipt-stamp', ['stamp' => $data['sello_recepcion']])
+            @endif
+        </section>
+    @endif
     <section class="note-section" aria-labelledby="datos-nota">
         <h2 id="datos-nota">Datos de la nota</h2>
         <dl class="note-record">
@@ -26,8 +46,6 @@
                 <div><dt>Referencia</dt><dd>{{ $note->reference }}</dd></div>
             @endif
         </dl>
-        <h3>Contenido</h3>
-        <p class="note-body">{{ $note->body }}</p>
     </section>
     <section class="note-section next-action" aria-labelledby="siguiente-accion">
         <h2 id="siguiente-accion">Siguiente acción</h2>

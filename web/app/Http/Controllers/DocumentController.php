@@ -26,6 +26,11 @@ class DocumentController extends Controller
             return response()->json($docs->through(fn ($d) => $d->payload()));
         }
 
+        $docs->getCollection()->load([
+            'internalNote' => fn ($notes) => $notes->visibleTo($r->user())->select('id', 'document_id', 'body'),
+            'previewAttachments' => fn ($attachments) => $attachments->select('id', 'document_id', 'mime_type', 'original_name'),
+        ]);
+
         return view('documents.index', ['documents' => $docs]);
     }
 
@@ -67,8 +72,11 @@ class DocumentController extends Controller
             return response()->json($payload);
         }
 
+        $doc->load(['internalNote' => fn ($notes) => $notes->visibleTo($r->user()), 'previewAttachments']);
+
         return view('documents.show', [
             'document' => $doc,
+            'receiptStamp' => $doc->internalNote?->receiptStamp(),
             'payload' => $payload,
             'destinations' => in_array('derivar', $payload['acciones_permitidas'], true)
                 ? $doc->sheet->eligibleDestinations()->orderBy('name')->get(['id', 'name'])
