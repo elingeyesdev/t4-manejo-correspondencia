@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Document extends Model
 {
@@ -23,6 +24,18 @@ class Document extends Model
     public function sheet()
     {
         return $this->hasOne(RouteSheet::class);
+    }
+
+    public function internalNote(): HasOne
+    {
+        return $this->hasOne(InternalNote::class);
+    }
+
+    public function previewAttachments(): HasMany
+    {
+        return $this->hasMany(Attachment::class)
+            ->whereIn('mime_type', ['application/pdf', 'image/jpeg', 'image/png'])
+            ->orderByDesc('created_at')->orderBy('id')->limit(1);
     }
 
     public function original(): BelongsTo

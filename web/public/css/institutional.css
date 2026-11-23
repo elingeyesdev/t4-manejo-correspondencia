@@ -241,8 +241,28 @@ h3 {
     overflow-wrap: anywhere;
 }
 
-.notes-table .note-cite {
-    white-space: nowrap;
+.note-inbox {
+    min-width: 0;
+}
+
+.note-inbox .note-summary {
+    width: 62%;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+}
+
+.note-inbox .note-excerpt {
+    margin: .25rem 0;
+}
+
+.note-inbox .note-units {
+    color: var(--notes-muted);
+    font-size: .875rem;
+    margin: 0;
+}
+
+.note-inbox time {
+    white-space: normal;
 }
 
 .note-state {
@@ -551,4 +571,39 @@ h3 {
 .form-check-input:checked {
     border-color: var(--notes-action);
     background-color: var(--notes-action);
+}
+
+.document-preview-cell {
+    min-width: 12rem;
+    max-width: 22rem;
+    overflow-wrap: anywhere;
+}
+
+.document-thumbnail {
+    display: block;
+    width: 6rem;
+    height: 4rem;
+    object-fit: contain;
+    object-position: left center;
+}
+
+.document-preview-image {
+    display: block;
+    max-width: 100%;
+    max-height: 32rem;
+    object-fit: contain;
+}
+
+.document-preview-pdf {
+    display: block;
+    width: 100%;
+    min-height: 26rem;
+    height: min(68vh, 48rem);
+    border: 1px solid var(--bs-border-color);
+}
+
+.receipt-stamp {
+    border-inline-start: .25rem solid var(--bs-success);
+    background: var(--bs-success-bg-subtle);
+    padding: 1rem;
 }

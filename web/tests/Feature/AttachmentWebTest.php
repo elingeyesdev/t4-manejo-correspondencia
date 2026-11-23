@@ -56,8 +56,13 @@ class AttachmentWebTest extends TestCase
         $api = $this->actingAs($this->operator)->postJson('/api/documentos/'.$this->document->id.'/adjuntos', ['archivo' => $this->photo('desde-movil.jpg')])->assertCreated();
         $id = $api->json('id');
         $response = $this->get(route('documents.show', $this->document->id))->assertOk();
+        $preview = route('attachments.view', [$this->document->id, $id]);
         $response->assertSee('Subir archivo')->assertSee('desde-movil.jpg')
+            ->assertSee('class="document-preview-image"', false)
+            ->assertSee('src="'.$preview.'"', false)
             ->assertSee(route('attachments.download', [$this->document->id, $id]));
+        $this->get(route('documents.index'))->assertOk()
+            ->assertSee('class="document-thumbnail"', false)->assertSee('src="'.$preview.'"', false);
         $original = file_get_contents(base_path('tests/Fixtures/adjunto.jpg'));
         $download = $this->get(route('attachments.download', [$this->document->id, $id]))->assertOk();
         $this->assertSame($original, $download->getContent());
@@ -70,6 +75,19 @@ class AttachmentWebTest extends TestCase
         $this->getJson('/api/documentos/'.$this->document->id.'/adjuntos')->assertOk()->assertJsonPath('total', 2);
         $webFile = Attachment::where('original_name', 'desde-web.jpg')->firstOrFail();
         $this->assertSame($original, $this->getJson('/api/documentos/'.$this->document->id.'/adjuntos/'.$webFile->id.'/descarga')->getContent());
+    }
+
+    public function test_document_embeds_a_pdf_using_the_authorized_attachment_route(): void
+    {
+        $pdf = UploadedFile::fake()->createWithContent('informe.pdf', "%PDF-1.4\n%%EOF");
+        $response = $this->actingAs($this->operator)
+            ->postJson('/api/documentos/'.$this->document->id.'/adjuntos', ['archivo' => $pdf])->assertCreated();
+        $preview = route('attachments.view', [$this->document->id, $response->json('id')]);
+
+        $this->get(route('documents.show', $this->document->id))->assertOk()
+            ->assertSee('<iframe class="document-preview-pdf" src="'.$preview.'"', false);
+        $this->get(route('documents.index'))->assertOk()
+            ->assertSee('href="'.$preview.'"', false)->assertSee('informe.pdf');
     }
 
     public function test_official_can_read_but_cannot_upload_from_web(): void
@@ -91,6 +109,7 @@ class AttachmentWebTest extends TestCase
         $unit = Unit::create(['institution_id' => $this->operator->unit->institution_id, 'code' => 'OTRA', 'name' => 'Otra unidad', 'enabled' => true]);
         $other = User::factory()->create(['unit_id' => $unit->id, 'role' => 'recepcion', 'enabled' => true]);
         $this->actingAs($other)->get(route('attachments.download', [$this->document->id, $a->id]))->assertNotFound();
+        $this->get(route('attachments.view', [$this->document->id, $a->id]))->assertNotFound();
         $this->post(route('attachments.store', $this->document->id), ['archivo' => $this->photo()])->assertNotFound();
     }
 

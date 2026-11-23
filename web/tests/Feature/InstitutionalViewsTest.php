@@ -90,9 +90,14 @@ class InstitutionalViewsTest extends TestCase
             'unidad_id' => $operator->unit_id, 'request_key' => (string) Str::uuid(),
         ]);
         $response = $this->actingAs($operator)->get('/documentos/'.$document->id)->assertOk();
-        $response->assertSee($subject)->assertSee($document->sheet->code)->assertSee('css/institutional.css')
+        $response->assertSee($subject)->assertSee('Vista previa del documento')
+            ->assertDontSee($document->sheet->code)->assertDontSee($document->guide)
+            ->assertSee('css/institutional.css')
             ->assertDontSee('<script>alert(1)</script>', false);
         $this->assertSame(1, $this->dom($response->getContent())->query('//table[contains(@class, "movement-table")]/tbody/tr')->length);
+
+        $this->get('/documentos')->assertOk()->assertSee('Vista previa')->assertSee('Abrir documento')
+            ->assertDontSee($document->code)->assertDontSee($document->guide);
     }
 
     public function test_admin_restores_only_submitted_form_and_never_passwords(): void

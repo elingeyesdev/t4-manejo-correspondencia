@@ -15,30 +15,28 @@
     </nav>
 
     <div class="table-responsive notes-table-scroll" role="region" aria-label="Resultados de la bandeja" tabindex="0">
-        <table class="table table-sm notes-table">
+        <table class="table table-sm notes-table note-inbox">
             <thead>
                 <tr>
-                    <th scope="col">CITE</th>
-                    <th scope="col">Asunto</th>
-                    <th scope="col">Unidad de origen</th>
-                    <th scope="col">Unidad destinataria</th>
-                    <th scope="col">Fecha</th>
+                    <th scope="col">Nota interna</th>
                     <th scope="col">Estado</th>
+                    <th scope="col">Última actividad</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($notes as $note)
                     @php($date = ($note->document?->sheet?->updated_at ?? $note->updated_at)->timezone('America/La_Paz'))
                     <tr>
-                        <td class="note-cite">{{ $note->cite ?? 'Por asignar' }}</td>
-                        <th scope="row"><a href="{{ route('notes.show', $note) }}">{{ $note->subject }}</a></th>
-                        <td>{{ $note->origin->name }}</td>
-                        <td>{{ $note->recipient->name }}</td>
-                        <td><time datetime="{{ $date->toIso8601String() }}">{{ $date->format('d/m/Y H:i') }}</time></td>
+                        <th scope="row" class="note-summary">
+                            <a class="fw-semibold" href="{{ route('notes.show', $note) }}">{{ $note->subject }}</a>
+                            <p class="note-excerpt">{{ \Illuminate\Support\Str::limit(\Illuminate\Support\Str::squish($note->body), 120, preserveWords: true) }}</p>
+                            <p class="note-units">De {{ $note->origin->name }} · Para {{ $note->recipient->name }}</p>
+                        </th>
                         <td>@include('internal-notes.state', ['note' => $note])</td>
+                        <td><time datetime="{{ $date->toIso8601String() }}">{{ $date->format('d/m/Y H:i') }}</time></td>
                     </tr>
                 @empty
-                    <tr><td class="empty-cell" colspan="6">No hay notas en esta bandeja.</td></tr>
+                    <tr><td class="empty-cell" colspan="3">No hay notas en esta bandeja.</td></tr>
                 @endforelse
             </tbody>
         </table>

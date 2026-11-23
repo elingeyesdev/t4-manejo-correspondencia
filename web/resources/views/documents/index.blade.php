@@ -14,18 +14,18 @@
         <table class="table notes-table">
             <thead>
                 <tr>
-                    <th scope="col">Documento / guía</th><th scope="col">Asunto y remitente</th>
+                    <th scope="col">Vista previa</th><th scope="col">Asunto y remitente</th>
                     <th scope="col">Unidad</th><th scope="col">Estado</th><th scope="col">Consulta</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($documents as $document)
                     <tr>
-                        <td class="text-break">{{ $document->code }}<br><small class="text-secondary">{{ $document->guide }}</small></td>
+                        <td class="document-preview-cell">@include('documents.preview', ['compact' => true])</td>
                         <th scope="row">{{ $document->subject }}<br><small class="text-secondary fw-normal">{{ $document->sender }}</small></th>
                         <td>{{ $document->unit->name }}</td>
                         <td>@include('partials.sheet-state', ['state' => $document->sheet->state])</td>
-                        <td><a href="{{ route('documents.show', $document->id) }}" aria-label="Ver detalle de {{ $document->code }}">Ver detalle</a></td>
+                        <td><a href="{{ route('documents.show', $document->id) }}" aria-label="Abrir documento: {{ $document->subject }}">Abrir documento</a></td>
                     </tr>
                 @empty
                     <tr><td colspan="5" class="empty-cell">No hay documentos disponibles.</td></tr>

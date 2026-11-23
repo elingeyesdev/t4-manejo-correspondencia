@@ -90,15 +90,13 @@
         }
         $detailProps = [
             'document' => [
-                'code' => $document->code, 'guide' => $document->guide,
                 'subject' => $document->subject, 'sender' => $document->sender,
                 'receivedOn' => $document->received_on->format('d/m/Y'),
                 'unit' => $document->unit->name, 'type' => $document->type->name,
                 'priority' => $document->priority->name,
             ],
             'sheet' => [
-                'code' => $payload['hoja']['codigo'], 'state' => $payload['estado'],
-                'version' => $payload['hoja']['version'],
+                'state' => $payload['estado'],
                 'responsible' => $payload['hoja']['responsable']['nombre'],
                 'currentUnit' => $payload['hoja']['unidad_vigente']['nombre'],
                 'pendingUnit' => $document->rootDocument()->sheet->pendingUnit?->name,
@@ -136,13 +134,27 @@
         @if ($detailProps['sheet']['state'] === 'CERRADA')
             <p class="alert notice-success" role="status"><strong>Expediente cerrado.</strong> Sus datos, archivos e historial están disponibles para consulta.</p>
         @endif
+        <section class="note-section wide-section" aria-labelledby="vista-previa-titulo">
+            <h2 id="vista-previa-titulo">Vista previa del documento</h2>
+            @include('documents.preview', ['compact' => false])
+            @if ($document->internalNote)
+                <p class="mt-2 mb-0"><a href="{{ route('notes.show', $document->internalNote) }}">Abrir Nota Interna</a></p>
+            @endif
+        </section>
+        @if ($receiptStamp)
+            <section class="note-section wide-section" aria-labelledby="sello-titulo">
+                <h2 id="sello-titulo">Constancia de recepción</h2>
+                @include('internal-notes.receipt-stamp', ['stamp' => $receiptStamp])
+            </section>
+        @endif
         <div class="row g-4">
             <section class="col-12 col-lg-6" aria-labelledby="documento-titulo">
                 <div class="note-section">
                     <h2 id="documento-titulo">Documento</h2>
                     <dl class="note-record mb-0">
-                        <div><dt>Código</dt><dd>{{ $detailProps['document']['code'] }}</dd></div>
-                        <div><dt>Guía de consulta</dt><dd>{{ $detailProps['document']['guide'] }}</dd></div>
+                        @if ($document->internalNote?->cite)
+                            <div><dt>CITE</dt><dd>{{ $document->internalNote->cite }}</dd></div>
+                        @endif
                         <div><dt>Remitente</dt><dd>{{ $detailProps['document']['sender'] }}</dd></div>
                         <div><dt>Fecha de recepción</dt><dd>{{ $detailProps['document']['receivedOn'] }}</dd></div>
                         <div><dt>Unidad</dt><dd>{{ $detailProps['document']['unit'] }}</dd></div>
@@ -154,14 +166,12 @@
                 <div class="note-section">
                     <h2 id="hoja-titulo">Hoja de ruta</h2>
                     <dl class="note-record mb-0">
-                        <div><dt>Código</dt><dd>{{ $detailProps['sheet']['code'] }}</dd></div>
                         <div><dt>Responsable actual</dt><dd>{{ $detailProps['sheet']['responsible'] }}</dd></div>
                         <div><dt>Estado</dt><dd>@include('partials.sheet-state', ['state' => $detailProps['sheet']['state']])</dd></div>
                         <div><dt>Unidad vigente</dt><dd>{{ $detailProps['sheet']['currentUnit'] }}</dd></div>
                         @if ($detailProps['sheet']['pendingUnit'])
                             <div><dt>Destino pendiente</dt><dd>{{ $detailProps['sheet']['pendingUnit'] }}</dd></div>
                         @endif
-                        <div><dt>Versión</dt><dd>{{ $detailProps['sheet']['version'] }}</dd></div>
                     </dl>
                 </div>
             </section>
@@ -182,7 +192,7 @@
         <section class="note-section wide-section" aria-labelledby="qr-titulo">
             <h2 id="qr-titulo">QR de la hoja de ruta</h2>
             <div class="d-flex align-items-start flex-wrap gap-3">
-                <img src="{{ $detailProps['qr']['imageUrl'] }}" alt="Código QR de la hoja {{ $detailProps['sheet']['code'] }}"
+                <img src="{{ $detailProps['qr']['imageUrl'] }}" alt="Código QR de la hoja de ruta"
                     width="144" height="144" class="route-qr" loading="lazy">
                 <div>
                     <p class="mb-2">Escanea el código para consultar esta hoja de ruta.</p>
@@ -221,7 +231,7 @@
         <section class="note-section wide-section">
             <h2>Documento original</h2>
             <a class="link-offset-2" href="{{ route('documents.show', $payload['documento_original']['id']) }}">
-                {{ $payload['documento_original']['codigo'] }} · {{ $payload['documento_original']['asunto'] }}
+                {{ $payload['documento_original']['asunto'] }}
             </a>
         </section>
     @elseif ($payload['respuestas'])
@@ -231,7 +241,7 @@
                 @foreach ($payload['respuestas'] as $response)
                     <li>
                         <a class="link-offset-2" href="{{ route('documents.show', $response['id']) }}">
-                            {{ $response['codigo'] }} · {{ $response['asunto'] }}
+                            {{ $response['asunto'] }}
                         </a>
                     </li>
                 @endforeach

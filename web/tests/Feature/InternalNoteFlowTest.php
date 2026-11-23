@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\DeliverNoteNotices;
 use App\Services\FcmNoticeTransport;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -73,7 +74,10 @@ class InternalNoteFlowTest extends TestCase
         $this->post(route('notes.emit', $note->id), $action)->assertRedirect();
         $first = DB::table('internal_notes')->first();
         $this->post(route('notes.emit', $note->id), $action)->assertRedirect();
-        $this->get(route('notes.index'))->assertOk()->assertSee($first->cite);
+        $this->get(route('notes.index'))->assertOk()
+            ->assertSeeInOrder([$first->subject, $first->body, 'De Unidad ALFA · Para Unidad BETA', 'Pendiente de recepción'])
+            ->assertDontSee($first->cite);
+        $this->get($show)->assertOk()->assertSee($first->cite);
         $this->assertDatabaseHas('internal_notes', ['id' => $note->id, 'cite' => $first->cite, 'state' => 'pendiente_recepcion']);
         $this->assertDatabaseHas('note_workflow_instances', ['note_id' => $note->id, 'instance_key' => '100']);
         $this->assertDatabaseCount('note_notices', 1);
@@ -281,7 +285,7 @@ class InternalNoteFlowTest extends TestCase
         Sanctum::actingAs($this->recipient);
         $key = $this->key();
         $this->getJson($uri)->assertJsonPath('acciones_permitidas', ['confirmar_primera_recepcion']);
-        $this->postJson($uri.'/recepciones', $payload, $key)->assertAccepted()->assertJsonPath('hoja_id', null);
+        $this->postJson($uri.'/recepciones', $payload, $key)->assertAccepted()->assertJsonPath('hoja_id', null)->assertJsonPath('sello_recepcion', null);
         $this->getJson($uri)->assertJsonPath('seguimiento.etiqueta', 'Pendiente de recepción');
         $this->assertDatabaseCount('route_sheets', 0);
         $this->postJson($uri.'/recepciones', $payload, $this->key())->assertConflict();
@@ -290,14 +294,38 @@ class InternalNoteFlowTest extends TestCase
             ->assertJsonPath('seguimiento.etiqueta', 'Recibida')->assertJsonPath('seguimiento.unidad.id', $this->recipient->unit_id);
         $sheet = $receipt->json('hoja_id');
         $document = $receipt->json('documento_id');
-        $this->postJson($uri.'/recepciones', $payload, $key)->assertOk()->assertJsonPath('hoja_id', $sheet);
+        $movement = DB::table('movements')->sole();
+        $stamp = [
+            'id' => $movement->id,
+            'cite' => $emitted->json('cite'),
+            'unidad' => $this->recipient->unit->name,
+            'funcionario' => $this->recipient->name,
+            'fecha_hora' => Carbon::parse($movement->occurred_at)->toISOString(),
+        ];
+        $receipt->assertJsonPath('sello_recepcion', $stamp);
+        $this->getJson($uri)->assertOk()->assertJsonPath('sello_recepcion', $stamp);
+        $this->postJson($uri.'/recepciones', $payload, $key)->assertOk()
+            ->assertJsonPath('hoja_id', $sheet)->assertJsonPath('sello_recepcion', $stamp);
+
+        Sanctum::actingAs($this->outsider);
+        $this->getJson($uri)->assertNotFound();
+        Sanctum::actingAs($this->recipient);
+        // A receipt recorded before the migration is recovered from its initial movement.
+        DB::table('internal_notes')->where('id', $draft->json('id'))->update(['receipt_stamp' => null]);
+        $this->getJson($uri)->assertOk()->assertJsonPath('sello_recepcion', $stamp);
+        DB::table('internal_notes')->where('id', $draft->json('id'))->update(['receipt_stamp' => json_encode($stamp)]);
+        $this->recipient->update(['name' => 'Nombre actualizado']);
+        $this->recipient->unit->update(['name' => 'Unidad actualizada']);
+        $this->getJson($uri)->assertOk()->assertJsonPath('sello_recepcion', $stamp);
         $this->assertDatabaseCount('route_sheets', 1);
         $this->assertDatabaseHas('documents', [
             'id' => $document, 'code' => $emitted->json('cite'), 'subject' => $draft->json('asunto'), 'sender' => $this->author->name,
         ]);
         $this->assertDatabaseCount('movements', 1);
         $this->actingAs($this->recipient, 'web')->get(route('notes.show', $draft->json('id')))
-            ->assertOk()->assertSee('Abrir hoja de ruta');
+            ->assertOk()->assertSee('Abrir hoja de ruta')->assertSee('Firma del remitente')->assertSee('RECIBIDO · DEMOSTRACIÓN');
+        $this->get(route('documents.show', $document))->assertOk()->assertSee('Vista previa del documento')
+            ->assertSee($this->draft()['cuerpo'])->assertSee('RECIBIDO · DEMOSTRACIÓN');
         Sanctum::actingAs($this->recipient);
 
         $route = '/api/hojas/'.$sheet;

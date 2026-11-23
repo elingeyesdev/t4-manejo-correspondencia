@@ -107,7 +107,12 @@ class InternalNoteController extends Controller
             ->where('user_id', $actor->id)->where('request_key', $via->action_key)->exists();
         $note->load('document.sheet.movements.actor', 'document.sheet.movements.destinationUnit');
 
-        return view('internal-notes.show', compact('note', 'via', 'data', 'actionKey', 'canOpenSheet', 'retryVia'));
+        $senderSignature = $note->senderSignatures()
+            ->where('user_id', $note->author_id)
+            ->where('note_version', $note->emission_version ?? $note->version)
+            ->first(['signed_at']);
+
+        return view('internal-notes.show', compact('note', 'via', 'data', 'actionKey', 'canOpenSheet', 'retryVia', 'senderSignature'));
     }
 
     public function store(InternalNoteDraftRequest $request, InternalNoteWorkflow $workflow)
@@ -303,6 +308,7 @@ class InternalNoteController extends Controller
             $data['autor'] = ['id' => $note->author->id, 'nombre' => $note->author->name];
             $data['referencia'] = $note->reference;
             $data['cuerpo'] = $note->body;
+            $data['sello_recepcion'] = $note->receiptStamp();
             $count = $note->participants->where('role', 'via')->count();
             $data['movimientos_nota'] = $note->participants->whereNotNull('confirmed_at')->values()->map(fn ($via) => [
                 'id' => $via->id,
