@@ -35,6 +35,7 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage>
     with WidgetsBindingObserver {
   Timer? _actualizador;
   bool _sincronizando = false;
+  int _generacionConsulta = 0;
   String? _avisoSincronizacion;
   SeguimientoNota? _seguimiento;
   List<ConstanciaNota> _constancias = [];
@@ -93,7 +94,9 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage>
   }
 
   Future<void> _cargar({bool automatica = false}) async {
-    if (_cargando || _sincronizando) return;
+    if (automatica && (_cargando || _sincronizando)) return;
+    final generacion = ++_generacionConsulta;
+    bool vigente() => mounted && generacion == _generacionConsulta;
     _sincronizando = automatica;
     final token = widget.api.token, cuenta = widget.api.cuentaId;
     setState(() {
@@ -107,7 +110,7 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage>
         'GET',
         'documentos/${Uri.encodeComponent(widget.id)}',
       );
-      if (!mounted) return;
+      if (!vigente()) return;
       final hojaRecibida = datos['hoja'];
       final accionesRecibidas = datos['acciones_permitidas'];
       if (datos['id'] != widget.id ||
@@ -134,7 +137,7 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage>
           'GET',
           'documentos/${Uri.encodeComponent(widget.id)}/historial',
         );
-        if (!mounted) return;
+        if (!vigente()) return;
         if (historia['data'] is! List) {
           throw const ErrorLaravel(
             'No se pudo interpretar el historial del documento.',
@@ -143,6 +146,7 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage>
         historial = historia['data'] as List;
       }
       if (!mounted ||
+          !vigente() ||
           (automatica &&
               (_protegida || !(ModalRoute.of(context)?.isCurrent ?? false)))) {
         return;
@@ -162,7 +166,7 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage>
         _error = null;
       });
     } on ErrorLaravel catch (e) {
-      if (mounted) {
+      if (vigente()) {
         setState(() {
           if (automatica && !{401, 403, 404}.contains(e.estado)) {
             _avisoSincronizacion =
@@ -183,12 +187,21 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage>
         });
       }
     } finally {
-      _sincronizando = false;
-      if (mounted) setState(() => _cargando = false);
+      if (vigente()) {
+        _sincronizando = false;
+        setState(() => _cargando = false);
+      }
     }
   }
 
+  void _invalidarConsulta() {
+    _generacionConsulta++;
+    _sincronizando = false;
+  }
+
   Future<void> _confirmado(Map<String, dynamic>? resultado) async {
+    if (!mounted) return;
+    _invalidarConsulta();
     if (resultado != null && _datos != null) {
       final hoja = resultado['hoja'] as Map<String, dynamic>;
       setState(
@@ -438,7 +451,10 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage>
                           _fotoPendiente,
                       alConfirmar: _confirmado,
                       alOcuparse: (valor) {
-                        if (mounted) setState(() => _operando = valor);
+                        if (mounted) {
+                          if (valor) _invalidarConsulta();
+                          setState(() => _operando = valor);
+                        }
                       },
                       alPendiente: (valor) {
                         if (mounted) {

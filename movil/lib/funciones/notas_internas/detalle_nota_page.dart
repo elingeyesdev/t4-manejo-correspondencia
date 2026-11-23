@@ -43,6 +43,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
   Timer? _actualizador;
   final _scroll = ScrollController();
   bool _sincronizando = false;
+  int _generacionConsulta = 0;
   String? _avisoSincronizacion;
   bool get _ocupada => _cargando || _guardando || _confirmando || _hojaOcupada;
   bool get _sinConfirmar => _pendiente != null || _hojaPendiente;
@@ -97,7 +98,9 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
   }
 
   Future<void> _cargar({bool automatica = false}) async {
-    if (_cargando || _sincronizando) return;
+    if (automatica && (_cargando || _sincronizando)) return;
+    final generacion = ++_generacionConsulta;
+    bool vigente() => mounted && generacion == _generacionConsulta;
     final token = widget.api.token;
     final cuenta = widget.api.cuentaId;
     _sincronizando = automatica;
@@ -114,11 +117,11 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
       final pendiente = widget.soloLectura
           ? null
           : await servicio.pendientePara(widget.id);
-      if (!mounted) return;
+      if (!vigente()) return;
       if (automatica && (_ocupada || _sinConfirmar)) return;
       setState(() => _pendiente = pendiente);
       final nota = await servicio.detalle(widget.id);
-      if (!mounted) return;
+      if (!mounted || !vigente()) return;
       if (automatica &&
           (_ocupada ||
               _sinConfirmar ||
@@ -128,14 +131,14 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
       if (automatica && _nota != null && nota.version < _nota!.version) return;
       if (pendiente != null &&
           await servicio.descartarFirmaDesactualizada(nota, pendiente)) {
-        if (!mounted) return;
+        if (!vigente()) return;
         setState(() {
           _pendiente = null;
           _mensaje = 'La nota cambió. Revisa el contenido y firma la nueva versión cuando esté disponible.';
         });
       } else if (pendiente != null &&
           await servicio.confirmarSiAplicado(nota, pendiente)) {
-        if (!mounted) return;
+        if (!vigente()) return;
         setState(() {
           _pendiente = null;
           _mensaje = switch (pendiente.accion) {
@@ -157,7 +160,9 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
             'GET',
             'hojas/${Uri.encodeComponent(nota.hojaId!)}',
           );
+          if (!vigente()) return;
         } on ErrorLaravel catch (e) {
+          if (!vigente()) return;
           // La nota y su expediente tienen permisos independientes. Una CC
           // autorizada no pierde la nota porque no pueda consultar la hoja.
           if (!{403, 404}.contains(e.estado)) rethrow;
@@ -175,7 +180,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
               )) {
             throw const ErrorLaravel('No se pudo comprobar la hoja vinculada.');
           }
-          if (!mounted) return;
+          if (!vigente()) return;
           final permitidas = <String>{
             if (!widget.soloLectura &&
                 nota.permite('confirmar_recepcion_derivacion'))
@@ -198,6 +203,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         );
       }
       if (!mounted ||
+          !vigente() ||
           (automatica &&
               (_ocupada ||
                   _sinConfirmar ||
@@ -212,7 +218,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         _avisoExpediente = avisoExpediente;
       });
     } on ErrorLaravel catch (e) {
-      if (!mounted) return;
+      if (!vigente()) return;
       setState(() {
         if (automatica && !{401, 403, 404}.contains(e.estado)) {
           _avisoSincronizacion =
@@ -225,9 +231,16 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         }
       });
     } finally {
-      _sincronizando = false;
-      if (mounted) setState(() => _cargando = false);
+      if (vigente()) {
+        _sincronizando = false;
+        setState(() => _cargando = false);
+      }
     }
+  }
+
+  void _invalidarConsulta() {
+    _generacionConsulta++;
+    _sincronizando = false;
   }
 
   Future<void> _ejecutar(AccionNota accion) async {
@@ -237,6 +250,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         _hojaPendiente) {
       return;
     }
+    _invalidarConsulta();
     if (_pendiente?.requiereFirma ?? false) {
       final anterior = _pendiente!;
       final token = widget.api.token;
@@ -421,6 +435,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
 
   Future<void> _hojaConfirmada(Map<String, dynamic>? resultado) async {
     if (!mounted) return;
+    _invalidarConsulta();
     setState(() {
       _hojaOcupada = false;
       _hojaPendiente = false;
@@ -687,7 +702,10 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
                       _errorCarga != null,
                   alConfirmar: _hojaConfirmada,
                   alOcuparse: (v) {
-                    if (mounted) setState(() => _hojaOcupada = v);
+                    if (mounted) {
+                      if (v) _invalidarConsulta();
+                      setState(() => _hojaOcupada = v);
+                    }
                   },
                   alPendiente: (v) {
                     if (mounted) setState(() => _hojaPendiente = v);

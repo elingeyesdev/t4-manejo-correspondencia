@@ -88,3 +88,27 @@ ejecución real con datos ficticios.
 ![Cierre y seguimiento en Android](cierre-android.png)
 
 ![Firma y sello en vista previa](sello-vista-previa-android.png)
+
+## Corrección de la revisión sobre 99baa3c
+
+Mathew detectó que una consulta automática pendiente podía impedir la recarga
+posterior a una acción y luego restaurar estado, versión y permisos anteriores.
+Las pantallas de documento y de Nota Interna ahora invalidan las consultas
+previas al iniciar acciones. Cada carga comprueba que su respuesta siga vigente;
+sus errores y su finalización tampoco pueden modificar una carga más reciente.
+La recarga tras confirmar o recibir 409 inicia una consulta nueva.
+
+`seguimiento_concurrencia_test.dart` reprodujo 13 fallos sobre el código anterior
+y pasó con la corrección. Cubre recepción, derivación y atención confirmadas o
+rechazadas con 409, una hoja atrasada con la misma versión de nota, y respuestas
+200/403/503 anteriores que terminan mientras la recarga nueva sigue pendiente.
+
+Estos casos usan solicitudes HTTP controladas para imponer el orden de las
+respuestas. Las mediciones físicas y capturas anteriores corresponden a la
+versión 99baa3c y permanecen como evidencia de ese recorrido.
+Suite completa tras la corrección: **219 pruebas aprobadas**, cuatro optativas
+omitidas, y analizador sin incidencias. El backend no cambió en esta revisión.
+
+El APK normal corregido compiló y se instaló como actualización en el POCO F3,
+conservando datos y versionCode 2001. SHA-256:
+`da99b937c9413e1f6e317999fa3bdaab42cf182f61968fb9045ae0342d70765a`.
