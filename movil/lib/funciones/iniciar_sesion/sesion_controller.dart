@@ -41,6 +41,7 @@ class SesionController extends ChangeNotifier {
 
   final ApiLaravel api;
   final AlmacenSesion almacen;
+  Future<void> Function()? antesDeSalir;
   Map<String, dynamic>? usuario;
   bool inicializada = false;
   bool ocupada = false;
@@ -186,6 +187,7 @@ class SesionController extends ChangeNotifier {
     notifyListeners();
     String? advertencia;
     try {
+      await antesDeSalir?.call();
       await api.enviar('DELETE', 'sesiones/actual');
     } catch (_) {
       advertencia = 'Se cerró la sesión en este teléfono. No se pudo confirmar la revocación en el servidor.';

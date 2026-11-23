@@ -1,0 +1,73 @@
+{
+    "fecha_bolivia": "2026-11-22",
+    "issue": 64,
+    "equipo": "POCO F3, Android 13",
+    "app": {
+        "version_code": 2001,
+        "apk_sha256": "811f2d656b72da523cf56ec95776e17ae0e5f18c9bcdcca98cec7d40382d012f",
+        "compilacion_local": "b6a0ba1",
+        "configuracion_firebase": "real; credenciales y archivo de configuracion fuera de Git"
+    },
+    "entorno": {
+        "api": "Laravel/PostgreSQL local en Windows por Wi-Fi",
+        "camunda": "8.9.28 real",
+        "push": "Firebase Cloud Messaging real",
+        "usb": "utilizado para instalacion y diagnostico; sin adb reverse para la API",
+        "servidor_ubuntu_final": "no validado aqui; corresponde a #65"
+    },
+    "notificacion": {
+        "titulo": "Correspondencia",
+        "texto": "Tienes una nueva tarea",
+        "canal": "correspondencia",
+        "contenido_sensible_en_push": false
+    },
+    "casos": {
+        "via": {
+            "asunto": "Prueba aviso de revision VIA",
+            "cite": "NI/DEMO/JURIDICA/2026/000001",
+            "tipo_aviso": "revision_via_pendiente",
+            "proceso_app_cerrado_antes_envio": true,
+            "fcm_resultado": "accepted",
+            "intentos_envio": 1,
+            "notificacion_android_observada": true,
+            "apertura_nota_correcta": "confirmada por el usuario en el telefono",
+            "lectura_registrada_en": "2026-11-23T03:39:42+00:00",
+            "cuenta_ajena_rechazada": true,
+            "camunda_estado": "ACTIVE"
+        },
+        "recepcion": {
+            "asunto": "Prueba aviso de recepcion",
+            "cite": "NI/DEMO/JURIDICA/2026/000002",
+            "tipo_aviso": "recepcion_inicial_pendiente",
+            "proceso_app_cerrado_antes_envio": true,
+            "fcm_resultado": "accepted",
+            "intentos_envio": 1,
+            "notificacion_android_observada": true,
+            "apertura_nota_correcta": "confirmada por el usuario en el telefono",
+            "lectura_registrada_en": "2026-11-23T03:43:55+00:00",
+            "cuenta_ajena_rechazada": true,
+            "camunda_estado": "ACTIVE"
+        },
+        "derivacion": {
+            "asunto": "Prueba aviso de derivacion",
+            "cite": "NI/DEMO/JURIDICA/2026/000003",
+            "tipo_aviso": "recepcion_derivacion_pendiente",
+            "proceso_app_cerrado_antes_envio": true,
+            "fcm_resultado": "accepted",
+            "intentos_envio": 1,
+            "notificacion_android_observada": true,
+            "apertura_nota_correcta": "confirmada por el usuario en el telefono",
+            "lectura_registrada_en": "2026-11-23T03:47:21+00:00",
+            "cuenta_ajena_rechazada": true,
+            "camunda_estado": "ACTIVE",
+            "pantalla_apagada": true,
+            "estado_android_antes_envio": "Dozing; proceso de la app ausente",
+            "sonido": "confirmado por el usuario"
+        }
+    },
+    "automatizadas": {
+        "rama_solo_64": "29 pruebas Flutter, una integracion adicional con Laravel/PostgreSQL reales y analizador sin incidencias",
+        "compilacion_combinada_local": "47 pruebas y analizador sin incidencias"
+    },
+    "alcance": "Prueba fisica en compilacion local que combina #63 y #64; el PR separa solo #64. Los modulos de avisos son los mismos. La evidencia no acredita el sello ni la latencia de #63 ni el despliegue de #65."
+}
