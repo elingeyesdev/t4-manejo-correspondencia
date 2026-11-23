@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InternalNoteSignature extends Model
 {
@@ -16,8 +17,18 @@ class InternalNoteSignature extends Model
 
     protected $hidden = ['strokes', 'request_key'];
 
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
     protected function casts(): array
     {
-        return ['note_version' => 'integer', 'strokes' => 'encrypted:array', 'signed_at' => 'datetime'];
+        return ['user_id' => 'integer', 'unit_id' => 'integer', 'note_version' => 'integer', 'strokes' => 'encrypted:array', 'signed_at' => 'datetime'];
     }
 }

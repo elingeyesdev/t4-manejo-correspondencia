@@ -1,14 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../compartido/api/laravel_api.dart';
 import '../../compartido/diseno/sakai_widgets.dart';
 import '../../compartido/diseno/institucional.dart';
+import '../../compartido/diseno/tramite_finalizado.dart';
+import '../../compartido/navegacion/volver_inicio.dart';
 import '../mi_bandeja/detalle_laravel_page.dart';
 import '../recorrido/recorrido_documento.dart';
 import 'nota_interna.dart';
 import 'notas_api.dart';
 import 'firma_nota.dart';
 import 'firmar_nota_page.dart';
+import 'seguimiento_nota.dart';
+import 'vista_previa_nota.dart';
 
 class DetalleNotaPage extends StatefulWidget {
   const DetalleNotaPage({
@@ -26,20 +32,59 @@ class DetalleNotaPage extends StatefulWidget {
   State<DetalleNotaPage> createState() => _DetalleNotaPageState();
 }
 
-class _DetalleNotaPageState extends State<DetalleNotaPage> {
+class _DetalleNotaPageState extends State<DetalleNotaPage>
+    with WidgetsBindingObserver {
   NotaInterna? _nota;
   Map<String, dynamic>? _documento;
   SolicitudNota? _pendiente;
   String? _errorCarga, _errorAccion, _mensaje, _avisoExpediente;
   bool _cargando = false, _guardando = false, _confirmando = false;
   bool _hojaOcupada = false, _hojaPendiente = false, _saliendo = false;
+  Timer? _actualizador;
+  final _scroll = ScrollController();
+  bool _sincronizando = false;
+  String? _avisoSincronizacion;
   bool get _ocupada => _cargando || _guardando || _confirmando || _hojaOcupada;
   bool get _sinConfirmar => _pendiente != null || _hojaPendiente;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _cargar();
+    _actualizador = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _actualizarVisible(),
+    );
+  }
+
+  void _actualizarVisible() {
+    if (!mounted ||
+        _ocupada ||
+        _sinConfirmar ||
+        _sincronizando ||
+        _saliendo ||
+        widget.api.token == null ||
+        !(ModalRoute.of(context)?.isCurrent ?? false) ||
+        (WidgetsBinding.instance.lifecycleState != null &&
+            WidgetsBinding.instance.lifecycleState !=
+                AppLifecycleState.resumed)) {
+      return;
+    }
+    unawaited(_cargar(automatica: true));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _actualizarVisible();
+  }
+
+  @override
+  void dispose() {
+    _actualizador?.cancel();
+    _scroll.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   void _limpiar() {
@@ -51,15 +96,18 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
     _mensaje = null;
   }
 
-  Future<void> _cargar() async {
-    if (_cargando) return;
+  Future<void> _cargar({bool automatica = false}) async {
+    if (_cargando || _sincronizando) return;
     final token = widget.api.token;
     final cuenta = widget.api.cuentaId;
+    _sincronizando = automatica;
     setState(() {
-      _cargando = true;
-      _errorCarga = null;
-      _documento = null;
-      _avisoExpediente = null;
+      if (!automatica) {
+        _cargando = true;
+        _errorCarga = null;
+        _documento = null;
+        _avisoExpediente = null;
+      }
     });
     try {
       final servicio = NotasApi(widget.api);
@@ -67,9 +115,17 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
           ? null
           : await servicio.pendientePara(widget.id);
       if (!mounted) return;
+      if (automatica && (_ocupada || _sinConfirmar)) return;
       setState(() => _pendiente = pendiente);
       final nota = await servicio.detalle(widget.id);
       if (!mounted) return;
+      if (automatica &&
+          (_ocupada ||
+              _sinConfirmar ||
+              !(ModalRoute.of(context)?.isCurrent ?? false))) {
+        return;
+      }
+      if (automatica && _nota != null && nota.version < _nota!.version) return;
       if (pendiente != null &&
           await servicio.descartarFirmaDesactualizada(nota, pendiente)) {
         if (!mounted) return;
@@ -141,7 +197,16 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
           estado: 401,
         );
       }
+      if (!mounted ||
+          (automatica &&
+              (_ocupada ||
+                  _sinConfirmar ||
+                  !(ModalRoute.of(context)?.isCurrent ?? false)))) {
+        return;
+      }
       setState(() {
+        _errorCarga = null;
+        _avisoSincronizacion = null;
         _nota = nota;
         _documento = vinculado;
         _avisoExpediente = avisoExpediente;
@@ -149,12 +214,18 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
     } on ErrorLaravel catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorCarga = e.mensaje;
+        if (automatica && !{401, 403, 404}.contains(e.estado)) {
+          _avisoSincronizacion =
+              'Sin actualización: se muestra el último estado confirmado.';
+        } else {
+          _errorCarga = e.mensaje;
+        }
         if ({401, 403, 404}.contains(e.estado) || token != widget.api.token) {
           _limpiar();
         }
       });
     } finally {
+      _sincronizando = false;
       if (mounted) setState(() => _cargando = false);
     }
   }
@@ -364,6 +435,13 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
       });
     }
     await _cargar();
+    if (mounted && _scroll.hasClients) {
+      await _scroll.animateTo(
+        0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   Future<void> _salir() async {
@@ -422,6 +500,14 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
     if (mounted) await _cargar();
   }
 
+  void _volverInicio() {
+    if (_ocupada || _sinConfirmar || _saliendo) return;
+    setState(() => _saliendo = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) DestinoInicio.abrir(context);
+    });
+  }
+
   @override
   Widget build(BuildContext context) =>
       InterfazInstitucional(builder: _construir);
@@ -429,6 +515,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
   Widget _construir(BuildContext context) {
     final nota = _nota;
     final puedeActuar = !_ocupada && !_sinConfirmar && _errorCarga == null;
+    final finalizada = nota?.estado == 'cerrada' && _errorCarga == null;
     final acciones = <Widget>[
       if (!widget.soloLectura && nota != null && _pendiente == null) ...[
         if (nota.permite('firmar_borrador'))
@@ -484,7 +571,11 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
             ),
           ],
         ),
-        bottomNavigationBar: acciones.isEmpty
+        bottomNavigationBar: finalizada
+            ? VolverInicioFinalizado(
+                onPressed: puedeActuar ? _volverInicio : null,
+              )
+            : acciones.isEmpty
             ? null
             : SafeArea(
                 top: false,
@@ -502,6 +593,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
                 ),
               ),
         body: ListView(
+          controller: _scroll,
           padding: const EdgeInsets.all(20),
           children: [
             if (_cargando || _guardando || _hojaOcupada)
@@ -530,15 +622,21 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
                 _errorAccion!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
+            if (_avisoSincronizacion != null) Text(_avisoSincronizacion!),
             if (nota != null) ...[
               Text(
                 nota.asunto,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
+              if (widget.soloLectura) const Text('Copia para conocimiento.'),
               const SizedBox(height: 8),
-              Text(nota.cite, style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 12),
               EstadoInstitucional(nota.etiquetaEstado),
+              if (finalizada) const TramiteFinalizado(),
+              if (nota.seguimiento != null) ...[
+                const SizedBox(height: 16),
+                BarraSeguimientoNota(seguimiento: nota.seguimiento!),
+              ],
               if (nota.estadoFirma != null) ...[
                 const SizedBox(height: 8),
                 Text(switch (nota.estadoFirma) {
@@ -547,9 +645,18 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
                   _ => 'La firma todavía no fue solicitada desde web.',
                 }),
               ],
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.description_outlined),
+                label: const Text('Abrir vista previa'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => VistaPreviaNota(nota: nota),
+                  ),
+                ),
+              ),
+              DocumentoNota(nota: nota),
               const SizedBox(height: 12),
-              DatoInstitucional('DE', nota.emisor),
-              DatoInstitucional('A', nota.destinataria),
               if (nota.datos['unidad_actual'] case final Map unidad)
                 DatoInstitucional('Unidad actual', '${unidad['nombre']}'),
               if (nota.datos['destino_pendiente'] case final Map unidad)
@@ -561,18 +668,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
                 'Fecha',
                 sakaiDate(nota.datos['fecha_ultimo_movimiento']),
               ),
-              if (nota.datos['referencia'] case final String referencia)
-                DatoInstitucional('Referencia', referencia),
               const SizedBox(height: 20),
-              Text('Contenido', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              if (nota.cuerpo != null)
-                Text(
-                  nota.cuerpo!,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              const SizedBox(height: 20),
-              if (widget.soloLectura) const Text('Copia para conocimiento.'),
               if (_pendiente != null) ...[
                 const Text(
                   'El resultado todavía no está confirmado. Se conservará el mismo intento al reintentar.',
@@ -612,10 +708,6 @@ class _DetalleNotaPageState extends State<DetalleNotaPage> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
-              Text(
-                'Versión ${nota.version}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
               for (final m
                   in (nota.datos['movimientos_nota'] as List? ?? const []))
                 Padding(

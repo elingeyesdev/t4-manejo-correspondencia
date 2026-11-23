@@ -78,6 +78,7 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
       [
         'asunto',
         'remitente',
+        'cite',
         'codigo',
         'guia',
       ].any((key) => '${d[key] ?? ''}'.toLowerCase().contains(_busqueda));
@@ -218,10 +219,11 @@ class _BandejaLaravelPageState extends State<BandejaLaravelPage> {
                               style: const TextStyle(color: Sakai.muted),
                             ),
                             const SizedBox(height: 6),
-                            Text(
-                              '${d['codigo'] ?? d['guia'] ?? ''}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
+                            if (d['cite'] is String)
+                              Text(
+                                d['cite'] as String,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 10,

@@ -239,7 +239,7 @@ void main() {
       });
       await tester.pumpAndSettle();
       expect(find.text('Detalle de correspondencia'), findsOneWidget);
-      expect(find.text(guia), findsOneWidget);
+      expect(find.text(guia), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.runAsync(() async {
         await sesion!.salir();

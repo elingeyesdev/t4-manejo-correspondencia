@@ -266,14 +266,19 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Solicitud de información'));
       await tester.pumpAndSettle();
-      expect(find.text('HR-2026-001'), findsOneWidget);
-      expect(find.text('COR-2026-001'), findsOneWidget);
+      expect(find.text('HR-2026-001'), findsNothing);
+      expect(find.text('COR-2026-001'), findsNothing);
+      expect(find.text('Detalle de correspondencia'), findsOneWidget);
       await _capturar(tester, 'detalle');
       await tester.scrollUntilVisible(
         find.text('Volver a mi bandeja'),
         250,
         scrollable: find.byType(Scrollable).first,
       );
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'Volver a mi bandeja'),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Volver a mi bandeja'));
       await tester.pumpAndSettle();
       expect(find.text('Solicitud de información'), findsOneWidget);

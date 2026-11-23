@@ -152,7 +152,8 @@ class InternalNoteFlowTest extends TestCase
         $this->postJson($uri.'/conformidades', ['version' => $sent->json('version')], $via1Key)
             ->assertUnprocessable()->assertJsonValidationErrors('firma');
         $this->postJson($uri.'/conformidades', $via1Action, $via1Key)->assertAccepted()
-            ->assertJsonPath('version', $sent->json('version'))->assertJsonCount(1, 'movimientos_nota');
+            ->assertJsonPath('version', $sent->json('version'))->assertJsonCount(1, 'movimientos_nota')
+            ->assertJsonCount(1, 'constancias')->assertJsonPath('constancias.0.accion', 'firma_remitente');
         $this->assertDatabaseCount('note_notices', 1);
 
         Sanctum::actingAs($via2);
@@ -166,7 +167,8 @@ class InternalNoteFlowTest extends TestCase
 
         Sanctum::actingAs($via2);
         $this->postJson($uri.'/conformidades', ['version' => $step->json('version'), 'firma' => self::SIGNATURE], $this->key())
-            ->assertOk()->assertJsonPath('estado', 'pendiente_recepcion')->assertJsonCount(3, 'movimientos_nota');
+            ->assertOk()->assertJsonPath('estado', 'pendiente_recepcion')->assertJsonCount(3, 'movimientos_nota')
+            ->assertJsonCount(3, 'constancias')->assertJsonPath('constancias.2.accion', 'conformidad_via');
         $this->assertDatabaseCount('note_notices', 3);
         $this->assertDatabaseHas('note_notices', ['user_id' => $via2->id, 'type' => NoteNotice::REVIEW]);
         $this->assertDatabaseHas('note_notices', ['user_id' => $this->recipient->id, 'type' => NoteNotice::INITIAL_RECEIPT]);
@@ -214,7 +216,8 @@ class InternalNoteFlowTest extends TestCase
         $this->postJson($uri.'/firmas', $action + ['firma' => [[[0, 0], [0, 0]]]], $key)
             ->assertUnprocessable()->assertJsonValidationErrors('firma');
         $this->postJson($uri.'/firmas', $signature, $key)->assertOk()->assertJsonPath('estado_firma', 'firmada')
-            ->assertJsonPath('acciones_permitidas', ['editar_borrador', 'emitir'])->assertJsonMissingPath('firma');
+            ->assertJsonPath('acciones_permitidas', ['editar_borrador', 'emitir'])->assertJsonMissingPath('firma')
+            ->assertJsonCount(1, 'constancias')->assertJsonPath('constancias.0.fecha', InternalNoteSignature::firstOrFail()->signed_at->toISOString());
         $this->postJson($uri.'/firmas', $signature, $key)->assertOk();
         $this->getJson($tray)->assertOk()->assertJsonPath('meta.total', 0);
         $this->assertDatabaseCount('internal_note_signatures', 1);
@@ -227,14 +230,15 @@ class InternalNoteFlowTest extends TestCase
 
         $this->patchJson($uri, $this->draft() + $action)->assertOk()->assertJsonPath('estado_firma', 'firmada');
         $edited = $this->patchJson($uri, array_replace($this->draft(), ['cuerpo' => 'Contenido corregido']) + $action)
-            ->assertOk()->assertJsonPath('estado_firma', 'sin_solicitar');
+            ->assertOk()->assertJsonPath('estado_firma', 'sin_solicitar')->assertJsonCount(0, 'constancias');
         $this->postJson($uri.'/emision', $action, $this->key())->assertConflict();
         $this->postJson($uri.'/emision', ['version' => $edited->json('version')], $this->key())
             ->assertUnprocessable()->assertJsonValidationErrors('firma');
         Http::assertNothingSent();
         $this->signDraft($uri, $edited->json('version'));
         $this->postJson($uri.'/emision', ['version' => $edited->json('version')], $this->key())
-            ->assertOk()->assertJsonPath('estado', 'pendiente_recepcion');
+            ->assertOk()->assertJsonPath('estado', 'pendiente_recepcion')
+            ->assertJsonCount(1, 'constancias')->assertJsonPath('constancias.0.version', $edited->json('version'));
         Http::assertSentCount(1);
     }
 
@@ -303,6 +307,10 @@ class InternalNoteFlowTest extends TestCase
             'fecha_hora' => Carbon::parse($movement->occurred_at)->toISOString(),
         ];
         $receipt->assertJsonPath('sello_recepcion', $stamp);
+        $receipt->assertJsonCount(1, 'constancias')->assertJsonPath('constancias.0.actor.nombre', $this->author->name)
+            ->assertJsonPath('constancias.0.unidad.nombre', $this->author->unit->name);
+        $this->assertSame(['tipo', 'accion', 'version', 'actor', 'unidad', 'fecha'], array_keys($receipt->json('constancias.0')));
+        $this->getJson('/api/hojas/'.$sheet)->assertOk()->assertJsonPath('nota_id', $draft->json('id'));
         $this->getJson($uri)->assertOk()->assertJsonPath('sello_recepcion', $stamp);
         $this->postJson($uri.'/recepciones', $payload, $key)->assertOk()
             ->assertJsonPath('hoja_id', $sheet)->assertJsonPath('sello_recepcion', $stamp);

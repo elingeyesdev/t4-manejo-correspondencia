@@ -9,6 +9,7 @@ import '../../compartido/diseno/sakai_widgets.dart';
 import '../../compartido/diseno/institucional.dart';
 import '../mi_bandeja/detalle_laravel_page.dart';
 import '../recorrido/recorrido_api.dart';
+import '../notas_internas/detalle_nota_page.dart';
 
 class ConsultaQrPage extends StatefulWidget {
   const ConsultaQrPage({
@@ -124,11 +125,17 @@ class _ConsultaQrPageState extends State<ConsultaQrPage>
       setState(() => _vista = false);
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => DetalleLaravelPage(
-            api: widget.api,
-            id: documento['id'] as String,
-            puedeAdjuntar: widget.puedeAdjuntar,
-          ),
+          builder: (_) => documento['nota_id'] is String
+              ? DetalleNotaPage(
+                  api: widget.api,
+                  id: documento['nota_id'] as String,
+                  puedeAdjuntar: widget.puedeAdjuntar,
+                )
+              : DetalleLaravelPage(
+                  api: widget.api,
+                  id: documento['id'] as String,
+                  puedeAdjuntar: widget.puedeAdjuntar,
+                ),
         ),
       );
     } on ErrorLaravel catch (e) {

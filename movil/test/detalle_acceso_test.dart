@@ -73,7 +73,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.text('Asunto reservado'), findsOneWidget);
-        expect(find.text('DOC-RESERVADO'), findsOneWidget);
+        expect(find.text('DOC-RESERVADO'), findsNothing);
         expect(find.text('Observación reservada'), findsOneWidget);
         expect(find.byType(RecorridoDocumento), findsOneWidget);
         expect(find.byType(AdjuntosDocumento), findsOneWidget);

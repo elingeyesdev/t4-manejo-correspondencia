@@ -385,6 +385,11 @@ void main() {
       );
       expect(find.text('CM/TI/001'), findsOneWidget);
       expect(find.text('Copia para conocimiento.'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.textContaining('Tu cuenta puede consultar la nota'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(
         find.textContaining('Tu cuenta puede consultar la nota'),
         findsOneWidget,
@@ -392,6 +397,9 @@ void main() {
       expect(find.text('Firmar y dar conformidad'), findsNothing);
       expect(find.text('Confirmar recepción'), findsNothing);
       expect(find.text('Registrar atención'), findsNothing);
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'Ver expediente y adjuntos'),
+      );
       expect(
         tester
             .widget<OutlinedButton>(
@@ -527,7 +535,7 @@ void main() {
     await pulsar(tester, 'Firmar y dar conformidad');
     await pulsar(tester, 'Confirmar');
     expect(find.textContaining('La nota cambió.'), findsOneWidget);
-    expect(find.text('Versión 4'), findsOneWidget);
+    expect(find.text('Versión 4'), findsNothing);
     await pulsar(tester, 'Firmar y dar conformidad');
     await pulsar(tester, 'Confirmar');
     expect(versiones, [3, 4]);
