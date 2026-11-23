@@ -99,6 +99,7 @@ class Document extends Model
     public function detailPayload(User $actor): array
     {
         $payload = $this->payload();
+        $payload['nota_id'] = InternalNote::visibleTo($actor)->where('document_id', $this->id)->value('id');
         $original = $this->rootDocument();
         $original->loadMissing('sheet.currentUnit', 'sheet.responsible');
         $sheet = $original->sheet;

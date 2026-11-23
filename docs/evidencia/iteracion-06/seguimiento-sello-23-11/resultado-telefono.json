@@ -1,0 +1,66 @@
+{
+    "nota": "01a208fe-fe39-7383-9b2e-374782e3798d",
+    "cite": "NI/DEMO/JURIDICA/2026/000005",
+    "transiciones": [
+        {
+            "accion": "recepcion",
+            "etapa": "recepcion",
+            "etiqueta": "Recibida",
+            "unidad": "Recepción",
+            "latencia_desde_confirmacion_http_ms": 1193,
+            "sin_recargar": true
+        },
+        {
+            "accion": "derivacion",
+            "etapa": "recepcion",
+            "etiqueta": "Recepción por derivación pendiente",
+            "unidad": "asesoria juridica",
+            "latencia_desde_confirmacion_http_ms": 1542,
+            "sin_recargar": true
+        },
+        {
+            "accion": "recepcion_derivada",
+            "etapa": "recepcion",
+            "etiqueta": "Recibida",
+            "unidad": "asesoria juridica",
+            "latencia_desde_confirmacion_http_ms": 1669,
+            "sin_recargar": true
+        },
+        {
+            "accion": "atencion",
+            "etapa": "atencion",
+            "etiqueta": "En atención",
+            "unidad": "asesoria juridica",
+            "latencia_desde_confirmacion_http_ms": 1336,
+            "sin_recargar": true
+        },
+        {
+            "accion": "cierre",
+            "etapa": "cierre",
+            "etiqueta": "Cerrada",
+            "unidad": "asesoria juridica",
+            "latencia_desde_confirmacion_http_ms": 1359,
+            "sin_recargar": true
+        }
+    ],
+    "conexion": "Wi-Fi sin adb reverse; USB solo instalación y control del ensayo",
+    "qr_resuelve_misma_nota": true,
+    "sello": {
+        "id": "17b20989-2bf1-42b2-8762-2b5524969402",
+        "cite": "NI/DEMO/JURIDICA/2026/000005",
+        "unidad": "Recepción",
+        "funcionario": "Recepción Prueba",
+        "fecha_hora": "2026-11-23T15:26:36.000000Z"
+    },
+    "sello_estable": true,
+    "estado_final": "cerrada",
+    "detalle_sin_reabrir": true,
+    "fecha": "2026-11-23",
+    "modelo": "POCO F3",
+    "android": "13",
+    "camunda_final": "COMPLETED",
+    "metodo": "Ensayo automatizado sobre widgets reales en teléfono físico; acciones por formularios HTTP web con sesión y CSRF; sin respuestas simuladas",
+    "latencia_definicion": "Desde la respuesta HTTP del formulario confirmado hasta observar etiqueta, unidad y sobre correctos en los widgets Android, sin recargar ni reabrir",
+    "movimientos": 5,
+    "apk_normal_sha256": "3a486a7523689b0405670612d49167ebc581f063e14f91d0e28ee88f6cb26106"
+}

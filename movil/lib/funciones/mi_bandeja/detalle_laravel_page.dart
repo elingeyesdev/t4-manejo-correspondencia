@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../compartido/api/laravel_api.dart';
 import '../../compartido/diseno/sakai_theme.dart';
 import '../../compartido/diseno/institucional.dart';
+import '../../compartido/diseno/tramite_finalizado.dart';
+import '../../compartido/navegacion/volver_inicio.dart';
 import '../../compartido/diseno/sakai_widgets.dart';
 import '../camara/camara_documento.dart';
 import '../adjuntos/adjuntos_documento.dart';
 import '../recorrido/recorrido_documento.dart';
+import '../notas_internas/seguimiento_nota.dart';
 
 class DetalleLaravelPage extends StatefulWidget {
   const DetalleLaravelPage({
@@ -26,7 +31,14 @@ class DetalleLaravelPage extends StatefulWidget {
   State<DetalleLaravelPage> createState() => _DetalleLaravelPageState();
 }
 
-class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
+class _DetalleLaravelPageState extends State<DetalleLaravelPage>
+    with WidgetsBindingObserver {
+  Timer? _actualizador;
+  bool _sincronizando = false;
+  int _generacionConsulta = 0;
+  String? _avisoSincronizacion;
+  SeguimientoNota? _seguimiento;
+  List<ConstanciaNota> _constancias = [];
   Map<String, dynamic>? _datos;
   List? _historial;
   String? _error;
@@ -40,24 +52,68 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _cargar();
+    _actualizador = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _actualizarVisible(),
+    );
   }
 
-  Future<void> _cargar() async {
-    if (_cargando) return;
+  bool get _protegida =>
+      _cargando ||
+      _fotoPendiente ||
+      _subiendo ||
+      _operando ||
+      _solicitudPendiente ||
+      _saliendo;
+  void _actualizarVisible() {
+    if (!mounted ||
+        _protegida ||
+        _sincronizando ||
+        widget.api.token == null ||
+        !(ModalRoute.of(context)?.isCurrent ?? false) ||
+        (WidgetsBinding.instance.lifecycleState != null &&
+            WidgetsBinding.instance.lifecycleState !=
+                AppLifecycleState.resumed)) {
+      return;
+    }
+    unawaited(_cargar(automatica: true));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _actualizarVisible();
+  }
+
+  @override
+  void dispose() {
+    _actualizador?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _cargar({bool automatica = false}) async {
+    if (automatica && (_cargando || _sincronizando)) return;
+    final generacion = ++_generacionConsulta;
+    bool vigente() => mounted && generacion == _generacionConsulta;
+    _sincronizando = automatica;
+    final token = widget.api.token, cuenta = widget.api.cuentaId;
     setState(() {
-      _cargando = true;
-      _error = null;
+      if (!automatica) {
+        _cargando = true;
+        _error = null;
+      }
     });
     try {
       final datos = await widget.api.enviar(
         'GET',
         'documentos/${Uri.encodeComponent(widget.id)}',
       );
-      if (!mounted) return;
+      if (!vigente()) return;
       final hojaRecibida = datos['hoja'];
       final accionesRecibidas = datos['acciones_permitidas'];
-      if (datos['id'] is! String ||
+      if (datos['id'] != widget.id ||
           (hojaRecibida != null && hojaRecibida is! Map) ||
           (accionesRecibidas != null &&
               (accionesRecibidas is! List ||
@@ -66,27 +122,63 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
           'No se pudieron interpretar los datos del documento.',
         );
       }
-      setState(() => _datos = datos);
+      final seguimiento = datos['seguimiento'] == null
+          ? null
+          : SeguimientoNota.desdeJson(datos['seguimiento']);
+      if (datos['constancias'] != null && datos['constancias'] is! List) {
+        throw const ErrorLaravel('No se pudieron interpretar las constancias.');
+      }
+      final constancias = (datos['constancias'] as List? ?? [])
+          .map(ConstanciaNota.desdeJson)
+          .toList();
+      List? historial;
       if ((datos['hoja'] as Map?)?['id'] is String) {
         final historia = await widget.api.enviar(
           'GET',
           'documentos/${Uri.encodeComponent(widget.id)}/historial',
         );
-        if (!mounted) return;
+        if (!vigente()) return;
         if (historia['data'] is! List) {
           throw const ErrorLaravel(
             'No se pudo interpretar el historial del documento.',
           );
         }
-        setState(() => _historial = historia['data'] as List);
+        historial = historia['data'] as List;
       }
+      if (!mounted ||
+          !vigente() ||
+          (automatica &&
+              (_protegida || !(ModalRoute.of(context)?.isCurrent ?? false)))) {
+        return;
+      }
+      if (token != widget.api.token || cuenta != widget.api.cuentaId) {
+        throw const ErrorLaravel(
+          'Tu sesión cambió. Vuelve a abrir el documento.',
+          estado: 401,
+        );
+      }
+      setState(() {
+        _datos = datos;
+        _historial = historial;
+        _seguimiento = seguimiento;
+        _constancias = constancias;
+        _avisoSincronizacion = null;
+        _error = null;
+      });
     } on ErrorLaravel catch (e) {
-      if (mounted) {
+      if (vigente()) {
         setState(() {
-          _error = e.mensaje;
-          if (e.estado == 403 || e.estado == 404) {
+          if (automatica && !{401, 403, 404}.contains(e.estado)) {
+            _avisoSincronizacion =
+                'Sin actualización: se muestra el último estado confirmado.';
+          } else {
+            _error = e.mensaje;
+          }
+          if ({401, 403, 404}.contains(e.estado)) {
             _datos = null;
             _historial = null;
+            _seguimiento = null;
+            _constancias = [];
             _fotoPendiente = false;
             _subiendo = false;
             _operando = false;
@@ -95,11 +187,21 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
         });
       }
     } finally {
-      if (mounted) setState(() => _cargando = false);
+      if (vigente()) {
+        _sincronizando = false;
+        setState(() => _cargando = false);
+      }
     }
   }
 
+  void _invalidarConsulta() {
+    _generacionConsulta++;
+    _sincronizando = false;
+  }
+
   Future<void> _confirmado(Map<String, dynamic>? resultado) async {
+    if (!mounted) return;
+    _invalidarConsulta();
     if (resultado != null && _datos != null) {
       final hoja = resultado['hoja'] as Map<String, dynamic>;
       setState(
@@ -170,6 +272,7 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
     final acciones = datos?['acciones_permitidas'] as List? ?? [];
     final responsable = hoja['responsable'];
     final movimientos = _historial ?? datos?['movimientos'] as List? ?? [];
+    final finalizada = datos?['estado'] == 'CERRADA' && _error == null;
     final puedeAdjuntar =
         !widget.soloLectura &&
         datos?['estado'] != 'CERRADA' &&
@@ -185,6 +288,18 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
         if (!didPop) _volver();
       },
       child: Scaffold(
+        bottomNavigationBar: finalizada
+            ? VolverInicioFinalizado(
+                onPressed: _protegida
+                    ? null
+                    : () {
+                        setState(() => _saliendo = true);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) DestinoInicio.abrir(context);
+                        });
+                      },
+              )
+            : null,
         appBar: CabeceraInstitucional(
           titulo: 'Detalle de correspondencia',
           leading: BackButton(onPressed: _volver),
@@ -240,20 +355,41 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 6),
-                  SelectableText(
-                    (datos['codigo'] ?? '').toString(),
-                    style: const TextStyle(color: Sakai.muted),
-                  ),
+                  if (datos['cite'] is String)
+                    SelectableText(datos['cite'] as String),
                   const SizedBox(height: 10),
                   SakaiStatus((datos['estado'] ?? '').toString()),
+                  if (finalizada) const TramiteFinalizado(),
+                  if (_avisoSincronizacion != null) Text(_avisoSincronizacion!),
+                  if (_seguimiento != null)
+                    BarraSeguimientoNota(seguimiento: _seguimiento!),
+                  if (_constancias.isNotEmpty)
+                    ConstanciasNota(constancias: _constancias),
+                  IgnorePointer(
+                    key: const ValueKey('adjuntos'),
+                    ignoring: _operando || _solicitudPendiente || _cargando,
+                    child: AdjuntosDocumento(
+                      key: ValueKey(widget.id),
+                      api: widget.api,
+                      documentoId: widget.id,
+                      codigo: (datos['codigo'] ?? datos['guia'] ?? '')
+                          .toString(),
+                      puedeAdjuntar: puedeAdjuntar,
+                      crearCamara: widget.crearCamara,
+                      alOcuparse: (valor) {
+                        if (mounted) setState(() => _subiendo = valor);
+                      },
+                      alCambiar: (valor) {
+                        if (mounted) setState(() => _fotoPendiente = valor);
+                      },
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   SakaiSection(
                     title: 'Información del documento',
                     icon: PrimeIcons.file,
                     child: Column(
                       children: [
-                        SakaiField('Guía', datos['guia']),
-                        const Divider(),
                         SakaiField('Remitente', datos['remitente']),
                         SakaiField('Fecha', sakaiDate(datos['fecha'])),
                         SakaiField('Tipo', (datos['tipo'] as Map?)?['name']),
@@ -276,7 +412,6 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
                     background: Sakai.violetLight,
                     child: Column(
                       children: [
-                        SakaiField('Código', hoja['codigo']),
                         if (responsable != null)
                           SakaiField(
                             'Responsable actual',
@@ -316,7 +451,10 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
                           _fotoPendiente,
                       alConfirmar: _confirmado,
                       alOcuparse: (valor) {
-                        if (mounted) setState(() => _operando = valor);
+                        if (mounted) {
+                          if (valor) _invalidarConsulta();
+                          setState(() => _operando = valor);
+                        }
                       },
                       alPendiente: (valor) {
                         if (mounted) {
@@ -325,25 +463,6 @@ class _DetalleLaravelPageState extends State<DetalleLaravelPage> {
                       },
                     ),
                   const SizedBox(height: 16),
-                  IgnorePointer(
-                    key: const ValueKey('adjuntos'),
-                    ignoring: _operando || _solicitudPendiente || _cargando,
-                    child: AdjuntosDocumento(
-                      key: ValueKey(widget.id),
-                      api: widget.api,
-                      documentoId: widget.id,
-                      codigo: (datos['codigo'] ?? datos['guia'] ?? '')
-                          .toString(),
-                      puedeAdjuntar: puedeAdjuntar,
-                      crearCamara: widget.crearCamara,
-                      alOcuparse: (valor) {
-                        if (mounted) setState(() => _subiendo = valor);
-                      },
-                      alCambiar: (valor) {
-                        if (mounted) setState(() => _fotoPendiente = valor);
-                      },
-                    ),
-                  ),
                   const SizedBox(height: 16),
                   SakaiSection(
                     title: 'Historial',

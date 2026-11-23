@@ -1,0 +1,74 @@
+{
+    "fecha": "2026-11-23",
+    "tipo": "HTTP web\/API reales; no es una prueba visual ni de latencia Android",
+    "transiciones": [
+        {
+            "accion": "emision",
+            "estado": "pendiente_recepcion",
+            "etapa": "recepcion",
+            "unidad": "Recepción",
+            "web_y_api_coinciden": true,
+            "tiempo_http_ms": 1973
+        },
+        {
+            "accion": "recepcion",
+            "estado": "recibida",
+            "etapa": "recepcion",
+            "unidad": "Recepción",
+            "web_y_api_coinciden": true,
+            "tiempo_http_ms": 2072
+        },
+        {
+            "accion": "derivacion",
+            "estado": "pendiente_recepcion",
+            "etapa": "recepcion",
+            "unidad": "asesoria juridica",
+            "web_y_api_coinciden": true,
+            "tiempo_http_ms": 2312
+        },
+        {
+            "accion": "recepcion_derivada",
+            "estado": "recibida",
+            "etapa": "recepcion",
+            "unidad": "asesoria juridica",
+            "web_y_api_coinciden": true,
+            "tiempo_http_ms": 1854
+        },
+        {
+            "accion": "atencion",
+            "estado": "en_atencion",
+            "etapa": "atencion",
+            "unidad": "asesoria juridica",
+            "web_y_api_coinciden": true,
+            "tiempo_http_ms": 1980
+        },
+        {
+            "accion": "cierre",
+            "estado": "cerrada",
+            "etapa": "cierre",
+            "unidad": "asesoria juridica",
+            "web_y_api_coinciden": true,
+            "tiempo_http_ms": 2006
+        }
+    ],
+    "nota": "01a208d7-3517-7233-a452-cb7522692bfa",
+    "constancia_firma_autorizada": true,
+    "cite": "NI\/DEMO\/JURIDICA\/2026\/000004",
+    "hoja": "7249ed9e-febf-43ce-b9e0-fdc9e827bf48",
+    "documento": "5151e7c7-10e7-483b-aff9-86f9ec70d9cc",
+    "sello": {
+        "id": "c6ba502d-9a18-40fe-a788-ddbca19b9bc9",
+        "cite": "NI\/DEMO\/JURIDICA\/2026\/000004",
+        "unidad": "Recepción",
+        "funcionario": "Recepción Prueba",
+        "fecha_hora": "2026-11-23T14:37:36.000000Z"
+    },
+    "qr_abre_nota": true,
+    "sello_web": true,
+    "recurso_qr_autorizado": true,
+    "sello_inmutable": true,
+    "estado_final": "cerrada",
+    "camunda_final": "COMPLETED",
+    "reintento_mismo_sello": true,
+    "reintento_estado_final": "cerrada"
+}

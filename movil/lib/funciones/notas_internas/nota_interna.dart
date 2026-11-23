@@ -1,4 +1,5 @@
 import '../../compartido/api/laravel_api.dart';
+import 'seguimiento_nota.dart';
 
 enum BandejaNota {
   firmar('por_firmar', 'Por firmar'),
@@ -12,8 +13,10 @@ enum BandejaNota {
 }
 
 class NotaInterna {
-  NotaInterna._(this.datos);
+  NotaInterna._(this.datos, this.seguimiento, this.constancias);
   final Map<String, dynamic> datos;
+  final SeguimientoNota? seguimiento;
+  final List<ConstanciaNota> constancias;
 
   factory NotaInterna.desdeJson(Map<String, dynamic> datos) {
     final acciones = datos['acciones_permitidas'];
@@ -55,6 +58,13 @@ class NotaInterna {
         'No se pudo interpretar el recorrido de la nota.',
       );
     }
+    final seguimiento = datos['seguimiento'] == null
+        ? null
+        : SeguimientoNota.desdeJson(datos['seguimiento']);
+    final constancias = datos['constancias'];
+    if (constancias != null && constancias is! List) {
+      throw const ErrorLaravel('No se pudieron interpretar las constancias.');
+    }
     return NotaInterna._(
       Map.unmodifiable({
         ...datos,
@@ -62,6 +72,16 @@ class NotaInterna {
           acciones.cast<String>(),
         ),
       }),
+      seguimiento,
+      List.unmodifiable([
+        ...(constancias as List? ?? [])
+            .map(ConstanciaNota.desdeJson)
+            .where(
+              (c) => datos['sello_recepcion'] == null || c.tipo != 'recepcion',
+            ),
+        if (datos['sello_recepcion'] != null)
+          ConstanciaNota.desdeSello(datos['sello_recepcion']),
+      ]),
     );
   }
 

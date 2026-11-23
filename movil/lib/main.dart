@@ -8,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'compartido/diseno/sakai_theme.dart';
 import 'compartido/diseno/sakai_widgets.dart';
 import 'compartido/diseno/institucional.dart';
+import 'compartido/navegacion/volver_inicio.dart';
 import 'funciones/consultar_envio/consulta_envio_page.dart';
 import 'funciones/inicio/home_page.dart';
 import 'funciones/iniciar_sesion/acceso_laravel_page.dart';
@@ -80,6 +81,13 @@ class _PuertaSesionState extends State<PuertaSesion>
   bool _abriendoAviso = false;
   String? _mostrado;
   final _navegador = GlobalKey<NavigatorState>();
+  final _principal = GlobalKey<_PantallaPrincipalState>();
+
+  void _volverInicio() {
+    _navegador.currentState?.popUntil((ruta) => ruta.isFirst);
+    _principal.currentState?._mostrar(0);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -219,13 +227,17 @@ class _PuertaSesionState extends State<PuertaSesion>
       return _sesion.autenticada
           ? NavigatorPopHandler(
               onPopWithResult: (_) => _navegador.currentState?.maybePop(),
-              child: Navigator(
-                key: _navegador,
-                onGenerateRoute: (_) => MaterialPageRoute<void>(
-                  builder: (_) => PantallaPrincipal(
-                    servicio: null,
-                    sesion: _sesion,
-                    avisos: _avisos,
+              child: DestinoInicio(
+                volver: _volverInicio,
+                child: Navigator(
+                  key: _navegador,
+                  onGenerateRoute: (_) => MaterialPageRoute<void>(
+                    builder: (_) => PantallaPrincipal(
+                      key: _principal,
+                      servicio: null,
+                      sesion: _sesion,
+                      avisos: _avisos,
+                    ),
                   ),
                 ),
               ),

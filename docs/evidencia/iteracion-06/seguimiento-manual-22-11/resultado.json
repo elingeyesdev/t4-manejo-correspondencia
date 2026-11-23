@@ -1,0 +1,39 @@
+{
+  "fecha": "2026-11-22",
+  "tipo": "prueba manual con datos ficticios",
+  "nota": {
+    "asunto": "ererer",
+    "numero": "NI/DEMO/RECEPCION/2026/000002",
+    "estado_api": "cerrada",
+    "etapa_api": "cierre",
+    "unidad": "Recepción"
+  },
+  "web": {
+    "resultado": "cierre registrado en el historial",
+    "actor_ficticio": "Recepción Prueba",
+    "hora_mostrada_bolivia": "19:04:08"
+  },
+  "android": {
+    "equipo": "POCO F3, Android 13",
+    "version_code": 2001,
+    "apk_sha256": "2D83794ECCEA21EF4ABD969A491F2FBD4700DA70B190F700874D5D953B9DF5BE",
+    "resultado": "la barra pasó automáticamente a Cierre sin actualizar ni reabrir",
+    "fuente": "confirmación expresa del usuario durante la prueba",
+    "captura_android": null,
+    "tiempo_medido_segundos": null,
+    "medicion_objetivo_cinco_segundos": "pendiente"
+  },
+  "camunda": {
+    "process_instance_key": "2251799813742222",
+    "estado_consultado": "COMPLETED"
+  },
+  "alcance": {
+    "servidor": "Laravel/PostgreSQL y Camunda locales en Windows",
+    "transporte_api_telefono": "Wi-Fi; sin redirección adb del puerto 8000",
+    "usb": "utilizado para instalar; no se acredita una prueba completa sin USB",
+    "servidor_ubuntu_piloto": "no validado en este ensayo",
+    "sello": "pendiente de #58",
+    "push_firebase_real": "pendiente de configuración y prueba de #59/#64",
+    "derivacion_con_actualizacion_automatica": "pendiente"
+  }
+}

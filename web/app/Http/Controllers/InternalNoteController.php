@@ -309,6 +309,7 @@ class InternalNoteController extends Controller
             $data['referencia'] = $note->reference;
             $data['cuerpo'] = $note->body;
             $data['sello_recepcion'] = $note->receiptStamp();
+            $data['constancias'] = $this->signatureReceipts($note);
             $count = $note->participants->where('role', 'via')->count();
             $data['movimientos_nota'] = $note->participants->whereNotNull('confirmed_at')->values()->map(fn ($via) => [
                 'id' => $via->id,
@@ -329,6 +330,28 @@ class InternalNoteController extends Controller
         }
 
         return $data;
+    }
+
+    private function signatureReceipts(InternalNote $note): array
+    {
+        $confirmed = $note->participants->where('role', 'via')->whereNotNull('confirmed_at')->keyBy('user_id');
+
+        return $note->signatures()->with(['user:id,name', 'unit:id,name'])
+            ->orderBy('signed_at')->orderBy('id')
+            ->get(['id', 'user_id', 'unit_id', 'action', 'note_version', 'signed_at'])
+            ->filter(fn (InternalNoteSignature $signature) => match ($signature->action) {
+                InternalNoteSignature::SENDER => $signature->user_id === $note->author_id
+                    && $signature->note_version === ($note->emission_version ?? $note->version),
+                InternalNoteSignature::VIA => isset($confirmed[$signature->user_id])
+                    && $confirmed[$signature->user_id]->action_version === $signature->note_version,
+                default => false,
+            })
+            ->map(fn (InternalNoteSignature $signature) => [
+                'tipo' => 'firma', 'accion' => $signature->action, 'version' => $signature->note_version,
+                'actor' => ['nombre' => $signature->user->name],
+                'unidad' => ['nombre' => $signature->unit->name],
+                'fecha' => $signature->signed_at->toISOString(),
+            ])->values()->all();
     }
 
     private function routeSummary(InternalNote $note): array
