@@ -1,65 +1,118 @@
-# Manual Android · Iteración 06
+# Manual de uso de Correspondencia en Android
 
-## Antes de entrar
+Esta aplicación permite revisar, firmar y recibir notas de su institución desde el teléfono. Cada persona ve las notas que le corresponde consultar o atender.
 
-La app necesita Internet y acceso al mismo servidor que usa la web. La versión
-para entrega debe llevar la dirección del servidor de Mathew; `127.0.0.1` apunta
-al propio equipo y la versión Wi-Fi local requiere que la computadora siga
-encendida. No hace falta USB para usar la app cuando esa conexión está preparada.
+## Entrar a la aplicación
 
-Iniciar sesión con el correo completo y la contraseña personal. Si no entra,
-comprobar la dirección configurada y probar la misma cuenta en la web; no compartir
-contraseñas ni códigos. Cada cuenta ve únicamente sus tareas autorizadas.
+1. Abra **Correspondencia** en el teléfono.
+2. Escriba su correo completo y su contraseña.
+3. Pulse **Iniciar sesión**.
+4. Si el teléfono solicita permiso para enviar notificaciones, pulse **Permitir**.
 
-## Firmar como remitente
+Al entrar aparecerá **Inicio**. Necesita una cuenta habilitada por su institución y conexión a la red indicada por el responsable del sistema.
 
-1. En web, redactar una Nota Interna y pulsar **Enviar a firma**.
-2. En Android, abrir **Notas internas → Por firmar**, revisar el documento y firmar
-   con el dedo. Se puede borrar y repetir el trazo antes de confirmar.
-3. Volver a web y pulsar **Emitir Nota Interna**. Si el borrador cambia, hay que
-   firmar de nuevo su versión actual.
+## Encontrar sus notas
 
-## Revisar, recibir y atender
+1. En Inicio, pulse **Notas internas**.
+2. Seleccione la bandeja que corresponde a su tarea. Deslice las pestañas hacia los lados si no ve todas las opciones.
+3. Pulse el asunto de la nota que desea abrir.
 
-- **Por revisar:** la autoridad VÍA abre su nota y pulsa **Firmar y dar conformidad**.
-  Si hay dos VÍAS, la segunda recibe su turno después de confirmar la primera.
-- **Por recibir:** el funcionario de destino abre la nota y confirma su recepción.
-  Debe aparecer **RECIBIDO · DEMOSTRACIÓN**, con unidad, funcionario y hora.
-- **Por atender:** el responsable puede registrar atención, derivar, responder o
-  cerrar según lo que permita el servidor. La copia de conocimiento no habilita
-  estas acciones.
+- **Por firmar:** notas que usted preparó y debe firmar antes de enviarlas.
+- **Por revisar:** notas que necesitan su aprobación antes de continuar.
+- **Por recibir:** notas enviadas a su oficina cuya recepción debe confirmar.
+- **Por atender:** notas recibidas que necesitan una respuesta o una actuación.
+- **Copias:** notas compartidas con usted para su conocimiento.
 
-Una respuesta pendiente no significa que la operación terminó. Usar el reintento
-que ofrece la pantalla; la aplicación conserva la misma solicitud para evitar
-repetir la operación.
+Una bandeja vacía significa que no tiene notas disponibles allí. Las acciones aparecen según su función y la etapa de cada nota.
 
-## Seguir y consultar
+## Firmar una nota que usted preparó
 
-Con el detalle abierto, el sobre se mueve automáticamente a la etapa confirmada.
-Muestra la unidad que tiene la tarea. Si se pierde conexión, conserva el último
-estado y avisa. **Abrir vista previa** muestra contenido y constancias.
+El remitente es la persona que envía la nota. La preparación y el envío se hacen en la web; la firma se realiza en el teléfono.
 
-El CITE es la referencia de la nota. El QR de la hoja abre el expediente o su nota
-vinculada bajo los permisos de la cuenta; no permite consultar documentos ajenos.
-Los adjuntos se abren desde **Ver expediente y adjuntos**.
+1. Prepare la nota en la web y seleccione **Enviar a firma**.
+2. En el teléfono, entre con la misma cuenta y abra **Notas internas**.
+3. Seleccione **Por firmar** y abra esa nota.
+4. Pulse **Abrir vista previa** y lea el documento. Después vuelva a la nota.
+5. Pulse **Firmar borrador**.
+6. Dibuje su firma con el dedo dentro del espacio indicado. Si necesita repetirla, utilice el botón para borrar el trazo.
+7. Confirme la firma y espere el resultado.
 
-Al cerrar aparece **Trámite finalizado**. Pulsar **Volver al inicio** conserva la
-sesión y permite continuar con otra tarea. El documento cerrado queda de consulta.
+La nota quedará firmada. Vuelva a la web para emitirla. Si después modifica el contenido, deberá revisar y firmar otra vez antes de enviarla.
 
-## Notificaciones
+## Revisar y dar conformidad
 
-Aceptar el permiso de notificaciones. El aviso muestra **Tienes una nueva tarea**;
-al tocarlo abre la nota autorizada. Abrirlo no firma ni confirma la recepción.
-Se puede abrir un segundo aviso aunque otra nota siga abierta.
+Una autoridad VÍA es una persona que debe revisar la nota antes de que llegue al destinatario. Dar conformidad significa aprobar que continúe su recorrido.
 
-El teléfono debe estar encendido y conectado a Internet. La pantalla puede estar
-apagada y la aplicación cerrada normalmente. Después de **Forzar detención** en
-Ajustes hay que volver a abrirla para reanudar la recepción. Si se deniega el
-permiso, se puede consultar el centro **Avisos** dentro de la app.
+1. Abra **Notas internas** y seleccione **Por revisar**.
+2. Abra la nota y lea su contenido en **Abrir vista previa**.
+3. Vuelva a la nota y pulse **Firmar y dar conformidad**.
+4. Dibuje su firma y confirme.
+5. Espere a que aparezca el resultado.
 
-## Comprobación final con Mathew (#65)
+La nota avanzará al siguiente paso y dejará de estar pendiente de su revisión. Si deben revisarla dos personas, la segunda actúa después de la primera.
 
-Con la versión final instalada y sin USB, entrar al servidor desplegado. Usar una
-nota ficticia y comprobar firma, emisión web, dos VÍAs, aviso con pantalla apagada,
-recepción, sello, derivación, atención, cierre, QR y vista previa. Registrar la
-versión instalada y los resultados. Este manual preparado no acredita esa prueba.
+## Confirmar que su oficina recibió una nota
+
+1. Abra **Notas internas** y seleccione **Por recibir**.
+2. Abra la nota y compruebe que corresponde a su oficina.
+3. Lea el documento y pulse **Confirmar recepción**.
+4. Confirme la acción cuando se lo solicite la pantalla.
+5. Espere el resultado y abra **Abrir vista previa**.
+
+La recepción quedará registrada. El sello mostrará la oficina, la persona que recibió y la fecha y hora. La nota podrá continuar a su atención.
+
+![Firma y sello de recepción en una nota de prueba](../evidencia/iteracion-06/seguimiento-sello-23-11/sello-vista-previa-android.png)
+
+## Atender una nota
+
+1. Seleccione **Por atender** y abra la nota.
+2. Lea el documento y pulse **Ver expediente y adjuntos** para consultar sus archivos y las acciones disponibles.
+3. Para dejar constancia de una actuación, seleccione **Registrar atención**, complete la información solicitada y confirme.
+4. Si debe enviarla a otra oficina, seleccione **Derivar hoja**, elija el destino, indique el motivo y confirme.
+
+La nueva actuación aparecerá en el historial. Si la deriva, la oficina de destino deberá confirmar que la recibió. Algunas acciones pueden estar disponibles solo en la web o para la persona responsable de la nota.
+
+## Ver por dónde va la nota
+
+1. Abra la nota que desea consultar.
+2. Observe la barra de seguimiento sobre el documento.
+3. Lea la etapa y la oficina indicadas por el sobre.
+4. Mantenga abierta la pantalla para ver los cambios mientras continúa el trámite.
+
+Las etapas son **Preparación**, **Revisión**, **Recepción**, **Atención** y **Cierre**. El seguimiento cambia automáticamente cuando se confirma una acción. Si pierde la conexión, el último estado visible puede estar desactualizado.
+
+## Consultar el documento y sus archivos
+
+Pulse **Abrir vista previa** para leer la nota y consultar las constancias de firma y recepción. Pulse **Ver expediente y adjuntos** para consultar el historial y abrir los archivos que tenga permiso para ver.
+
+En la bandeja puede usar **Buscar por CITE o asunto**. El CITE es la referencia con la que la institución identifica una nota. La búsqueda se realiza sobre las notas cargadas de la bandeja seleccionada.
+
+También puede pulsar **Escanear QR de hoja de ruta**, permitir el acceso a la cámara y apuntar al QR del documento. Se abrirá la consulta si su cuenta tiene permiso. Un QR no permite acceder a notas de otras personas sin autorización.
+
+## Abrir un aviso
+
+1. Cuando llegue una notificación de Correspondencia, tóquela.
+2. Si se solicita, inicie sesión con su cuenta.
+3. Lea la nota que se abrió y realice únicamente la acción que le corresponda.
+
+Abrir un aviso no firma ni confirma la recepción. El teléfono debe estar encendido y conectado a Internet; la pantalla puede estar apagada. Si no encuentra la notificación, consulte **Avisos** dentro de la aplicación.
+
+## Reconocer que terminó el trámite
+
+El responsable registra el cierre cuando corresponde. Al confirmarse, la nota muestra **Trámite finalizado** y el seguimiento llega a **Cierre**. Podrá seguir consultando el documento y su historial.
+
+Pulse **Volver al inicio** para continuar con otra tarea sin cerrar su sesión.
+
+![Nota finalizada y botón para volver al inicio](../evidencia/iteracion-06/seguimiento-sello-23-11/cierre-android.png)
+
+## Salir de su cuenta
+
+Abra el menú de la aplicación y pulse **Cerrar sesión**. Antes de prestar el teléfono a otra persona, compruebe que aparece la pantalla para iniciar sesión.
+
+## Si algo no sale como esperaba
+
+- **No puede entrar:** revise el correo y la contraseña. Si el problema continúa, comuníquese con el responsable de las cuentas de su institución.
+- **No encuentra una nota:** revise la bandeja y la cuenta con la que entró.
+- **No puede conectar:** compruebe la red del teléfono y consulte si el sistema está disponible.
+- **Una acción sigue pendiente:** no la dé por terminada. Use el reintento que ofrece la aplicación y espere su confirmación.
+- **No llegan avisos:** compruebe la conexión y el permiso de notificaciones del teléfono. Abra Correspondencia si la había detenido desde los ajustes.
