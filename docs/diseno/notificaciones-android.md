@@ -22,10 +22,18 @@ desde el teléfono y ambos dispositivos necesitan conexión a Internet para FCM.
   aviso; Laravel resuelve la nota con los permisos de la cuenta autenticada.
 - Tocar un aviso carga la nota autorizada antes de marcarlo leído. Si requiere
   acceso, espera el inicio de sesión. Cambiar de cuenta descarta la apertura
-  pendiente de la cuenta anterior.
+  pendiente de la cuenta anterior. Un segundo aviso puede abrir su nota aunque
+  el primer detalle siga abierto o su confirmación de lectura esté pendiente.
 - El centro de avisos funciona también con el permiso denegado o sin Firebase.
-- Al salir intenta desvincular la instalación, elimina el token local de FCM y
-  cancela los avisos visibles antes de revocar la sesión.
+- Al salir invalida los registros pendientes de la cuenta. Si ya se envió un
+  registro a Laravel, espera su resultado antes de dar de baja la instalación;
+  cada petición HTTP conserva su límite de 20 segundos. No espera la cola de
+  permisos o de obtención del token de Firebase. El borrado del token y la
+  cancelación de avisos se intentan en paralelo, con un límite de espera de dos
+  segundos, antes de intentar la revocación y borrar la sesión local.
+- Las respuestas tardías de permisos y tokens no registran una cuenta anterior.
+  Si el borrado de Firebase termina después de otro ingreso, se vuelve a
+  registrar el token de la cuenta vigente.
 - La prueba de app cerrada se refiere a cierre normal o proceso terminado, no
   a «Forzar detención» en Ajustes, que requiere volver a abrir la app.
 

@@ -25,6 +25,8 @@ class AvisosController extends ChangeNotifier {
   bool _saliendo = false;
   String? _ultimoRegistro;
   Future<void> _cola = Future.value();
+  Future<void>? _registroEnServidor;
+  static const _esperaLimpieza = Duration(seconds: 2);
   int _generacion = 0;
   PaginaAvisos? pagina;
   String? get _actual => sesion.autenticada
@@ -97,6 +99,9 @@ class AvisosController extends ChangeNotifier {
     final anterior = _identidad;
     _identidad = _actual;
     _generacion++;
+    // Un permiso de Firebase pendiente no debe bloquear a la siguiente cuenta.
+    _cola = _registroEnServidor?.catchError((Object _) {}) ?? Future.value();
+    _registrando = false;
     _ultimoRegistro = null;
     pagina = null;
     mensaje = null;
@@ -123,7 +128,12 @@ class AvisosController extends ChangeNotifier {
   }
 
   void _encolarRegistro() {
-    _cola = _cola.then((_) => _registrar()).catchError((Object _) {});
+    final generacion = _generacion;
+    _cola = _cola
+        .then((_) async {
+          if (generacion == _generacion) await _registrar();
+        })
+        .catchError((Object _) {});
   }
 
   Future<void> _registrar() async {
@@ -132,18 +142,28 @@ class AvisosController extends ChangeNotifier {
     final generacion = _generacion;
     _registrando = true;
     try {
-      if (!await push.pedirPermiso()) return;
+      if (!await push.pedirPermiso() ||
+          !_registroVigente(generacion, identidad)) {
+        return;
+      }
       final token = await push.token();
+      if (!_registroVigente(generacion, identidad)) return;
       final instalacion = await _instalacion();
       if (token == null ||
           token.isEmpty ||
-          generacion != _generacion ||
-          _actual != identidad ||
-          _saliendo) {
+          !_registroVigente(generacion, identidad)) {
         return;
       }
       if (_ultimoRegistro == '$identidad|$token') return;
-      await AvisosApi(sesion.api).registrar(instalacion, token);
+      final registro = AvisosApi(sesion.api).registrar(instalacion, token);
+      _registroEnServidor = registro;
+      try {
+        await registro;
+      } finally {
+        if (identical(_registroEnServidor, registro)) {
+          _registroEnServidor = null;
+        }
+      }
       if (generacion == _generacion) {
         _ultimoRegistro = '$identidad|$token';
         mensaje = null;
@@ -151,10 +171,16 @@ class AvisosController extends ChangeNotifier {
     } catch (_) {
       if (generacion == _generacion) mensaje = 'No se pudieron activar los avisos del teléfono. Puedes consultar el centro de avisos.';
     } finally {
-      _registrando = false;
+      if (generacion == _generacion) _registrando = false;
       notifyListeners();
     }
   }
+
+  bool _registroVigente(int generacion, String? identidad) =>
+      !_cerrado &&
+      !_saliendo &&
+      generacion == _generacion &&
+      _actual == identidad;
 
   Future<void> refrescar({int numero = 1}) async {
     if (_actual == null || _saliendo) return;
@@ -180,27 +206,61 @@ class AvisosController extends ChangeNotifier {
 
   Future<void> desvincular() async {
     _saliendo = true;
-    _generacion++;
+    final generacion = ++_generacion;
+    final identidad = _actual;
+    final registro = _registroEnServidor;
+    _cola = Future.value();
+    _registrando = false;
     pendiente = null;
     avisoVisible = null;
     pagina = null;
     _ultimoRegistro = null;
     notifyListeners();
-    // Espera cualquier PUT en curso antes de dar de baja la instalación.
-    await _cola;
+    // Solo espera el PUT ya enviado, con el límite HTTP de ApiLaravel.
+    // La cola también puede contener un permiso o token de Firebase sin respuesta.
+    try {
+      await registro;
+    } catch (_) {}
+    bool vigente() =>
+        !_cerrado && generacion == _generacion && _actual == identidad;
+    if (!vigente()) return;
     try {
       if (disponible && sesion.autenticada) {
-        final instalacion = await _instalacion();
+        final instalacion = await _instalacion().timeout(_esperaLimpieza);
+        if (!vigente()) return;
         await AvisosApi(sesion.api).desvincular(instalacion);
       }
     } catch (_) {
       /* El token local también se invalida si no hay red. */
     }
+    if (!vigente()) return;
+    await Future.wait([_borrarToken(generacion), _cancelarVisibles()]);
+  }
+
+  Future<void> _borrarToken(int generacion) async {
     try {
-      await push.borrarToken();
+      final borrado = push.borrarToken();
+      // Si Firebase termina después de otro ingreso, recupera el registro actual.
+      unawaited(
+        borrado
+            .then((_) {
+              if (!_cerrado &&
+                  generacion != _generacion &&
+                  _actual != null &&
+                  !_saliendo) {
+                _ultimoRegistro = null;
+                _encolarRegistro();
+              }
+            })
+            .catchError((Object _) {}),
+      );
+      await borrado.timeout(_esperaLimpieza);
     } catch (_) {}
+  }
+
+  Future<void> _cancelarVisibles() async {
     try {
-      await push.cancelarVisibles();
+      await push.cancelarVisibles().timeout(_esperaLimpieza);
     } catch (_) {}
   }
 

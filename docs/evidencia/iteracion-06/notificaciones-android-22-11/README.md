@@ -36,3 +36,31 @@ conservando datos. Los módulos de notificaciones son los mismos en ambas ramas.
 El USB se utilizó para instalación y diagnóstico. Esta ejecución no acredita el
 sello de #58, la latencia del seguimiento de #63 ni la validación del servidor
 Ubuntu final sin USB de #65.
+
+## Regresiones de la revisión de Mathew · 23/11/2026
+
+Se reprodujeron ambos hallazgos sobre el código de `6e35943`: el cierre no
+revocaba la sesión mientras Firebase dejaba pendiente el permiso, la obtención
+del token o su borrado; el segundo aviso seguía mostrando la primera nota.
+
+Después de la corrección pasan 45 pruebas de avisos, sesión, navegación y
+pantallas principales. Incluyen:
+
+- Firebase sin responder en permiso, token, borrado y cancelación de avisos:
+  se intenta revocar la sesión en Laravel y se elimina la credencial local.
+- Un registro de dispositivo ya enviado: su resultado precede a la baja del
+  dispositivo y esta precede a la revocación de la sesión.
+- Permiso, token y borrado tardíos tras otro ingreso: no se da de baja la cuenta
+  nueva; si termina un borrado tardío, se recupera su registro de notificaciones.
+- Dos avisos consecutivos: la segunda nota se abre con el primer detalle todavía
+  en la pila y la primera confirmación de lectura sin responder.
+
+Estos casos se verifican mediante pruebas automatizadas con respuestas y
+Firebase controlados. La evidencia física anterior corresponde a la compilación
+del 22/11; no acredita una repetición de estos casos nuevos en el teléfono.
+
+La compilación local combinada con #63 pasó además 29 pruebas de avisos,
+seguimiento y navegación, y el analizador sin incidencias. El APK corregido
+compiló y se instaló en el POCO F3 mediante actualización, conservando los datos
+y la firma de instalación (`versionCode` 2001). SHA-256 del APK:
+`42b4673bb6667ed4eafbc8fbebb5326b6026d8a36ad4278cde28d7eb737a1ae5`.

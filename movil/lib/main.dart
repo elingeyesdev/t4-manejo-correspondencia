@@ -136,6 +136,7 @@ class _PuertaSesionState extends State<PuertaSesion>
     _abriendoAviso = true;
     _avisos.consumido(id);
     final token = _sesion.api.token, cuenta = _sesion.api.cuentaId;
+    var abierta = false;
     try {
       final nota = await AvisosApi(_sesion.api).resolver(id);
       if (!mounted ||
@@ -143,22 +144,18 @@ class _PuertaSesionState extends State<PuertaSesion>
           cuenta != _sesion.api.cuentaId) {
         return;
       }
-      final pantalla = navegador.push<void>(
-        MaterialPageRoute(
-          builder: (_) => DetalleNotaPage(
-            api: _sesion.api,
-            id: nota.id,
-            puedeAdjuntar: _sesion.puedeRegistrar,
+      unawaited(
+        navegador.push<void>(
+          MaterialPageRoute(
+            builder: (_) => DetalleNotaPage(
+              api: _sesion.api,
+              id: nota.id,
+              puedeAdjuntar: _sesion.puedeRegistrar,
+            ),
           ),
         ),
       );
-      try {
-        await AvisosApi(_sesion.api).leer(id);
-      } on ErrorLaravel {
-        /* Se recupera al volver al centro. */
-      }
-      unawaited(_avisos.refrescar());
-      await pantalla;
+      abierta = true;
     } on ErrorLaravel catch (e) {
       if (!mounted ||
           token != _sesion.api.token ||
@@ -178,6 +175,22 @@ class _PuertaSesionState extends State<PuertaSesion>
     } finally {
       _abriendoAviso = false;
       if (mounted && _avisos.pendiente != null) unawaited(_abrirAviso());
+    }
+    if (!abierta ||
+        !mounted ||
+        token != _sesion.api.token ||
+        cuenta != _sesion.api.cuentaId) {
+      return;
+    }
+    try {
+      await AvisosApi(_sesion.api).leer(id);
+    } on ErrorLaravel {
+      /* Se recupera al volver al centro. */
+    }
+    if (mounted &&
+        token == _sesion.api.token &&
+        cuenta == _sesion.api.cuentaId) {
+      unawaited(_avisos.refrescar());
     }
   }
 
