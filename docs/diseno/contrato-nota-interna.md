@@ -114,6 +114,11 @@ y `fecha_hora` en ISO 8601. Un reintento devuelve la misma constancia. Las notas
 recibidas antes de este cambio recuperan los datos a partir de su movimiento de
 recepción inicial. La consulta conserva los permisos del detalle de Nota Interna.
 
+El detalle también publica `constancias` de firma con `tipo`, `accion`, `version`,
+`actor.nombre`, `unidad.nombre` y `fecha`. Solo incluye la firma del remitente
+para la versión vigente/emitida y las conformidades VÍA confirmadas. No expone
+trazos ni claves de reintento. La consulta autorizada de documento/hoja aporta
+`nota_id` cuando esa misma cuenta puede abrir la Nota Interna vinculada.
 - **Firma en pantalla.** Mostrar la acción y la versión del documento antes de firmar. Permitir borrar y volver a dibujar el trazo antes de confirmar. Laravel registra el usuario autenticado, el cargo o unidad, la acción, la versión y la hora del servidor. El trazo queda protegido y asociado a esa constancia. Una versión posterior requiere su propia constancia si la acción tiene firma habilitada.
 - **Sello de recepción.** Generar una constancia visual al confirmar la recepción, con CITE, unidad receptora, fecha y hora del servidor e identificador de constancia. Mostrar **RECIBIDO · DEMOSTRACIÓN** en el detalle o PDF de prueba. La marca se genera con datos del registro confirmado y es de solo lectura. Mostrarla una sola vez si se repite la operación con la misma clave. La demo usa identidad y marca ficticias.
 - **Validación institucional.** Confirmar qué acciones exigen firma, quién puede firmar o sellar, la plantilla aprobada y si el Concejo requiere firma digital certificada u otro mecanismo oficial. En el prototipo, el trazo y el sello visual se presentan como evidencia del flujo. Ver [Ley N.º 164, art. 78](https://plantilla-gob-bo.aads.upat.agetic.gob.bo/wp-content/uploads/2024/04/ley-n-164-comprimido.pdf).

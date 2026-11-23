@@ -3,11 +3,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:t4_movil/main.dart';
 import 'package:t4_movil/compartido/api/laravel_api.dart';
 import 'package:t4_movil/funciones/iniciar_sesion/sesion_controller.dart';
+import 'package:t4_movil/funciones/notas_internas/detalle_nota_page.dart';
+import 'package:t4_movil/funciones/mi_bandeja/detalle_laravel_page.dart';
+
+import 'notas_internas_test.dart' as notas;
 
 class _Almacen implements AlmacenSesion {
   String? dato;
@@ -35,18 +40,19 @@ const _documento = {
   'hoja': {'codigo': 'HR-2026-014'},
   'movimientos': [],
 };
-Future<void> _iniciar(WidgetTester tester) async {
+Future<void> _iniciar(WidgetTester tester, {bool cerrada = false}) async {
   await tester.binding.setSurfaceSize(const Size(430, 1000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final api = ApiLaravel(
     client: MockClient((r) async {
+      final documento = {..._documento, if (cerrada) 'estado': 'CERRADA'};
       final Object data = switch (r.url.path) {
         '/api/sesiones' => {
           'token': 'token-de-prueba',
           'user': {'id': 1, 'name': 'Recepción', 'role': 'recepcion'},
         },
         '/api/documentos' => {
-          'data': [_documento],
+          'data': [documento],
           'last_page': 1,
         },
         '/api/configuracion-registro' => {
@@ -54,7 +60,11 @@ Future<void> _iniciar(WidgetTester tester) async {
           'prioridades': <Object>[],
           'unidades': <Object>[],
         },
-        _ => _documento,
+        '/api/notas-internas/nota-1' => notas.nota(
+          estado: 'cerrada',
+          acciones: [],
+        ),
+        _ => documento,
       };
       return http.Response(
         jsonEncode(data),
@@ -77,6 +87,40 @@ Future<void> _atras(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  for (final desdeNota in [false, true]) {
+    testWidgets(
+      'Finalizar desde ${desdeNota ? 'nota sobre expediente' : 'expediente'} vuelve a Inicio conservando la sesión',
+      (tester) async {
+        await _iniciar(tester, cerrada: true);
+        await tester.ensureVisible(find.text('Mi bandeja'));
+        await tester.tap(find.text('Mi bandeja'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Solicitud de informe'));
+        await tester.pumpAndSettle();
+        if (desdeNota) {
+          final detalle = tester.widget<DetalleLaravelPage>(
+            find.byType(DetalleLaravelPage),
+          );
+          Navigator.of(tester.element(find.byType(DetalleLaravelPage))).push(
+            MaterialPageRoute<void>(
+              builder: (_) => DetalleNotaPage(api: detalle.api, id: 'nota-1'),
+            ),
+          );
+          await tester.pumpAndSettle();
+        }
+        expect(find.text('Trámite finalizado'), findsOneWidget);
+        expect(find.text('Volver al inicio').hitTestable(), findsOneWidget);
+        await tester.tap(find.text('Volver al inicio'));
+        await tester.pumpAndSettle();
+        expect(find.text('Hola, Recepción'), findsOneWidget);
+        expect(find.byType(DetalleLaravelPage), findsNothing);
+        expect(find.byType(DetalleNotaPage), findsNothing);
+        expect(find.text('Iniciar sesión'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
   testWidgets('Atrás vuelve a Inicio desde cada sección sin perder la guía', (
     tester,
   ) async {

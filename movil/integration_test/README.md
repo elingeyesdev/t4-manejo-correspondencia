@@ -113,3 +113,24 @@ Las pruebas usan una clave separada para su sesión, pero la compilación contie
 las constantes privadas de ensayo. Al acabar, instalar la app normal desde
 `lib/main.dart`, sin el JSON de ensayo. Conservar el servidor disponible para la
 demostración y no entregar el APK de integración como versión de uso.
+
+## Seguimiento y sello · #63
+
+`seguimiento_sello_real_test.dart` mantiene el mismo detalle abierto en un
+ teléfono físico mientras confirma recepción, derivación, recepción derivada,
+ atención y cierre por formularios HTTP web. Mide la actualización de etiqueta,
+ unidad y sobre desde la respuesta HTTP confirmada y exige hasta cinco segundos.
+ Comprueba sello real, estabilidad y vínculo de QR. No simula la API ni Camunda.
+
+Preparar una nota ficticia directa ya emitida a la unidad de la cuenta del
+ teléfono y otra cuenta autorizada en una unidad distinta para la derivación.
+ El JSON privado para `--dart-define-from-file` aporta `API_BASE_URL`,
+ `SEG63_NOTA`, `SEG63_CITE`, `SEG63_TELEFONO_EMAIL`, `SEG63_TELEFONO_PASSWORD`,
+ `SEG63_DESTINO_EMAIL`, `SEG63_DESTINO_PASSWORD` y `SEG63_DESTINO_UNIDAD`.
+ Usar el driver `test_driver/notas_camunda_driver.dart` y definir
+ `ENSAYO_EVIDENCIA_DIR` fuera del repositorio. El ensayo modifica esa nota.
+
+`seguimiento_sello_captura_test.dart` usa la misma configuración sobre una nota
+ ficticia ya cerrada para comprobar y capturar cierre y sello en la vista previa.
+ Al terminar, reinstalar el APK normal desde `lib/main.dart`, sin definiciones
+ privadas, y conservar los datos. No entregar los APK de integración.
