@@ -11,14 +11,14 @@ Estado: preparada para ejecutar. Este documento no acredita una prueba aprobada.
 
 ## Antes del encuentro
 
-La dirección recibida de Mathew es `http://192.168.0.10`. La APK candidata apunta a ella. Es una dirección privada: desde la red actual de Russel no respondió. Mathew debe confirmar que sigue siendo la dirección del servidor cuando se reúnan. Si cambia, se debe generar otra APK con la dirección correcta.
+La dirección del piloto del 24 de noviembre es `https://172.20.10.3:18443`, en el punto de acceso de Mathew. La APK `Correspondencia-Piloto-HTTPS-24.apk` utiliza la autoridad pública que entregó Mathew, limitada a ese origen. La huella y la compilación se describen en [HTTPS del piloto en Android](../operacion/piloto-https-android.md). Si cambia la dirección, hay que preparar otra compilación y comprobar su certificado.
 
 La configuración Android y el servidor deben usar el mismo proyecto Firebase: `correspondencia-univalle`. Mathew configura sus credenciales privadas en el servidor; no se incluyen en la APK ni en este documento.
 
 ## Al llegar
 
 1. Conectar teléfono y servidor a una red que permita que se comuniquen. El Wi-Fi de invitados de la universidad puede impedir el acceso entre dispositivos.
-2. Abrir en el navegador del teléfono `http://192.168.0.10/acceso`. Si no carga, resolver la conexión antes de empezar el recorrido.
+2. Abrir la APK preparada para ese servidor e iniciar sesión con una cuenta del piloto. Confirmar que llega a Inicio antes de comenzar el recorrido. La autoridad del piloto está configurada dentro de Correspondencia y el navegador tiene su propia configuración de confianza.
 3. Confirmar que el servidor tiene la versión final de develop, incluido el PR73.
 4. Instalar la APK candidata como actualización, sin desinstalar la app actual.
 5. Desconectar el cable USB y mantenerlo desconectado durante la prueba.
