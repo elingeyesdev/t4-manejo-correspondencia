@@ -1,6 +1,8 @@
 # Prueba final con Mathew
 
-Estado: preparada para ejecutar. Este documento no acredita una prueba aprobada.
+Validación del 24 de noviembre de 2026. El ingreso HTTPS al servidor se comprobó en el teléfono físico. El usuario confirmó el uso sin USB y posteriormente informó que el recorrido final con Mathew funcionó correctamente.
+
+La evidencia distingue las comprobaciones observadas directamente de la confirmación manual del usuario. El [resultado del piloto](../evidencia/iteracion-06/piloto-https-24-11/resultado.json) identifica la APK, el certificado, el entorno y el alcance de cada resultado. La [constancia de entrega](../evidencia/iteracion-06/piloto-https-24-11/README.md) reúne el cierre comunicado por el usuario.
 
 ## Llevar
 
@@ -54,4 +56,4 @@ La configuración Android y el servidor deben usar el mismo proyecto Firebase: `
 - Resultado de avisos con pantalla bloqueada y de apertura por QR.
 - Confirmación de ambos de que se hizo sin USB contra el servidor desplegado.
 
-Si algo falla, registrar qué pasó, corregirlo y repetir ese tramo y los pasos afectados. No marcar la tarea como terminada por haber preparado los archivos. Después de aprobar los recorridos, revisar el manual con las pantallas de la versión instalada y publicar la entrega para revisión cruzada del issue65.
+Este procedimiento queda como referencia para repetir la validación si cambia la versión instalada, el servidor o su dirección. La entrega incluye el manual de uso y la evidencia para la revisión cruzada de #65.

@@ -74,4 +74,6 @@ punto de acceso de Mathew. El usuario completó la confirmación del formulario.
 
 La comunicación de la API fue por Wi-Fi, sin `adb reverse`. El USB se utilizó
 para instalar la actualización y observar la pantalla. Esta comprobación
-acredita el ingreso al servidor, no el recorrido completo de cierre de #65.
+acredita el ingreso al servidor. La confirmación posterior del usuario sobre el
+recorrido final sin USB se registra por separado en la
+[constancia de entrega](../evidencia/iteracion-06/piloto-https-24-11/README.md).

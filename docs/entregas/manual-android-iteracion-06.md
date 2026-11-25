@@ -27,7 +27,7 @@ Una bandeja vacía significa que no tiene notas disponibles allí. Las acciones 
 
 ## Firmar una nota que usted preparó
 
-El remitente es la persona que envía la nota. La preparación y el envío se hacen en la web; la firma se realiza en el teléfono.
+El remitente es la persona que envía la nota. La preparación y el envío se hacen en la web. La firma se realiza en el teléfono.
 
 1. Prepare la nota en la web y seleccione **Enviar a firma**.
 2. En el teléfono, entre con la misma cuenta y abra **Notas internas**.
@@ -95,7 +95,20 @@ También puede pulsar **Escanear QR de hoja de ruta**, permitir el acceso a la c
 2. Si se solicita, inicie sesión con su cuenta.
 3. Lea la nota que se abrió y realice únicamente la acción que le corresponda.
 
-Abrir un aviso no firma ni confirma la recepción. El teléfono debe estar encendido y conectado a Internet; la pantalla puede estar apagada. Si no encuentra la notificación, consulte **Avisos** dentro de la aplicación.
+Abrir un aviso no firma ni confirma la recepción. El teléfono debe estar encendido y conectado a Internet. La pantalla puede estar apagada. Si no encuentra la notificación, consulte **Avisos** dentro de la aplicación.
+
+## Cerrar el trámite desde la web
+
+En esta versión, la recepción y la atención se pueden realizar desde el teléfono. El cierre se registra en la web con la cuenta de la persona responsable.
+
+1. Entre en la web con la misma cuenta que recibió y atendió la nota.
+2. Abra **Documentos** y seleccione la nota.
+3. Seleccione **Cerrar expediente**.
+4. Escriba el **Motivo del cierre**.
+5. Marque **Confirmo el cierre de este expediente** y pulse **Cerrar expediente**.
+6. Espere la confirmación y vuelva a consultar la nota en el teléfono.
+
+La opción **Agregar otra atención** sirve para registrar una nueva actuación. Para terminar el trámite debe utilizar **Cerrar expediente**.
 
 ## Reconocer que terminó el trámite
 

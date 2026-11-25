@@ -1,0 +1,18 @@
+Ejecución local de Flutter para la entrega #65
+24 de noviembre de 2026
+Código de aplicación y pruebas: commit 1e539c9
+Los cambios posteriores corresponden a documentación y constancia de entrega.
+
+flutter test test/cliente_piloto_test.dart --reporter expanded
+00:00 +13: validación TLS real conserva la verificación del nombre del servidor
+00:00 +14: All tests passed!
+
+flutter test --concurrency=1 --reporter expanded
+02:19 +232 ~4: test/widget_test.dart: una respuesta después de cerrar la pantalla no provoca errores
+02:19 +233 ~4: All tests passed!
+
+flutter analyze --no-pub
+No issues found! ran in 69.4s
+
+Resultado: 233 pruebas aprobadas, incluidas 14 de configuración y TLS.
+Cuatro pruebas optativas omitidas. Analizador sin incidencias.

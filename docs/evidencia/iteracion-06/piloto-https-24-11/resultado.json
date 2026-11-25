@@ -20,6 +20,19 @@
   "confirmacion_formulario": "Completada por el usuario durante la comprobación",
   "transporte_api": "Wi-Fi, sin adb reverse",
   "usb": "Utilizado para instalar y observar",
-  "alcance": "Ingreso al servidor confirmado. El recorrido final completo de #65 se verifica por separado.",
-  "confirmacion_usuario_sin_cable": "El usuario confirmó que desconectó el USB y que la app abrió con la cuenta del piloto."
+  "alcance": "Ingreso, firma y sello observados en la app. Uso sin USB y recorrido final confirmados por el usuario.",
+  "confirmacion_usuario_sin_cable": "El usuario confirmó que desconectó el USB y que la app abrió con la cuenta del piloto.",
+  "nota_observada": {
+    "asunto": "Prueba manual #44",
+    "cite": "NI/DEMO/RECEPCION/2026/000002",
+    "referencia": "DEMO-45",
+    "firma_remitente_visible": true,
+    "sello_recepcion_visible": true
+  },
+  "recorrido_final": {
+    "resultado": "Aprobado según confirmación manual del usuario",
+    "fuente": "El usuario informó que todo funcionó correctamente en el servidor y pidió registrar la tarea realizada y subir el PR final.",
+    "camunda_final": "No consultado directamente en este cierre",
+    "captura_cierre": "No obtenida en esta comprobación"
+  }
 }

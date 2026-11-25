@@ -4,12 +4,11 @@ Aplicación web y API en **Laravel 13 / PHP**, con PostgreSQL y cliente Android 
 
 ## Estado de la entrega
 
-- Núcleo Laravel/PostgreSQL: PR #12 revisado e integrado en develop; Issue #11 cerrado.
-- Consulta móvil P04: PR #10 integrado; Issue #9 cerrado.
-- Adaptación móvil a Laravel #13: aprobada por Xmathewbruk e integrada mediante PR #14 el 26/10/2026.
-- Diseño móvil #6: incluido en PR #14; queda pendiente registrar el recorrido humano completo del diseño.
-- Semana 2: incremento técnico integrado; ver [acta de cierre](docs/entregas/cierre-semana-02.md). La aceptación docente del software sigue pendiente.
-- Cámara, QR, adjuntos, recepción, atención y derivación siguen pendientes de implementación.
+- El recorrido documental y la nota interna están integrados hasta el PR #73, con firmas, bandejas, avisos, seguimiento, vista previa y sello de recepción.
+- Android incluye cámara, QR, adjuntos, recepción, atención y derivación. El cierre se realiza desde la web con la cuenta responsable.
+- La entrega de #65 incorpora la conexión HTTPS al piloto con su autoridad limitada al servidor, el manual de uso y la validación del 24 de noviembre.
+- [Manual de Android](docs/entregas/manual-android-iteracion-06.md) y [versión PDF](docs/entregas/manual-android-iteracion-06.pdf).
+- [Entrega y resultados del piloto](docs/evidencia/iteracion-06/piloto-https-24-11/README.md).
 
 La app usa sesiones protegidas, consulta, bandeja, detalle y registro reales de Laravel.
 Node se conserva en `prototipo/node/` como antecedente; no es el backend de la app.
@@ -31,7 +30,7 @@ Node se conserva en `prototipo/node/` como antecedente; no es el backend de la a
 - PostgreSQL 16 y dos bases separadas: `correspondencia` y `correspondencia_test`.
 - Git. Herd puede proporcionar PHP y Composer; no es una dependencia del código.
 
-Las vistas Blade usan estilos locales y no requieren compilar JavaScript para este corte.
+Las vistas usan estilos y recursos locales. La instalación web requiere Node.js y la compilación de recursos con `npm ci` y `npm run build` dentro de `web`. La preparación del servidor se detalla en [la guía de instalación](docs/evidencia/iteracion-06/validacion-inicial-servidor.md).
 
 ## Instalación en otro equipo
 
