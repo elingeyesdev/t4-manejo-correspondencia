@@ -1,0 +1,38 @@
+{
+  "fecha": "2026-11-24",
+  "dispositivo": "POCO F3 Android 13",
+  "servidor": "https://172.20.10.3:18443",
+  "ip_telefono": "172.20.10.2",
+  "apk": "Correspondencia-Piloto-HTTPS-24.apk",
+  "apk_sha256": "7365ae083a868f3f734ffc57c11591fcb235fabb971b5c26820e330f62db0ca1",
+  "versionCode": 2001,
+  "ca_sha256_der": "CDB7890A5028F1E9D83265288F01C7F1ACCF9FE2A13E03AD9919B6F402577CAF",
+  "pruebas_tls_aprobadas": 14,
+  "flutter_aprobadas": 233,
+  "flutter_optativas_omitidas": 4,
+  "analizador": "Sin incidencias",
+  "https_telefono": {
+    "api_sin_sesion": 401,
+    "acceso": 200,
+    "up": 200
+  },
+  "ingreso": "Inicio visible con Hola, Recepcion",
+  "confirmacion_formulario": "Completada por el usuario durante la comprobación",
+  "transporte_api": "Wi-Fi, sin adb reverse",
+  "usb": "Utilizado para instalar y observar",
+  "alcance": "Ingreso, firma y sello observados en la app. Uso sin USB y recorrido final confirmados por el usuario.",
+  "confirmacion_usuario_sin_cable": "El usuario confirmó que desconectó el USB y que la app abrió con la cuenta del piloto.",
+  "nota_observada": {
+    "asunto": "Prueba manual #44",
+    "cite": "NI/DEMO/RECEPCION/2026/000002",
+    "referencia": "DEMO-45",
+    "firma_remitente_visible": true,
+    "sello_recepcion_visible": true
+  },
+  "recorrido_final": {
+    "resultado": "Aprobado según confirmación manual del usuario",
+    "fuente": "El usuario informó que todo funcionó correctamente en el servidor y pidió registrar la tarea realizada y subir el PR final.",
+    "camunda_final": "No consultado directamente en este cierre",
+    "captura_cierre": "No obtenida en esta comprobación"
+  }
+}

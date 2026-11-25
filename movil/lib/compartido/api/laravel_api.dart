@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import 'api_config.dart';
+import 'cliente_api.dart';
 
 class ErrorLaravel implements Exception {
   const ErrorLaravel(
@@ -31,7 +32,7 @@ class ApiLaravel {
     this.baseUrl = ApiConfig.baseUrl,
     http.Client? client,
     this.timeout = const Duration(seconds: 20),
-  }) : _client = client ?? http.Client();
+  }) : _client = client ?? crearClienteApi(baseUrl);
   final String baseUrl;
   final http.Client _client;
   final Duration timeout;
