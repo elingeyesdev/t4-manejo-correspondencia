@@ -11,7 +11,9 @@
         $copies = (array) old('cc_usuario_ids', $note->participants->where('role', 'cc')->pluck('user_id')->all());
         $extraReviewers = count(array_filter(array_slice($vias, 1))) > 0 || $errors->has('vias_usuario_ids.*');
     @endphp
-    <form class="note-form" method="post" action="{{ $note->exists ? route('notes.update', $note) : route('notes.store') }}">
+    <div class="note-editor">
+    <form class="note-form" id="nota-edicion" method="post" data-draft-preview="{{ route('notes.preview-draft') }}"
+          data-draft-id="{{ $note->id }}" action="{{ $note->exists ? route('notes.update', $note) : route('notes.store') }}">
         @csrf
         @if ($note->exists)
             @method('PATCH')
@@ -73,13 +75,20 @@
 
         <fieldset class="form-section">
             <legend>CC · Copia informativa <span class="optional">(opcional)</span></legend>
-            <label class="form-label" for="copias">Personas que recibirán una copia</label>
-            <select class="form-select" id="copias" name="cc_usuario_ids[]" multiple size="5" aria-describedby="copias-ayuda">
+            <details class="reviewers-details" @if ($copies !== []) open @endif>
+                <summary>Elegir personas que recibirán una copia</summary>
+                <label class="form-label mt-2" for="buscar-copias">Buscar por nombre o unidad</label>
+                <input class="form-control mb-2" type="search" id="buscar-copias" data-copy-search>
+                <div class="note-copy-options" role="group" aria-label="Personas para copia">
                 @foreach ($accounts as $account)
-                    <option value="{{ $account->id }}" @selected(in_array($account->id, $copies, false))>{{ $account->name }} · {{ $account->unit->name }}</option>
+                    <label class="form-check" data-copy-option>
+                        <input class="form-check-input" type="checkbox" name="cc_usuario_ids[]"
+                               value="{{ $account->id }}" @checked(in_array($account->id, $copies, false))>
+                        <span class="form-check-label">{{ $account->name }} · {{ $account->unit->name }}</span>
+                    </label>
                 @endforeach
-            </select>
-            <p class="form-text mb-0" id="copias-ayuda">En computadora, usa Ctrl o Cmd para seleccionar varias personas.</p>
+                </div>
+            </details>
         </fieldset>
 
         <div class="actions">
@@ -87,4 +96,12 @@
             <a class="btn btn-outline-secondary" href="{{ $note->exists ? route('notes.show', $note) : route('notes.index') }}">Cancelar</a>
         </div>
     </form>
+    <section class="note-section note-editor-preview" aria-labelledby="borrador-vista">
+        <h2 id="borrador-vista">Vista previa del borrador</h2>
+        <p data-draft-status role="status">Preparando la hoja…</p>
+        <iframe data-draft-frame class="document-preview-pdf" title="Vista previa del borrador" hidden></iframe>
+        <button type="button" class="btn btn-outline-secondary mt-2" data-draft-retry hidden>Reintentar vista previa</button>
+    </section>
+    </div>
+    <script src="{{ asset('js/note-document.js') }}" defer></script>
 @endsection

@@ -602,6 +602,33 @@ h3 {
     border: 1px solid var(--bs-border-color);
 }
 
+.document-preview-pdf[hidden] {
+    display: none;
+}
+
+.note-editor-preview {
+    min-width: 0;
+    align-self: start;
+}
+
+.note-copy-options {
+    max-height: 13rem;
+    overflow-y: auto;
+}
+
+@media (min-width: 992px) {
+    .note-editor {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+        gap: 1.5rem;
+    }
+
+    .note-editor-preview {
+        position: sticky;
+        top: 1rem;
+    }
+}
+
 .receipt-stamp {
     border-inline-start: .25rem solid var(--bs-success);
     background: var(--bs-success-bg-subtle);

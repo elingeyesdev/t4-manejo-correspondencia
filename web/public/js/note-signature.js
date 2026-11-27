@@ -52,6 +52,8 @@ for (const form of document.querySelectorAll('[data-note-signature]')) {
             points--;
         }
         pointer = null;
+        input.value = strokes.length ? JSON.stringify(strokes) : '';
+        form.dispatchEvent(new Event('constancias-cambiaron'));
     });
 
     form.querySelector('[data-signature-clear]').addEventListener('click', () => {
@@ -64,15 +66,17 @@ for (const form of document.querySelectorAll('[data-note-signature]')) {
         points = 0;
         input.value = '';
         error.hidden = true;
+        form.dispatchEvent(new Event('constancias-cambiaron'));
     });
 
     form.addEventListener('submit', (event) => {
-        if (pointer !== null || !strokes.some((stroke) => stroke.length > 1)) {
+        const tieneImagen = form.elements.imagen_firma.files.length > 0;
+        if (pointer !== null || (!tieneImagen && !strokes.some((stroke) => stroke.length > 1))) {
             event.preventDefault();
-            error.textContent = 'Dibuja la firma antes de confirmar.';
+            error.textContent = 'Dibuja o carga tu firma antes de confirmar.';
             error.hidden = false;
             return;
         }
-        input.value = JSON.stringify(strokes);
+        input.value = tieneImagen ? '' : JSON.stringify(strokes);
     });
 }

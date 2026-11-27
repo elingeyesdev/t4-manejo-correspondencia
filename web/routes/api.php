@@ -21,6 +21,8 @@ Route::middleware(['auth:sanctum', 'operational'])->group(function () {
         Route::delete('/dispositivos/{installation}', 'unregister')->whereUuid('installation');
     });
     Route::prefix('notas-internas')->controller(InternalNoteController::class)->group(function () {
+        Route::get('/{id}/documento.pdf', 'download')->whereUuid('id');
+        Route::post('/{id}/vista-previa', 'actionDocument')->whereUuid('id')->middleware('throttle:20,1');
         Route::get('/', 'index');
         Route::post('/', 'store');
         Route::get('/{id}', 'show')->whereUuid('id');

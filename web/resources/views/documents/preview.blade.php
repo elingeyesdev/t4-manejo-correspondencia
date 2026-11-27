@@ -1,5 +1,9 @@
 @if ($document->internalNote)
-    <p class="note-body mb-0">{{ $compact ? \Illuminate\Support\Str::limit(\Illuminate\Support\Str::squish($document->internalNote->body), 120) : $document->internalNote->body }}</p>
+    @if ($compact)
+        <p class="note-body mb-0">{{ \Illuminate\Support\Str::limit(\Illuminate\Support\Str::squish($document->internalNote->body), 120) }}</p>
+    @else
+        @include('internal-notes.document-viewer', ['institutionalNote' => $document->internalNote])
+    @endif
 @elseif ($preview = $document->previewAttachments->first())
     @php($previewUrl = route('attachments.view', [$document->id, $preview->id]))
     @if (str_starts_with($preview->mime_type, 'image/'))

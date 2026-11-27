@@ -225,6 +225,26 @@ Usar el template institucional compartido definido en #48. Las pantallas web de 
 - **Estilo:** fondo blanco o gris claro, bordes finos, tipografía de sistema, una sola tonalidad sobria para acciones y color funcional para alertas. Usar títulos, tablas y formularios convencionales. Retirar degradados, tarjetas decorativas, iconos de adorno, indicadores de portada y animaciones que no ayuden a trabajar.
 - Mantener contraste, etiquetas explícitas, foco visible y mensajes de error legibles. El aspecto administrativo puede ser austero y seguir siendo cómodo para consultar expedientes todo el día.
 
+## Hoja institucional y constancias (#75)
+
+Desde **Nueva Nota Interna**, elegir la unidad destinataria y revisar la hoja mientras se redacta. Después de guardar, seguir la acción indicada debajo de la vista previa. En una tarea de firma, conformidad o recepción, **Revisar firma y sello sobre la hoja** muestra los archivos elegidos como provisionales. La confirmación registra la acción. Para imprimir, abrir el PDF e imprimir desde el visor.
+
+| Operación | Contrato para Android |
+| --- | --- |
+| Obtener la hoja paginada | `GET /api/notas-internas/{id}/documento.pdf?version={version}` con el token de la sesión y la versión obtenida en el detalle. Responde `application/pdf` y `X-Note-Version`. La versión es opcional al abrir el documento vigente. Si la versión solicitada cambió, responde `409`. |
+| Previsualizar imágenes antes de actuar | `POST /api/notas-internas/{id}/vista-previa` en `multipart/form-data`, con `version` y `accion` (`firmar_borrador`, `dar_conformidad` o `confirmar_primera_recepcion`). Admite los campos de imagen y trazo descritos abajo. Devuelve un PDF provisional y conserva el estado del trámite. |
+| Confirmar | Conservar las rutas `firmas`, `conformidades` y `recepciones`, el campo `version` y la cabecera `Idempotency-Key`. Se mantiene el cuerpo JSON para trazos. Con archivos, enviar `multipart/form-data` y, si corresponde, `firma` como arreglo de puntos codificado en JSON dentro de un campo de texto. |
+
+`imagen_firma` e `imagen_sello` son archivos independientes. Se aceptan PNG y JPEG de hasta 512 KiB y 2000 × 2000 píxeles por archivo. La firma del remitente y la conformidad VÍA requieren el trazo o una imagen de firma. Adjuntar un sello es opcional en esos actos. Al confirmar recepción se genera la constancia **RECIBIDO** con el funcionario, la unidad, la fecha y la hora del servidor. La recepción también admite imágenes de firma y sello. Frente a una respuesta incierta, confirmar el resultado con la misma clave y la misma versión. Consultar el detalle y volver a obtener el PDF después de la confirmación.
+
+La hoja emitida conserva el contenido y fija los nombres y unidades del encabezado al asignar el CITE. El modelo actual identifica el destino por unidad. Las notas emitidas antes de la migración conservan su contenido y recurren a los nombres disponibles en el registro. Para una autoridad VÍA, se incorporan las constancias confirmadas a medida que avanza el flujo. El acceso a la vista y al PDF usa las mismas reglas que el detalle de la nota.
+
+### Configuración del PDF
+
+Definir `DOCUMENT_CHROMIUM_BINARY` con la ruta absoluta al ejecutable Chromium compatible que esté instalado en el mismo entorno que Laravel. El proceso web debe poder ejecutarlo como usuario sin privilegios y escribir en `storage/app/private`. Instalar una fuente serif como Liberation Serif en el servidor. Aplicar las migraciones de #75 y reconstruir la caché de configuración si el entorno la usa.
+
+Verificar que el ejecutable reproduce el membrete y el pie en todas las páginas y que el visor y la impresión muestran la misma distribución. Con la variable vacía, web ofrece lectura de la hoja en HTML y comunica que falta habilitar la exportación. Las rutas de PDF de Android requieren el generador configurado.
+
 ## Pruebas con datos ficticios
 
 1. **Directa.** Unidad Alfa emite «Solicitud de inventario de prueba» a Unidad Beta sin VÍA. Beta confirma en Android. Web muestra el mismo estado y una única hoja. Repetir emisión y recepción con las claves originales. Verificar un CITE y un movimiento por acción.

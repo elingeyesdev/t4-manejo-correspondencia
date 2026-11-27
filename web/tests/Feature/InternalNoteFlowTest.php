@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\DeliverNoteNotices;
 use App\Services\FcmNoticeTransport;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -85,6 +86,45 @@ class InternalNoteFlowTest extends TestCase
             'note_id' => $note->id, 'user_id' => $this->recipient->id, 'type' => NoteNotice::INITIAL_RECEIPT,
         ]);
         Http::assertSentCount(1);
+    }
+
+    public function test_draft_preview_does_not_save_or_expose_another_authors_draft(): void
+    {
+        $literal = '<script>Contenido de prueba</script>';
+        $this->actingAs($this->author)->post(route('notes.preview-draft'), $this->draft() + ['borrador' => null])
+            ->assertOk()->assertSee('BORRADOR')->assertSee($this->recipient->unit->name);
+        $this->post(route('notes.preview-draft'), ['cuerpo' => $literal])
+            ->assertOk()->assertSee($literal)->assertDontSee($literal, false);
+        $this->assertDatabaseCount('internal_notes', 0);
+
+        $this->post(route('notes.store'), $this->draft())->assertRedirect();
+        $id = DB::table('internal_notes')->value('id');
+        $this->actingAs($this->outsider)->post(route('notes.preview-draft'), ['borrador' => $id])->assertNotFound();
+        $this->get(route('notes.document', $id))->assertNotFound();
+    }
+
+    public function test_uploaded_signature_is_required_independently_from_stamp_and_heading_is_preserved(): void
+    {
+        Http::fake([self::ENGINE.'/process-instances' => Http::response(['processInstanceKey' => '100'])]);
+        $this->actingAs($this->author)->post(route('notes.store'), $this->draft([$this->copy->id]))->assertRedirect();
+        $note = DB::table('internal_notes')->first();
+        $show = route('notes.show', $note->id);
+        $this->post(route('notes.request-signature', $note->id), ['version' => $note->version])->assertRedirect($show);
+        $action = ['version' => $note->version, 'request_key' => (string) Str::uuid()];
+        $this->from($show)->post(route('notes.sign', $note->id), $action + [
+            'imagen_sello' => UploadedFile::fake()->image('sello.png', 60, 50),
+        ])->assertRedirect($show)->assertSessionHasErrors('firma');
+        $this->post(route('notes.sign', $note->id), $action + [
+            'imagen_firma' => UploadedFile::fake()->image('firma.png', 60, 50),
+        ])->assertRedirect($show);
+        $this->post(route('notes.emit', $note->id), $action)->assertRedirect();
+        $this->author->update(['name' => 'Remitente modificado']);
+        $this->recipient->unit->update(['name' => 'Destino modificado']);
+
+        $this->actingAs($this->copy)->get(route('notes.document', $note->id))
+            ->assertOk()->assertSee('Unidad BETA')->assertSee('data:image/png;base64,', false)
+            ->assertDontSee('Remitente modificado')->assertDontSee('Destino modificado')->assertDontSee('RECIBIDO');
+        $this->getJson(route('notes.download', [$note->id, 'version' => $note->version]))->assertConflict();
     }
 
     public function test_web_draft_shows_saved_reviewers_and_rejects_duplicates(): void
@@ -289,7 +329,11 @@ class InternalNoteFlowTest extends TestCase
         Sanctum::actingAs($this->recipient);
         $key = $this->key();
         $this->getJson($uri)->assertJsonPath('acciones_permitidas', ['confirmar_primera_recepcion']);
-        $this->postJson($uri.'/recepciones', $payload, $key)->assertAccepted()->assertJsonPath('hoja_id', null)->assertJsonPath('sello_recepcion', null);
+        $this->withHeaders($key)->post($uri.'/recepciones', $payload + [
+            'imagen_sello' => UploadedFile::fake()->image('sello-recepcion.png', 80, 40),
+        ], ['Accept' => 'application/json'])->assertAccepted()->assertJsonPath('hoja_id', null)->assertJsonPath('sello_recepcion', null);
+        $this->actingAs($this->recipient, 'web')->get(route('notes.document', $draft->json('id')))
+            ->assertOk()->assertDontSee('RECIBIDO')->assertDontSee('data:image/png;base64,', false);
         $this->getJson($uri)->assertJsonPath('seguimiento.etiqueta', 'Pendiente de recepción');
         $this->assertDatabaseCount('route_sheets', 0);
         $this->postJson($uri.'/recepciones', $payload, $this->key())->assertConflict();
@@ -333,7 +377,9 @@ class InternalNoteFlowTest extends TestCase
         $this->actingAs($this->recipient, 'web')->get(route('notes.show', $draft->json('id')))
             ->assertOk()->assertSee('Abrir hoja de ruta')->assertSee('Firma del remitente')->assertSee('RECIBIDO · DEMOSTRACIÓN');
         $this->get(route('documents.show', $document))->assertOk()->assertSee('Vista previa del documento')
-            ->assertSee($this->draft()['cuerpo'])->assertSee('RECIBIDO · DEMOSTRACIÓN');
+            ->assertSee(route('notes.document', $draft->json('id')))->assertSee('RECIBIDO · DEMOSTRACIÓN');
+        $this->get(route('notes.document', $draft->json('id')))->assertOk()
+            ->assertSee($this->draft()['cuerpo'])->assertSee('RECIBIDO')->assertSee('data:image/png;base64,', false);
         Sanctum::actingAs($this->recipient);
 
         $route = '/api/hojas/'.$sheet;

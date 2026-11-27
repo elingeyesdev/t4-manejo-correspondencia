@@ -9,6 +9,7 @@ use App\Models\InternalNoteSignature;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\InternalNoteWorkflow;
+use App\Services\InstitutionalNoteDocument;
 use App\Services\ReceiveInternalNote;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -85,7 +86,7 @@ class InternalNoteController extends Controller
         $note = $this->find($request->user(), $id);
         $summary = $this->routeSummary($note);
 
-        return response()->json($summary + ['seguimiento' => $this->progress($note, $summary)])
+        return response()->json($summary + ['seguimiento' => $this->progress($note, $summary), 'version_documento' => $note->version])
             ->header('Cache-Control', 'private, no-store');
     }
 
@@ -120,6 +121,108 @@ class InternalNoteController extends Controller
         $note = $workflow->save($request->user(), $request->validated());
 
         return $this->result($request, $note, 'Borrador guardado.', 201);
+    }
+
+    public function document(Request $request, string $id, InstitutionalNoteDocument $document)
+    {
+        return $this->htmlDocument($document->html($this->find($request->user(), $id)));
+    }
+
+    private function htmlDocument(string $html)
+    {
+        return response($html)
+            ->header('Cache-Control', 'private, no-store');
+    }
+
+    public function download(Request $request, string $id, InstitutionalNoteDocument $document)
+    {
+        $note = $this->find($request->user(), $id);
+        $version = $request->validate(['version' => ['sometimes', 'integer', 'min:1']])['version'] ?? null;
+        abort_if($version !== null && (int) $version !== $note->version, 409, 'La nota cambió. Vuelve a abrir la vista previa.');
+        $filename = Str::slug($note->cite ?? 'borrador-nota-interna').'.pdf';
+
+        return $this->pdfResponse($document->pdf($note), $filename, $note->version,
+            ! $request->is('api/*') && $request->boolean('descargar'));
+    }
+
+    public function draftDocument(Request $request, InstitutionalNoteDocument $document)
+    {
+        $actor = $request->user();
+        $input = $request->validate([
+            'asunto' => ['nullable', 'string', 'max:200'],
+            'referencia' => ['nullable', 'string', 'max:200'],
+            'cuerpo' => ['nullable', 'string', 'max:20000'],
+            'destinatario_unidad_id' => ['nullable', 'integer'],
+            'vias_usuario_ids' => ['nullable', 'array', 'max:10'],
+            'vias_usuario_ids.*' => ['nullable', 'integer'],
+            'cc_usuario_ids' => ['nullable', 'array', 'max:50'],
+            'cc_usuario_ids.*' => ['integer'],
+            'borrador' => ['nullable', 'uuid'],
+        ]);
+        $saved = isset($input['borrador']) ? $this->find($actor, $input['borrador']) : null;
+        abort_if($saved !== null && ! $this->canEdit($saved, $actor), 403);
+        $units = Unit::where('institution_id', $actor->unit->institution_id)->where('enabled', true);
+        $recipient = isset($input['destinatario_unidad_id'])
+            ? (clone $units)->whereKey($input['destinatario_unidad_id'])->value('name') : null;
+        $byRole = ['via' => $input['vias_usuario_ids'] ?? [], 'cc' => $input['cc_usuario_ids'] ?? []];
+        $accounts = User::with('unit')->where('enabled', true)->whereIn('unit_id', $units->select('id'))
+            ->whereIn('id', array_merge(...array_values($byRole)))->get()->keyBy('id');
+        $people = [];
+        foreach ($byRole as $role => $ids) {
+            foreach (array_unique($ids) as $id) {
+                if ($person = $accounts->get($id)) {
+                    $people[] = ['id' => $person->id, 'role' => $role, 'name' => $person->name, 'unit' => $person->unit->name];
+                }
+            }
+        }
+        $draft = new InternalNote([
+            'subject' => $input['asunto'] ?? '',
+            'reference' => $input['referencia'] ?? null,
+            'body' => $input['cuerpo'] ?? '',
+            'created_at' => $saved?->created_at ?? now(),
+            'document_heading' => [
+                'sender' => ['name' => $actor->name, 'unit' => $actor->unit->name],
+                'recipient' => $recipient,
+                'people' => $people,
+            ],
+        ]);
+
+        return $document->configured() ? $this->pdfResponse($document->pdf($draft), 'borrador-nota-interna.pdf')
+            : $this->htmlDocument($document->html($draft));
+    }
+
+    public function actionDocument(Request $request, string $id, InstitutionalNoteDocument $document)
+    {
+        $actor = $request->user();
+        $note = $this->find($actor, $id);
+        $input = $request->validate([
+            'version' => ['required', 'integer', 'min:1'],
+            'accion' => ['required', Rule::in(['firmar_borrador', 'dar_conformidad', 'confirmar_primera_recepcion'])],
+        ]);
+        abort_unless(in_array($input['accion'], $this->payload($note, $actor)['acciones_permitidas'], true), 403);
+        abort_unless((int) $input['version'] === $note->version, 409);
+
+        $preview = [
+            'action' => $input['accion'],
+            'name' => $actor->name,
+            'unit' => $actor->unit->name,
+            'images' => $this->images($request),
+            'strokes' => $this->signatureStrokes($request) ?? [],
+        ];
+
+        return $request->is('api/*') || $document->configured()
+            ? $this->pdfResponse($document->pdf($note, $preview), 'vista-previa-no-confirmada.pdf', $note->version)
+            : $this->htmlDocument($document->html($note, $preview));
+    }
+
+    private function pdfResponse(string $pdf, string $filename, ?int $version = null, bool $download = false)
+    {
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($download ? 'attachment' : 'inline').'; filename="'.$filename.'"',
+            'Cache-Control' => 'private, no-store',
+            ...($version === null ? [] : ['X-Note-Version' => (string) $version]),
+        ]);
     }
 
     public function update(InternalNoteDraftRequest $request, string $id, InternalNoteWorkflow $workflow)
@@ -169,7 +272,7 @@ class InternalNoteController extends Controller
     {
         $actor = $request->user();
         $data = $this->action($request);
-        $note = $receipt->execute($actor, $this->find($actor, $id), (int) $data['version'], $data['request_key']);
+        $note = $receipt->execute($actor, $this->find($actor, $id), (int) $data['version'], $data['request_key'], $this->images($request));
         $pending = $note->document_id === null;
 
         return $this->result($request, $note, $pending ? 'Recepción pendiente. Puedes reintentar desde esta nota.' : 'Recepción confirmada.', $pending ? 202 : 200);
@@ -186,12 +289,41 @@ class InternalNoteController extends Controller
 
     private function signature(Request $request): ?array
     {
+        $images = $this->images($request);
+        $strokes = $this->signatureStrokes($request);
+
+        if ($images === []) {
+            return $strokes;
+        }
+
+        return ['strokes' => $strokes ?? [], 'images' => $images];
+    }
+
+    private function images(Request $request): array
+    {
+        $files = $request->validate([
+            'imagen_firma' => ['nullable', 'file', 'mimetypes:image/png,image/jpeg', 'max:512', 'dimensions:max_width=2000,max_height=2000'],
+            'imagen_sello' => ['nullable', 'file', 'mimetypes:image/png,image/jpeg', 'max:512', 'dimensions:max_width=2000,max_height=2000'],
+        ]);
+        $images = [];
+        foreach ($files as $key => $file) {
+            if ($file !== null) {
+                $images[$key] = 'data:'.$file->getMimeType().';base64,'.base64_encode($file->get());
+            }
+        }
+
+        return $images;
+    }
+
+    private function signatureStrokes(Request $request): ?array
+    {
         $signature = $request->input('firma');
         if ($signature === null) {
             return null;
         }
 
-        if (! $request->is('api/*') && is_string($signature) && strlen($signature) <= 30000) {
+        if (is_string($signature) && strlen($signature) <= 30000
+            && (! $request->is('api/*') || str_starts_with((string) $request->header('Content-Type'), 'multipart/form-data'))) {
             $signature = json_decode($signature, true, 5);
         }
 
