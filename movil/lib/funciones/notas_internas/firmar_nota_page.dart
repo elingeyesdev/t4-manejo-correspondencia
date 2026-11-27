@@ -224,9 +224,7 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
           ],
           const Divider(),
           Text(
-            _requiereFirma
-                ? 'Firma con el dedo o carga una imagen.'
-                : 'Puedes agregar firma y sello antes de recibir.',
+            _requiereFirma ? 'Firma con el dedo o carga una imagen.' : 'La recepción genera RECIBIDO automáticamente. Agregar tu firma o una imagen de sello es opcional.',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
@@ -363,7 +361,9 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
                   ? 'Preparando documento…'
                   : widget.api == null
                   ? 'Confirmar firma'
-                  : 'Revisar firma y sello sobre la hoja',
+                  : _requiereFirma
+                  ? 'Revisar firma y sello sobre la hoja'
+                  : 'Revisar recepción sobre la hoja',
             ),
           ),
         ),

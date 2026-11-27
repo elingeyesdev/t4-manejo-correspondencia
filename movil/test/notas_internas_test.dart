@@ -141,6 +141,8 @@ Future<void> pulsar(WidgetTester tester, String texto) async {
     texto =
         find.text('Revisar firma y sello sobre la hoja').evaluate().isNotEmpty
         ? 'Revisar firma y sello sobre la hoja'
+        : find.text('Revisar recepción sobre la hoja').evaluate().isNotEmpty
+        ? 'Revisar recepción sobre la hoja'
         : 'Confirmar firma';
   }
   if (find.text(texto).evaluate().isEmpty) {
@@ -155,7 +157,8 @@ Future<void> pulsar(WidgetTester tester, String texto) async {
   await tester.pumpAndSettle();
   await tester.tap(boton);
   await tester.pumpAndSettle();
-  if (texto == 'Revisar firma y sello sobre la hoja') {
+  if (texto == 'Revisar firma y sello sobre la hoja' ||
+      texto == 'Revisar recepción sobre la hoja') {
     await tester.tap(find.text('Confirmar y continuar'));
     await tester.pumpAndSettle();
   }

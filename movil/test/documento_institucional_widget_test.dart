@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -27,6 +27,82 @@ http.Response _pdf(int version) => http.Response.bytes(
 );
 
 void main() {
+  const canal = MethodChannel('correspondencia/documentos');
+  tearDown(
+    () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(canal, null),
+  );
+
+  testWidgets(
+    'descarga el PDF completo y permite cancelar sin anunciar un guardado',
+    (tester) async {
+      final llamadas = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(canal, (call) async {
+            llamadas.add(call);
+            return llamadas.length > 1;
+          });
+      final api = fixture.conectar(
+        (_) async => fixture.respuesta(fixture.nota()),
+      );
+      await fixture.abrir(
+        tester,
+        VistaPreviaNota(api: api, nota: NotaInterna.desdeJson(fixture.nota())),
+      );
+      await tester.tap(find.text('Descargar PDF'));
+      await tester.pumpAndSettle();
+      expect(llamadas.single.method, 'guardarPdf');
+      expect(
+        llamadas.single.arguments['bytes'],
+        File('test/fixtures/nota-dos-paginas.pdf').readAsBytesSync(),
+      );
+      expect(llamadas.single.arguments['nombre'], 'CM_TI_001_v3.pdf');
+      expect(
+        find.text('PDF guardado en la ubicación que elegiste.'),
+        findsNothing,
+      );
+      await tester.tap(find.text('Descargar PDF'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('PDF guardado en la ubicación que elegiste.'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('no guarda el archivo si la sesión cambia durante la descarga', (
+    tester,
+  ) async {
+    final pendiente = Completer<http.Response>();
+    var peticiones = 0, guardados = 0;
+    final api = ApiLaravel(
+      baseUrl: 'http://api.test',
+      client: MockClient((request) async {
+        if (request.url.path.endsWith('/documento.pdf')) {
+          return ++peticiones == 1 ? _pdf(3) : pendiente.future;
+        }
+        return fixture.respuesta(fixture.nota());
+      }),
+    )..token = 'primera';
+    addTearDown(api.close);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(canal, (_) async {
+          guardados++;
+          return true;
+        });
+    await fixture.abrir(
+      tester,
+      VistaPreviaNota(api: api, nota: NotaInterna.desdeJson(fixture.nota())),
+    );
+    await tester.tap(find.text('Descargar PDF'));
+    await tester.pump();
+    api.token = 'otra';
+    pendiente.complete(_pdf(3));
+    await tester.pumpAndSettle();
+    expect(guardados, 0);
+    expect(find.textContaining('Tu sesión cambió.'), findsOneWidget);
+  });
+
   testWidgets(
     'permite leer la segunda página y ampliar sin ejecutar acciones',
     (tester) async {
@@ -128,6 +204,7 @@ void main() {
         find.widgetWithText(FilledButton, 'Confirmar y continuar'),
       );
       expect(boton().onPressed, isNotNull);
+      expect(find.text('Descargar PDF'), findsNothing);
       version = 4;
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();

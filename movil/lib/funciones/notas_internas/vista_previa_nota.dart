@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../compartido/api/laravel_api.dart';
+import '../../compartido/archivos/guardar_pdf.dart';
 import '../../compartido/diseno/institucional.dart';
 import 'documento_nota_pdf.dart';
 import 'hoja_nota.dart';
@@ -79,7 +80,8 @@ class _VistaPreviaNotaState extends State<VistaPreviaNota>
   bool _consultando = false,
       _lista = false,
       _cambio = false,
-      _sesionInvalida = false;
+      _sesionInvalida = false,
+      _descargando = false;
   String? _error;
 
   @override
@@ -130,6 +132,58 @@ class _VistaPreviaNotaState extends State<VistaPreviaNota>
       });
     } finally {
       _consultando = false;
+    }
+  }
+
+  Future<void> _descargar() async {
+    final api = widget.api;
+    if (api == null || _descargando || !_lista || _sesionInvalida) return;
+    final nota = _nota;
+    setState(() => _descargando = true);
+    try {
+      final pdf = await NotasApi(api).documento(nota);
+      if (!mounted) return;
+      if (_token != api.token) {
+        throw const ErrorLaravel(
+          'Tu sesión cambió. Vuelve a abrir la nota.',
+          estado: 401,
+        );
+      }
+      if (nota.revisionDocumento != _nota.revisionDocumento) {
+        throw const ErrorLaravel(
+          'La nota cambió. Revisa el documento actualizado antes de descargar.',
+          estado: 409,
+        );
+      }
+      final nombre = nota.cite.replaceAll(RegExp(r'[^a-zA-Z0-9_-]+'), '_');
+      final guardado = await GuardarPdf.guardar(
+        pdf.bytes,
+        '${nombre}_v${nota.version}.pdf',
+      );
+      if (!mounted || !guardado) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('PDF guardado en la ubicación que elegiste.'),
+        ),
+      );
+    } on ErrorLaravel catch (e) {
+      if (!mounted) return;
+      if ({401, 403, 404}.contains(e.estado)) {
+        setState(() => _sesionInvalida = true);
+      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.mensaje)));
+      if (e.estado == 409) unawaited(_actualizar());
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo guardar el PDF. Inténtalo nuevamente.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _descargando = false);
     }
   }
 
@@ -200,6 +254,26 @@ class _VistaPreviaNotaState extends State<VistaPreviaNota>
                       ? () => Navigator.pop(context, true)
                       : null,
                   child: const Text('Confirmar y continuar'),
+                ),
+              ),
+            )
+          : widget.api != null && widget.provisional == null
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: OutlinedButton.icon(
+                  onPressed:
+                      _lista &&
+                          !_sesionInvalida &&
+                          _error == null &&
+                          !_descargando
+                      ? _descargar
+                      : null,
+                  icon: const Icon(Icons.download),
+                  label: Text(
+                    _descargando ? 'Preparando descarga…' : 'Descargar PDF',
+                  ),
                 ),
               ),
             )
