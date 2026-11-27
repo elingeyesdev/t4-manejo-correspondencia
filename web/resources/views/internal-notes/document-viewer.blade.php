@@ -17,7 +17,7 @@
     </div>
     <p class="form-text" data-pdf-status role="status" hidden></p>
     <iframe class="document-preview-pdf" src="{{ $htmlUrl }}"
-            title="Documento completo de la nota interna" sandbox="allow-same-origin allow-modals"></iframe>
+            title="Documento completo de la nota interna" sandbox="allow-same-origin allow-scripts allow-modals"></iframe>
 </div>
 @once
     <script src="{{ asset('js/note-pdf-actions.js') }}" defer></script>

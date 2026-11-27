@@ -19,7 +19,7 @@ class InstitutionalNoteDocument
         return is_string($browser) && is_file($browser);
     }
 
-    public function html(InternalNote $note, ?array $preview = null): string
+    public function html(InternalNote $note, ?array $preview = null, bool $screen = true): string
     {
         $heading = $note->documentHeading();
         if ($note->exists) {
@@ -35,8 +35,9 @@ class InstitutionalNoteDocument
             ? 0 : $confirmed->get($signature->user_id)->position);
         $stamp = $note->receiptStamp();
         $letterhead = base64_encode(File::get(resource_path('membrete-concejo.jpg')));
+        $pagination = $screen ? str_replace("\r\n", "\n", File::get(resource_path('js/institutional-note-pages.js'))) : null;
 
-        return view('internal-notes.document', compact('note', 'heading', 'signatures', 'stamp', 'letterhead', 'preview'))->render();
+        return view('internal-notes.document', compact('note', 'heading', 'signatures', 'stamp', 'letterhead', 'preview', 'pagination'))->render();
     }
 
     public function pdf(InternalNote $note, ?array $preview = null): string
@@ -53,7 +54,7 @@ class InstitutionalNoteDocument
 
         try {
             $htmlPath = $directory.'/documento.html';
-            File::put($htmlPath, $this->html($note, $preview));
+            File::put($htmlPath, $this->html($note, $preview, screen: false));
             $segments = explode('/', str_replace('\\', '/', $htmlPath));
             $fileUrl = 'file:///'.ltrim(implode('/', array_map(
                 fn (string $part) => preg_match('/^[A-Za-z]:$/D', $part) ? $part : rawurlencode($part),

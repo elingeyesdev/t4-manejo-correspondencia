@@ -243,7 +243,7 @@ La hoja emitida conserva el contenido y fija los nombres y unidades del encabeza
 
 Definir `DOCUMENT_CHROMIUM_BINARY` con la ruta absoluta al ejecutable Chromium compatible que esté instalado en el mismo entorno que Laravel. El proceso web debe poder ejecutarlo como usuario sin privilegios y escribir en el directorio temporal de PHP. Instalar una fuente serif como Liberation Serif en el servidor. Aplicar las migraciones de #75 y reconstruir la caché de configuración si el entorno la usa.
 
-La vista previa web utiliza la plantilla institucional en HTML. **Revisar saltos de página (PDF)** permite comprobar la paginación antes de guardar. Verificar que el ejecutable reproduzca el membrete y el pie en todas las páginas. Si falla la exportación web, abrir la hoja en el navegador y usar **Imprimir**. Las rutas de PDF de Android requieren el generador configurado.
+La vista previa web distribuye el contenido en hojas tamaño carta con margen reservado para el membrete y el pie en cada página. En pantallas estrechas reduce la escala de la hoja y mantiene los saltos de la vista previa. **Revisar saltos de página (PDF)** permite comprobar la salida del generador antes de guardar. Si falla la exportación web, abrir la hoja en el navegador y usar **Imprimir**. Las rutas de PDF de Android requieren el generador configurado.
 
 Para probar la salida PDF mediante las rutas web y API, definir `TEST_DOCUMENT_CHROMIUM_BINARY` con la ruta al navegador de pruebas y ejecutar `php artisan test --filter=InternalNoteFlowTest` desde `web`. El caso de integración comprueba la paginación, la versión, los permisos y la recepción con un expediente ficticio.
 
