@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +14,8 @@ import 'package:t4_movil/funciones/notas_internas/nota_interna.dart';
 import 'package:t4_movil/funciones/notas_internas/notas_api.dart';
 import 'package:t4_movil/funciones/notas_internas/firmar_nota_page.dart';
 import 'package:t4_movil/funciones/notas_internas/firma_nota.dart';
+
+import 'soporte/pdf_falso.dart';
 
 const firmaPrueba = [
   [
@@ -73,9 +76,35 @@ http.Response pagina(
   },
 });
 
+http.Client clienteConDocumentos(
+  Future<http.Response> Function(http.Request) responder,
+) {
+  usarPdfFalso();
+  return MockClient((request) async {
+    if (request.url.path.endsWith('/documento.pdf') ||
+        request.url.path.endsWith('/vista-previa')) {
+      final version =
+          request.url.queryParameters['version'] ??
+          RegExp('name="version"\r\n\r\n(\\d+)')
+              .firstMatch(utf8.decode(request.bodyBytes, allowMalformed: true))
+              ?.group(1) ??
+          '3';
+      return http.Response.bytes(
+        File('test/fixtures/nota-dos-paginas.pdf').readAsBytesSync(),
+        200,
+        headers: {'content-type': 'application/pdf', 'x-note-version': version},
+      );
+    }
+    return responder(request);
+  });
+}
+
 ApiLaravel conectar(Future<http.Response> Function(http.Request) responder) {
   final api =
-      ApiLaravel(baseUrl: 'http://api.test', client: MockClient(responder))
+      ApiLaravel(
+          baseUrl: 'http://api.test',
+          client: clienteConDocumentos(responder),
+        )
         ..token = 'sesion-1'
         ..cuentaId = '1';
   addTearDown(api.close);
@@ -83,6 +112,7 @@ ApiLaravel conectar(Future<http.Response> Function(http.Request) responder) {
 }
 
 Future<void> abrir(WidgetTester tester, Widget pantalla) async {
+  usarPdfFalso();
   await tester.binding.setSurfaceSize(const Size(480, 1100));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(MaterialApp(home: pantalla));
@@ -93,6 +123,13 @@ Future<void> pulsar(WidgetTester tester, String texto) async {
   if (texto == 'Confirmar' &&
       find.byType(FirmarNotaPage).evaluate().isNotEmpty) {
     final area = find.byKey(const ValueKey('area-firma'));
+    if (area.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        area,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+    }
     await tester.ensureVisible(area);
     await tester.pumpAndSettle();
     final inicio = tester.getTopLeft(area) + const Offset(30, 30);
@@ -101,7 +138,10 @@ Future<void> pulsar(WidgetTester tester, String texto) async {
     await gesto.moveBy(const Offset(35, -20));
     await gesto.up();
     await tester.pumpAndSettle();
-    texto = 'Confirmar firma';
+    texto =
+        find.text('Revisar firma y sello sobre la hoja').evaluate().isNotEmpty
+        ? 'Revisar firma y sello sobre la hoja'
+        : 'Confirmar firma';
   }
   if (find.text(texto).evaluate().isEmpty) {
     await tester.scrollUntilVisible(
@@ -115,12 +155,16 @@ Future<void> pulsar(WidgetTester tester, String texto) async {
   await tester.pumpAndSettle();
   await tester.tap(boton);
   await tester.pumpAndSettle();
+  if (texto == 'Revisar firma y sello sobre la hoja') {
+    await tester.tap(find.text('Confirmar y continuar'));
+    await tester.pumpAndSettle();
+  }
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
-  test('consulta las cinco bandejas con paginación del contrato', () async {
+  test('consulta las bandejas de tareas, notas propias y cerradas', () async {
     final rutas = <Uri>[];
     final api = conectar((r) async {
       rutas.add(r.url);
@@ -136,6 +180,8 @@ void main() {
       'por_recibir',
       'por_atender',
       'copias',
+      'mis_notas',
+      'cerradas',
     ]);
     expect(rutas.every((r) => r.queryParameters['per_page'] == '15'), isTrue);
   });
@@ -554,6 +600,11 @@ void main() {
         vencimientos++;
       };
       await abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
+      await tester.scrollUntilVisible(
+        find.textContaining('Funcionario de prueba'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.textContaining('Funcionario de prueba'), findsOneWidget);
       denegar = true;
       await tester.tap(find.byTooltip('Actualizar nota'));

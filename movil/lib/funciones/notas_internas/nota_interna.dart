@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../compartido/api/laravel_api.dart';
 import 'seguimiento_nota.dart';
 
@@ -6,7 +8,9 @@ enum BandejaNota {
   revisar('por_revisar', 'Por revisar'),
   recibir('por_recibir', 'Por recibir'),
   atender('por_atender', 'Por atender'),
-  copias('copias', 'Copias');
+  copias('copias', 'Copias'),
+  misNotas('mis_notas', 'Mis notas'),
+  cerradas('cerradas', 'Cerradas');
 
   const BandejaNota(this.parametro, this.titulo);
   final String parametro, titulo;
@@ -96,6 +100,15 @@ class NotaInterna {
   String get cite => datos['cite'] as String? ?? 'Sin CITE asignado';
   String get estado => datos['estado'] as String;
   int get version => datos['version'] as int;
+  String get revisionDocumento => jsonEncode([
+    version,
+    estado,
+    estadoFirma,
+    datos['fecha_ultimo_movimiento'],
+    datos['movimientos_nota'],
+    datos['constancias'],
+    datos['sello_recepcion'],
+  ]);
   String get origen => (datos['unidad_origen'] as Map)['nombre'] as String;
   String get emisor {
     final nombre = (datos['autor'] as Map?)?['nombre'];

@@ -6,8 +6,8 @@ import 'package:path_provider/path_provider.dart';
 
 import 'adjuntos_api.dart';
 import '../../compartido/api/laravel_api.dart';
-import '../../compartido/diseno/sakai_theme.dart';
 import '../../compartido/diseno/institucional.dart';
+import '../../compartido/diseno/visor_pdf_institucional.dart';
 
 class AdjuntoPage extends StatefulWidget {
   const AdjuntoPage({super.key, required this.servicio, required this.adjunto});
@@ -125,19 +125,9 @@ class _AdjuntoPageState extends State<AdjuntoPage> {
             ),
           );
         }
-        return ListView(
-          padding: const EdgeInsets.all(24),
+        return Column(
           children: [
-            const Icon(
-              Icons.picture_as_pdf_outlined,
-              color: Sakai.violet,
-              size: 72,
-            ),
-            const SizedBox(height: 20),
-            Text(widget.adjunto.nombre, textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            Text(widget.adjunto.tamanoTexto, textAlign: TextAlign.center),
-            const SizedBox(height: 24),
+            Expanded(child: VisorPdfInstitucional(bytes: contenido.bytes)),
             FilledButton.icon(
               onPressed: _abriendo ? null : () => _abrirPdf(contenido),
               icon: const Icon(Icons.open_in_new),

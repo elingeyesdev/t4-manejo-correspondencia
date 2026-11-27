@@ -1,7 +1,44 @@
+import 'imagen_constancia.dart';
+
 class FirmaNota {
-  FirmaNota._(this.trazos);
+  FirmaNota._(this.trazos, {this.imagenFirma, this.imagenSello});
 
   final List<List<List<int>>> trazos;
+  final ImagenConstancia? imagenFirma, imagenSello;
+  bool get tieneFirma => trazos.isNotEmpty || imagenFirma != null;
+  bool get tieneImagenes => imagenFirma != null || imagenSello != null;
+
+  factory FirmaNota.constancia({
+    FirmaNota? trazo,
+    ImagenConstancia? firma,
+    ImagenConstancia? sello,
+  }) => FirmaNota._(
+    trazo?.trazos ?? const [],
+    imagenFirma: firma,
+    imagenSello: sello,
+  );
+
+  factory FirmaNota.desdeConstanciaJson(Object? valor) {
+    if (valor is! Map || valor['trazos'] is! List) {
+      throw const FormatException('Constancia guardada inválida');
+    }
+    final puntos = valor['trazos'] as List;
+    return FirmaNota.constancia(
+      trazo: puntos.isEmpty ? null : FirmaNota.desdeJson(puntos),
+      firma: valor['imagen_firma'] == null
+          ? null
+          : ImagenConstancia.desdeJson(valor['imagen_firma']),
+      sello: valor['imagen_sello'] == null
+          ? null
+          : ImagenConstancia.desdeJson(valor['imagen_sello']),
+    );
+  }
+
+  Map<String, dynamic> constanciaJson() => {
+    'trazos': trazos,
+    if (imagenFirma != null) 'imagen_firma': imagenFirma!.toJson(),
+    if (imagenSello != null) 'imagen_sello': imagenSello!.toJson(),
+  };
 
   factory FirmaNota.desdeJson(Object? valor) {
     if (valor is! List || valor.isEmpty || valor.length > 32) {

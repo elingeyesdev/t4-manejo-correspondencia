@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:t4_movil/compartido/api/laravel_api.dart';
 import 'package:t4_movil/funciones/notas_internas/almacen_intentos_nota.dart';
 import 'package:t4_movil/funciones/notas_internas/detalle_nota_page.dart';
@@ -74,9 +73,10 @@ ApiLaravel _api(
   String token = 'token-1',
   String base = 'http://api.test',
 }) {
-  final api = ApiLaravel(baseUrl: base, client: MockClient(responder))
-    ..token = token
-    ..cuentaId = cuenta;
+  final api =
+      ApiLaravel(baseUrl: base, client: fixture.clienteConDocumentos(responder))
+        ..token = token
+        ..cuentaId = cuenta;
   addTearDown(api.close);
   return api;
 }

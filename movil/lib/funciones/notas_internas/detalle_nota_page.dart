@@ -302,6 +302,8 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
             builder: (_) => FirmarNotaPage(
               nota: actual,
               titulo: 'Recuperar firma pendiente',
+              api: widget.api,
+              accion: anterior.accion,
             ),
           ),
         );
@@ -337,7 +339,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
       setState(() => _confirmando = true);
       FirmaNota? firma;
       final bool aceptar;
-      if (accion != AccionNota.primeraRecepcion) {
+      {
         if (nota.cuerpo == null || nota.cuerpo!.trim().isEmpty) {
           setState(() {
             _confirmando = false;
@@ -347,34 +349,15 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         }
         firma = await Navigator.of(context).push<FirmaNota>(
           MaterialPageRoute(
-            builder: (_) => FirmarNotaPage(nota: nota, titulo: accion.titulo),
+            builder: (_) => FirmarNotaPage(
+              nota: nota,
+              titulo: accion.titulo,
+              api: widget.api,
+              accion: accion,
+            ),
           ),
         );
         aceptar = firma != null;
-      } else {
-        aceptar =
-            await showDialog<bool>(
-              context: context,
-              builder: (context) => InterfazInstitucional(
-                builder: (context) => AlertDialog(
-                  title: Text('¿${accion.titulo}?'),
-                  content: Text(
-                    '${nota.cite}\n${nota.asunto}\nVersión ${nota.version}',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancelar'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Confirmar'),
-                    ),
-                  ],
-                ),
-              ),
-            ) ==
-            true;
       }
       if (!mounted) return;
       setState(() => _confirmando = false);
@@ -391,7 +374,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         accion: accion,
         token: widget.api.token,
         cuentaId: widget.api.cuentaId,
-        firma: firma,
+        firma: firma.tieneFirma || firma.tieneImagenes ? firma : null,
       );
     }
     setState(() {
@@ -643,6 +626,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
                 nota.asunto,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
+              DatoInstitucional('CITE', nota.cite),
               if (widget.soloLectura) const Text('Copia para conocimiento.'),
               const SizedBox(height: 8),
               const SizedBox(height: 12),
@@ -666,11 +650,12 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
                 label: const Text('Abrir vista previa'),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => VistaPreviaNota(nota: nota),
+                    builder: (_) =>
+                        VistaPreviaNota(nota: nota, api: widget.api),
                   ),
                 ),
               ),
-              DocumentoNota(nota: nota),
+              DocumentoNota(nota: nota, api: widget.api),
               const SizedBox(height: 12),
               if (nota.datos['unidad_actual'] case final Map unidad)
                 DatoInstitucional('Unidad actual', '${unidad['nombre']}'),

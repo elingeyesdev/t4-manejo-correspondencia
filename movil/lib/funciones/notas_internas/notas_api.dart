@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+
 import '../../compartido/api/laravel_api.dart';
 import 'almacen_intentos_nota.dart';
 import 'firma_nota.dart';
+import 'documento_nota_pdf.dart';
 import 'nota_interna.dart';
 
 enum AccionNota {
@@ -13,6 +17,11 @@ enum AccionNota {
 
   const AccionNota(this.ruta, this.titulo);
   final String ruta, titulo;
+  String get permiso => switch (this) {
+    conformidad => 'dar_conformidad',
+    primeraRecepcion => 'confirmar_primera_recepcion',
+    firmaRemitente => 'firmar_borrador',
+  };
 }
 
 class SolicitudNota {
@@ -33,7 +42,7 @@ class SolicitudNota {
   final AccionNota accion;
   final FirmaNota? firma;
   bool get requiereFirma =>
-      accion != AccionNota.primeraRecepcion && firma == null;
+      accion != AccionNota.primeraRecepcion && !(firma?.tieneFirma ?? false);
 
   SolicitudNota conFirma(FirmaNota trazo) {
     if (!requiereFirma) {
@@ -124,7 +133,7 @@ class NotasApi {
         if (guardado == null) continue;
         final datos = jsonDecode(guardado);
         if (datos is! Map ||
-            !{1, 2}.contains(datos['schema']) ||
+            !{1, 2, 3}.contains(datos['schema']) ||
             datos['origen'] != identidad.origen ||
             datos['cuenta'] != identidad.cuenta ||
             datos['nota'] != id ||
@@ -145,11 +154,18 @@ class NotasApi {
           accion: accion,
           token: identidad.token,
           cuentaId: identidad.cuenta,
-          firma: datos['firma'] == null
+          firma: datos['schema'] == 3
+              ? FirmaNota.desdeConstanciaJson(datos['constancia'])
+              : datos['firma'] == null
               ? null
               : FirmaNota.desdeJson(datos['firma']),
         );
         if (datos['schema'] == 2 && pendiente.firma == null) {
+          throw const FormatException('Firma guardada inválida');
+        }
+        if (datos['schema'] == 3 &&
+            pendiente.accion != AccionNota.primeraRecepcion &&
+            pendiente.requiereFirma) {
           throw const FormatException('Firma guardada inválida');
         }
       }
@@ -259,6 +275,72 @@ class NotasApi {
     return nota;
   }
 
+  Uri _url(String ruta) => Uri.parse(
+    '${api.baseUrl.replaceAll(RegExp(r'/+$'), '')}/api/notas-internas/$ruta',
+  );
+
+  Future<DocumentoNotaPdf> documento(NotaInterna nota) async {
+    final request = http.Request(
+      'GET',
+      _url(
+        '${Uri.encodeComponent(nota.id)}/documento.pdf?version=${nota.version}',
+      ),
+    );
+    request.headers['Accept'] = 'application/pdf';
+    return DocumentoNotaPdf.desdeRespuesta(
+      await api.enviarArchivo(request, limite: api.timeout * 2),
+      nota.version,
+    );
+  }
+
+  http.MultipartRequest _formulario(
+    String id,
+    String ruta,
+    int version,
+    FirmaNota? firma,
+  ) {
+    final request = http.MultipartRequest(
+      'POST',
+      _url('${Uri.encodeComponent(id)}/$ruta'),
+    );
+    request.fields['version'] = '$version';
+    if (firma != null && firma.trazos.isNotEmpty) {
+      request.fields['firma'] = jsonEncode(firma.toJson());
+    }
+    final imagenes = {
+      'imagen_firma': firma?.imagenFirma,
+      'imagen_sello': firma?.imagenSello,
+    };
+    for (final entry in imagenes.entries) {
+      final image = entry.value;
+      if (image != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            entry.key,
+            image.bytes,
+            filename: '${entry.key}.${image.extension}',
+            contentType: MediaType.parse(image.mime),
+          ),
+        );
+      }
+    }
+    return request;
+  }
+
+  Future<DocumentoNotaPdf> previsualizar(
+    NotaInterna nota,
+    AccionNota accion,
+    FirmaNota firma,
+  ) async {
+    final request = _formulario(nota.id, 'vista-previa', nota.version, firma);
+    request.fields['accion'] = accion.permiso;
+    request.headers['Accept'] = 'application/pdf';
+    return DocumentoNotaPdf.desdeRespuesta(
+      await api.enviarArchivo(request, limite: api.timeout * 2),
+      nota.version,
+    );
+  }
+
   Future<NotaInterna> ejecutar(SolicitudNota solicitud) => _exclusiva(
     solicitud.notaId,
     () async {
@@ -268,7 +350,8 @@ class NotasApi {
               anterior.version != solicitud.version ||
               anterior.accion != solicitud.accion ||
               (anterior.firma != null &&
-                  jsonEncode(anterior.firma) != jsonEncode(solicitud.firma)))) {
+                  jsonEncode(anterior.firma?.constanciaJson()) !=
+                      jsonEncode(solicitud.firma?.constanciaJson())))) {
         throw const ErrorLaravel(
           'Comprueba el intento pendiente antes de realizar otra acción.',
           codigo: 'INTENTO_EXISTENTE',
@@ -292,7 +375,11 @@ class NotasApi {
         await almacen.guardar(
           _clave(solicitud.notaId, solicitud.accion, identidad),
           jsonEncode({
-            'schema': solicitud.firma == null ? 1 : 2,
+            'schema': solicitud.firma?.tieneImagenes == true
+                ? 3
+                : solicitud.firma == null
+                ? 1
+                : 2,
             'origen': identidad.origen,
             'cuenta': identidad.cuenta,
             'nota': solicitud.notaId,
@@ -300,6 +387,8 @@ class NotasApi {
             'clave': solicitud.clave,
             'version': solicitud.version,
             if (solicitud.firma != null) 'firma': solicitud.firma!.toJson(),
+            if (solicitud.firma?.tieneImagenes == true)
+              'constancia': solicitud.firma!.constanciaJson(),
           }),
         );
       } catch (_) {
@@ -337,15 +426,26 @@ class NotasApi {
         estado: 401,
       );
     }
-    final respuesta = await api.enviarConEstado(
-      'POST',
-      'notas-internas/${Uri.encodeComponent(solicitud.notaId)}/${solicitud.accion.ruta}',
-      datos: {
-        'version': solicitud.version,
-        if (solicitud.firma != null) 'firma': solicitud.firma!.toJson(),
-      },
-      cabeceras: {'Idempotency-Key': solicitud.clave},
-    );
+    final formulario = solicitud.firma?.tieneImagenes == true
+        ? _formulario(
+            solicitud.notaId,
+            solicitud.accion.ruta,
+            solicitud.version,
+            solicitud.firma,
+          )
+        : null;
+    formulario?.headers['Idempotency-Key'] = solicitud.clave;
+    final respuesta = formulario != null
+        ? await api.enviarFormulario(formulario)
+        : await api.enviarConEstado(
+            'POST',
+            'notas-internas/${Uri.encodeComponent(solicitud.notaId)}/${solicitud.accion.ruta}',
+            datos: {
+              'version': solicitud.version,
+              if (solicitud.firma != null) 'firma': solicitud.firma!.toJson(),
+            },
+            cabeceras: {'Idempotency-Key': solicitud.clave},
+          );
     if (respuesta.estado == 202) {
       throw const ErrorLaravel(
         'La operación sigue pendiente. Reintenta para comprobar el mismo intento.',

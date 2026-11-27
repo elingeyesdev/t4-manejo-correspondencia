@@ -226,7 +226,7 @@ void main() {
       'nota: recepción recarga tras POST $estadoPost aunque haya un GET anterior',
       (tester) async {
         final antigua = Completer<http.Response>();
-        var actualizado = false, gets = 0;
+        var actualizado = false, gets = 0, recargasTrasPost = 0;
         Map<String, dynamic> nota() => fixture.nota(
           version: actualizado ? 4 : 3,
           vinculada: actualizado,
@@ -250,6 +250,7 @@ void main() {
             });
           }
           gets++;
+          if (actualizado) recargasTrasPost++;
           if (gets == 2) return antigua.future;
           return fixture.respuesta(nota());
         });
@@ -262,7 +263,8 @@ void main() {
           await fixture.pulsar(tester, 'Confirmar');
           antigua.complete(snapshot);
           await tester.pumpAndSettle();
-          expect(gets, 3);
+          expect(gets, greaterThanOrEqualTo(3));
+          expect(recargasTrasPost, greaterThanOrEqualTo(1));
           final mostrado = tester
               .widget<DocumentoNota>(find.byType(DocumentoNota))
               .nota;

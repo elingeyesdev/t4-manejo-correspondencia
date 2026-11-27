@@ -1,15 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 
+import '../../compartido/api/laravel_api.dart';
 import '../../compartido/diseno/institucional.dart';
 import 'firma_nota.dart';
+import 'hoja_nota.dart';
+import 'imagen_constancia.dart';
 import 'nota_interna.dart';
+import 'notas_api.dart';
+import 'vista_previa_nota.dart';
 
 class FirmarNotaPage extends StatefulWidget {
-  const FirmarNotaPage({super.key, required this.nota, required this.titulo});
+  const FirmarNotaPage({
+    super.key,
+    required this.nota,
+    required this.titulo,
+    this.api,
+    this.accion = AccionNota.firmaRemitente,
+  });
 
   final NotaInterna nota;
   final String titulo;
+  final ApiLaravel? api;
+  final AccionNota accion;
 
   @override
   State<FirmarNotaPage> createState() => _FirmarNotaPageState();
@@ -21,6 +34,9 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
   bool _confirmada = false;
   int? _puntero;
   String? _aviso;
+  ImagenConstancia? _imagenFirma, _imagenSello;
+  bool _procesando = false, _documentoListo = false;
+  bool get _requiereFirma => widget.accion != AccionNota.primeraRecepcion;
 
   FirmaNota? get _firma {
     try {
@@ -30,12 +46,90 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
     }
   }
 
-  void _confirmar() {
-    if (_confirmada || _dibujando || _puntero != null) return;
-    final firma = _firma;
-    if (firma == null) return;
-    setState(() => _confirmada = true);
-    Navigator.of(context).pop(firma);
+  Future<void> _confirmar() async {
+    if (_confirmada || _procesando || _dibujando || _puntero != null) return;
+    final firma = FirmaNota.constancia(
+      trazo: _firma,
+      firma: _imagenFirma,
+      sello: _imagenSello,
+    );
+    if (_requiereFirma && !firma.tieneFirma) return;
+    final api = widget.api;
+    if (api == null) {
+      setState(() => _confirmada = true);
+      Navigator.of(context).pop(firma);
+      return;
+    }
+    if (!_documentoListo) return;
+    final token = api.token;
+    setState(() {
+      _procesando = true;
+      _aviso = null;
+    });
+    try {
+      final pdf = await NotasApi(api)
+          .previsualizar(widget.nota, widget.accion, firma);
+      if (!mounted) return;
+      final confirmado = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => VistaPreviaNota(
+            nota: widget.nota,
+            api: api,
+            provisional: pdf,
+            confirmar: true,
+          ),
+        ),
+      );
+      if (!mounted || confirmado != true) return;
+      if (api.token != token) {
+        throw const ErrorLaravel(
+          'Tu sesión cambió. Vuelve a abrir la nota.',
+          estado: 401,
+        );
+      }
+      _confirmada = true;
+      Navigator.of(context).pop(firma);
+    } on ErrorLaravel catch (e) {
+      if (mounted) {
+        setState(
+          () => _aviso = e.estado == 409
+              ? 'La nota cambió. Vuelve al detalle y revisa la versión actual antes de confirmar.'
+              : [e.mensaje, ...e.errores.values].join('\n'),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _procesando = false);
+    }
+  }
+
+  Future<void> _elegirImagen(bool firma) async {
+    if (_procesando || _confirmada) return;
+    setState(() {
+      _procesando = true;
+      _aviso = null;
+    });
+    try {
+      final imagen = await ImagenConstancia.elegir();
+      if (!mounted || imagen == null) return;
+      setState(() {
+        if (firma) {
+          _imagenFirma = imagen;
+          _trazos.clear();
+        } else {
+          _imagenSello = imagen;
+        }
+      });
+    } on ErrorLaravel catch (e) {
+      if (mounted) setState(() => _aviso = e.mensaje);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _aviso = 'No se pudo abrir la imagen. Vuelve a seleccionarla.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _procesando = false);
+    }
   }
 
   void _punto(Offset posicion, Size area, {bool inicio = false}) {
@@ -82,7 +176,7 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            'Revisa la nota antes de firmar',
+            'Revisa la nota antes de confirmar',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
@@ -97,13 +191,42 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
             DatoInstitucional('Referencia', referencia),
           DatoInstitucional('Versión', '${widget.nota.version}'),
           const Divider(),
-          Text(
-            widget.nota.cuerpo ?? '',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
+          if (widget.api == null)
+            Text(
+              widget.nota.cuerpo ?? '',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          if (widget.api != null) ...[
+            SizedBox(
+              height: 460,
+              child: HojaNota(
+                api: widget.api!,
+                nota: widget.nota,
+                alCargar: () {
+                  if (mounted && !_documentoListo) {
+                    setState(() => _documentoListo = true);
+                  }
+                },
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: _procesando
+                  ? null
+                  : () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            VistaPreviaNota(nota: widget.nota, api: widget.api),
+                      ),
+                    ),
+              icon: const Icon(Icons.fullscreen),
+              label: const Text('Leer documento completo'),
+            ),
+          ],
           const Divider(),
           Text(
-            'Firma con el dedo dentro del recuadro.',
+            _requiereFirma
+                ? 'Firma con el dedo o carga una imagen.'
+                : 'Puedes agregar firma y sello antes de recibir.',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
@@ -129,7 +252,10 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
                     child: Listener(
                       behavior: HitTestBehavior.opaque,
                       onPointerDown: (e) {
-                        if (_puntero != null || _confirmada) return;
+                        if (_puntero != null || _confirmada || _procesando) {
+                          return;
+                        }
+                        _imagenFirma = null;
                         _puntero = e.pointer;
                         _punto(e.localPosition, limites.biggest, inicio: true);
                       },
@@ -154,7 +280,7 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
             ),
           ),
           TextButton.icon(
-            onPressed: _trazos.isEmpty
+            onPressed: _trazos.isEmpty || _procesando
                 ? null
                 : () => setState(() {
                     _trazos.clear();
@@ -165,9 +291,54 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
             icon: const Icon(Icons.clear),
             label: const Text('Limpiar firma'),
           ),
+          if (widget.api != null) ...[
+            OutlinedButton.icon(
+              onPressed: _procesando ? null : () => _elegirImagen(true),
+              icon: const Icon(Icons.image_outlined),
+              label: const Text('Cargar firma'),
+            ),
+            if (_imagenFirma != null) ...[
+              Image.memory(
+                _imagenFirma!.bytes,
+                height: 100,
+                fit: BoxFit.contain,
+                semanticLabel: 'Firma seleccionada',
+              ),
+              TextButton(
+                onPressed: _procesando
+                    ? null
+                    : () => setState(() => _imagenFirma = null),
+                child: const Text('Quitar imagen de firma'),
+              ),
+            ],
+            OutlinedButton.icon(
+              onPressed: _procesando ? null : () => _elegirImagen(false),
+              icon: const Icon(Icons.image_outlined),
+              label: const Text('Cargar sello'),
+            ),
+            if (_imagenSello != null) ...[
+              Image.memory(
+                _imagenSello!.bytes,
+                height: 100,
+                fit: BoxFit.contain,
+                semanticLabel: 'Sello seleccionado',
+              ),
+              TextButton(
+                onPressed: _procesando
+                    ? null
+                    : () => setState(() => _imagenSello = null),
+                child: const Text('Quitar imagen de sello'),
+              ),
+            ],
+            const Text(
+              'PNG o JPEG de hasta 512 KB y 2000 por 2000 píxeles. El sello es opcional.',
+            ),
+          ],
           if (_aviso != null) Text(_aviso!),
-          const Text(
-            'Al confirmar, se enviará esta firma para la versión de la nota que acabas de revisar.',
+          Text(
+            widget.api == null
+                ? 'Al confirmar, se enviará esta firma para la versión de la nota que acabas de revisar.'
+                : 'Primero revisa cómo quedan las marcas sobre la hoja. La acción se registrará al confirmar esa vista previa.',
           ),
         ],
       ),
@@ -177,10 +348,23 @@ class _FirmarNotaPageState extends State<FirmarNotaPage> {
           padding: const EdgeInsets.all(16),
           child: FilledButton(
             onPressed:
-                _confirmada || _dibujando || _puntero != null || _firma == null
+                _confirmada ||
+                    _procesando ||
+                    _dibujando ||
+                    _puntero != null ||
+                    (_requiereFirma &&
+                        _firma == null &&
+                        _imagenFirma == null) ||
+                    (widget.api != null && !_documentoListo)
                 ? null
                 : _confirmar,
-            child: const Text('Confirmar firma'),
+            child: Text(
+              _procesando
+                  ? 'Preparando documento…'
+                  : widget.api == null
+                  ? 'Confirmar firma'
+                  : 'Revisar firma y sello sobre la hoja',
+            ),
           ),
         ),
       ),
