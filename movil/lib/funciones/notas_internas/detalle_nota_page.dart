@@ -243,6 +243,62 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
     _sincronizando = false;
   }
 
+  Future<bool> _comprobarPendiente(SolicitudNota anterior) async {
+    final token = widget.api.token;
+    final cuenta = widget.api.cuentaId;
+    setState(() {
+      _confirmando = true;
+      _errorAccion = null;
+    });
+    try {
+      final servicio = NotasApi(widget.api);
+      final actual = await servicio.detalle(widget.id);
+      if (!mounted) return false;
+      if (token != widget.api.token ||
+          cuenta != widget.api.cuentaId ||
+          anterior.token != token ||
+          anterior.cuentaId != cuenta) {
+        throw const ErrorLaravel(
+          'Tu sesión cambió. Vuelve a abrir la nota.',
+          estado: 401,
+        );
+      }
+      final desactualizada = await servicio.descartarFirmaDesactualizada(
+        actual,
+        anterior,
+      );
+      final aplicada =
+          !desactualizada &&
+          await servicio.confirmarSiAplicado(actual, anterior);
+      if (!mounted) return false;
+      setState(() {
+        _nota = actual;
+        _documento = null;
+        if (desactualizada || aplicada) {
+          _pendiente = null;
+          _mensaje = desactualizada
+              ? 'La nota cambió. Revisa el contenido y firma la nueva versión cuando esté disponible.'
+              : 'La acción anterior ya está registrada. Estado actualizado.';
+        }
+      });
+      if (desactualizada || aplicada) {
+        await _cargar();
+        return false;
+      }
+      return true;
+    } on ErrorLaravel catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorAccion = e.mensaje;
+          if ({401, 403, 404}.contains(e.estado)) _limpiar();
+        });
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _confirmando = false);
+    }
+  }
+
   Future<void> _ejecutar(AccionNota accion) async {
     if (_ocupada ||
         widget.soloLectura ||
@@ -251,6 +307,12 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
       return;
     }
     _invalidarConsulta();
+    final pendienteAnterior = _pendiente;
+    if (pendienteAnterior != null &&
+        !await _comprobarPendiente(pendienteAnterior)) {
+      return;
+    }
+    if (!mounted) return;
     if (_pendiente?.requiereFirma ?? false) {
       final anterior = _pendiente!;
       final token = widget.api.token;
@@ -260,30 +322,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         _errorAccion = null;
       });
       try {
-        final servicio = NotasApi(widget.api);
-        final actual = await servicio.detalle(widget.id);
-        if (!mounted) return;
-        if (token != widget.api.token ||
-            cuenta != widget.api.cuentaId ||
-            anterior.token != token ||
-            anterior.cuentaId != cuenta) {
-          throw const ErrorLaravel(
-            'Tu sesión cambió. Vuelve a abrir la nota.',
-            estado: 401,
-          );
-        }
-        if (await servicio.confirmarSiAplicado(actual, anterior)) {
-          if (!mounted) return;
-          setState(() {
-            _pendiente = null;
-            _nota = actual;
-            _mensaje =
-                'La acción anterior ya está registrada. Estado actualizado.';
-          });
-          await _cargar();
-          return;
-        }
-        if (!mounted) return;
+        final actual = _nota!;
         final permiso = anterior.accion == AccionNota.conformidad
             ? 'dar_conformidad'
             : 'firmar_borrador';
