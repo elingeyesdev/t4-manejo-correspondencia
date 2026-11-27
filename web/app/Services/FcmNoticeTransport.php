@@ -23,7 +23,10 @@ class FcmNoticeTransport
                     'token' => $token,
                     'notification' => ['title' => 'Correspondencia', 'body' => 'Tienes una nueva tarea'],
                     'data' => ['notificacion_id' => $noticeId],
-                    'android' => ['notification' => ['tag' => $noticeId, 'channel_id' => config('fcm.android_channel')]],
+                    'android' => [
+                        'priority' => 'high',
+                        'notification' => ['tag' => $noticeId, 'channel_id' => config('fcm.android_channel')],
+                    ],
                 ],
             ]);
 

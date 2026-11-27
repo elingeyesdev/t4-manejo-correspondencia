@@ -38,4 +38,7 @@ Artisan::command('correspondencia:enviar-avisos', function (DeliverNoteNotices $
     $this->info('Avisos procesados: '.$deliveries->run());
 })->purpose('Procesar avisos de Nota Interna pendientes de envío');
 
-Schedule::command('correspondencia:enviar-avisos')->everyMinute()->when(fn () => (bool) config('fcm.project_id'));
+Schedule::command('correspondencia:enviar-avisos')
+    ->everySecond()
+    ->withoutOverlapping(5)
+    ->when(fn () => (bool) config('fcm.project_id'));
