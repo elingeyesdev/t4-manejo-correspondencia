@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:t4_movil/compartido/api/laravel_api.dart';
 import 'package:t4_movil/funciones/notas_internas/almacen_intentos_nota.dart';
 import 'package:t4_movil/funciones/notas_internas/detalle_nota_page.dart';
@@ -74,9 +73,10 @@ ApiLaravel _api(
   String token = 'token-1',
   String base = 'http://api.test',
 }) {
-  final api = ApiLaravel(baseUrl: base, client: MockClient(responder))
-    ..token = token
-    ..cuentaId = cuenta;
+  final api =
+      ApiLaravel(baseUrl: base, client: fixture.clienteConDocumentos(responder))
+        ..token = token
+        ..cuentaId = cuenta;
   addTearDown(api.close);
   return api;
 }
@@ -99,6 +99,81 @@ void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
 
   for (final accion in [AccionNota.conformidad, AccionNota.primeraRecepcion]) {
+    for (final caso in ['aplicada', 'sin aplicar', 'consulta fallida']) {
+      testWidgets(
+        '${accion.name}: sin reiniciar comprueba el intento con acción $caso',
+        (tester) async {
+          var aplicada = false, lecturas = 0;
+          var fallarConsulta = caso == 'consulta fallida';
+          final posts = <http.Request>[];
+          final orden = <String>[];
+          final api = _api((r) async {
+            if (r.method == 'POST') {
+              posts.add(r);
+              orden.add('POST');
+              if (posts.length == 1) {
+                aplicada = caso == 'aplicada';
+                throw http.ClientException('El servidor perdió la respuesta');
+              }
+              aplicada = true;
+              return fixture.respuesta(_estado(accion, true));
+            }
+            if (r.url.path.endsWith('/hojas/hoja-1')) {
+              return fixture.respuesta({
+                'id': 'doc-1',
+                'hoja': {'id': 'hoja-1', 'version': 1},
+                'acciones_permitidas': [],
+              });
+            }
+            if (posts.isNotEmpty) {
+              lecturas++;
+              orden.add('GET');
+              if (fallarConsulta) return fixture.respuesta({}, 503);
+            }
+            return fixture.respuesta(_estado(accion, aplicada));
+          });
+          await fixture.abrir(tester, DetalleNotaPage(api: api, id: 'nota-1'));
+          await fixture.pulsar(tester, accion.titulo);
+          await fixture.pulsar(tester, 'Confirmar');
+          expect(posts, hasLength(1));
+          expect(find.text('Comprobar mismo intento'), findsOneWidget);
+          await fixture.pulsar(tester, 'Comprobar mismo intento');
+
+          if (caso == 'consulta fallida') {
+            expect(
+              posts,
+              hasLength(1),
+              reason: 'Sin poder consultar no se debe reenviar la acción.',
+            );
+            expect(lecturas, 1);
+            expect(await const FlutterSecureStorage().readAll(), isNotEmpty);
+            expect(find.text('Comprobar mismo intento'), findsOneWidget);
+            fallarConsulta = false;
+            await fixture.pulsar(tester, 'Comprobar mismo intento');
+          }
+          expect(orden.take(2), ['POST', 'GET']);
+          if (caso == 'aplicada') {
+            expect(
+              posts,
+              hasLength(1),
+              reason: 'El GET recupera lo registrado sin un segundo POST.',
+            );
+            expect(find.textContaining('ya está registrada.'), findsOneWidget);
+          } else {
+            expect(posts, hasLength(2));
+            expect(
+              posts.last.headers['Idempotency-Key'],
+              posts.first.headers['Idempotency-Key'],
+            );
+            expect(posts.last.body, posts.first.body);
+            expect(jsonDecode(posts.last.body)['version'], 3);
+          }
+          expect(await const FlutterSecureStorage().readAll(), isEmpty);
+          expect(find.text('Comprobar mismo intento'), findsNothing);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
     for (final fallo in [
       '202',
       'respuesta perdida antes de aplicar',

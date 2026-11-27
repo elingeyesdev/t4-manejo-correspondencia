@@ -243,6 +243,62 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
     _sincronizando = false;
   }
 
+  Future<bool> _comprobarPendiente(SolicitudNota anterior) async {
+    final token = widget.api.token;
+    final cuenta = widget.api.cuentaId;
+    setState(() {
+      _confirmando = true;
+      _errorAccion = null;
+    });
+    try {
+      final servicio = NotasApi(widget.api);
+      final actual = await servicio.detalle(widget.id);
+      if (!mounted) return false;
+      if (token != widget.api.token ||
+          cuenta != widget.api.cuentaId ||
+          anterior.token != token ||
+          anterior.cuentaId != cuenta) {
+        throw const ErrorLaravel(
+          'Tu sesión cambió. Vuelve a abrir la nota.',
+          estado: 401,
+        );
+      }
+      final desactualizada = await servicio.descartarFirmaDesactualizada(
+        actual,
+        anterior,
+      );
+      final aplicada =
+          !desactualizada &&
+          await servicio.confirmarSiAplicado(actual, anterior);
+      if (!mounted) return false;
+      setState(() {
+        _nota = actual;
+        _documento = null;
+        if (desactualizada || aplicada) {
+          _pendiente = null;
+          _mensaje = desactualizada
+              ? 'La nota cambió. Revisa el contenido y firma la nueva versión cuando esté disponible.'
+              : 'La acción anterior ya está registrada. Estado actualizado.';
+        }
+      });
+      if (desactualizada || aplicada) {
+        await _cargar();
+        return false;
+      }
+      return true;
+    } on ErrorLaravel catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorAccion = e.mensaje;
+          if ({401, 403, 404}.contains(e.estado)) _limpiar();
+        });
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _confirmando = false);
+    }
+  }
+
   Future<void> _ejecutar(AccionNota accion) async {
     if (_ocupada ||
         widget.soloLectura ||
@@ -251,6 +307,12 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
       return;
     }
     _invalidarConsulta();
+    final pendienteAnterior = _pendiente;
+    if (pendienteAnterior != null &&
+        !await _comprobarPendiente(pendienteAnterior)) {
+      return;
+    }
+    if (!mounted) return;
     if (_pendiente?.requiereFirma ?? false) {
       final anterior = _pendiente!;
       final token = widget.api.token;
@@ -260,30 +322,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         _errorAccion = null;
       });
       try {
-        final servicio = NotasApi(widget.api);
-        final actual = await servicio.detalle(widget.id);
-        if (!mounted) return;
-        if (token != widget.api.token ||
-            cuenta != widget.api.cuentaId ||
-            anterior.token != token ||
-            anterior.cuentaId != cuenta) {
-          throw const ErrorLaravel(
-            'Tu sesión cambió. Vuelve a abrir la nota.',
-            estado: 401,
-          );
-        }
-        if (await servicio.confirmarSiAplicado(actual, anterior)) {
-          if (!mounted) return;
-          setState(() {
-            _pendiente = null;
-            _nota = actual;
-            _mensaje =
-                'La acción anterior ya está registrada. Estado actualizado.';
-          });
-          await _cargar();
-          return;
-        }
-        if (!mounted) return;
+        final actual = _nota!;
         final permiso = anterior.accion == AccionNota.conformidad
             ? 'dar_conformidad'
             : 'firmar_borrador';
@@ -302,6 +341,8 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
             builder: (_) => FirmarNotaPage(
               nota: actual,
               titulo: 'Recuperar firma pendiente',
+              api: widget.api,
+              accion: anterior.accion,
             ),
           ),
         );
@@ -337,7 +378,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
       setState(() => _confirmando = true);
       FirmaNota? firma;
       final bool aceptar;
-      if (accion != AccionNota.primeraRecepcion) {
+      {
         if (nota.cuerpo == null || nota.cuerpo!.trim().isEmpty) {
           setState(() {
             _confirmando = false;
@@ -347,34 +388,15 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         }
         firma = await Navigator.of(context).push<FirmaNota>(
           MaterialPageRoute(
-            builder: (_) => FirmarNotaPage(nota: nota, titulo: accion.titulo),
+            builder: (_) => FirmarNotaPage(
+              nota: nota,
+              titulo: accion.titulo,
+              api: widget.api,
+              accion: accion,
+            ),
           ),
         );
         aceptar = firma != null;
-      } else {
-        aceptar =
-            await showDialog<bool>(
-              context: context,
-              builder: (context) => InterfazInstitucional(
-                builder: (context) => AlertDialog(
-                  title: Text('¿${accion.titulo}?'),
-                  content: Text(
-                    '${nota.cite}\n${nota.asunto}\nVersión ${nota.version}',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancelar'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Confirmar'),
-                    ),
-                  ],
-                ),
-              ),
-            ) ==
-            true;
       }
       if (!mounted) return;
       setState(() => _confirmando = false);
@@ -391,7 +413,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
         accion: accion,
         token: widget.api.token,
         cuentaId: widget.api.cuentaId,
-        firma: firma,
+        firma: firma.tieneFirma || firma.tieneImagenes ? firma : null,
       );
     }
     setState(() {
@@ -643,6 +665,7 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
                 nota.asunto,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
+              DatoInstitucional('CITE', nota.cite),
               if (widget.soloLectura) const Text('Copia para conocimiento.'),
               const SizedBox(height: 8),
               const SizedBox(height: 12),
@@ -666,11 +689,12 @@ class _DetalleNotaPageState extends State<DetalleNotaPage>
                 label: const Text('Abrir vista previa'),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => VistaPreviaNota(nota: nota),
+                    builder: (_) =>
+                        VistaPreviaNota(nota: nota, api: widget.api),
                   ),
                 ),
               ),
-              DocumentoNota(nota: nota),
+              DocumentoNota(nota: nota, api: widget.api),
               const SizedBox(height: 12),
               if (nota.datos['unidad_actual'] case final Map unidad)
                 DatoInstitucional('Unidad actual', '${unidad['nombre']}'),

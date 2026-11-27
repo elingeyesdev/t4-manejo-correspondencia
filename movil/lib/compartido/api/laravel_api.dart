@@ -186,7 +186,7 @@ class ApiLaravel {
       throw const ErrorLaravel('Inicia sesión para continuar.', estado: 401);
     }
     request.headers['Authorization'] = 'Bearer $enviado';
-    request.headers['Accept'] = 'application/json';
+    request.headers.putIfAbsent('Accept', () => 'application/json');
     request.followRedirects = false;
     final espera = limite ?? timeout;
     Future<http.Response> recibir() async {
@@ -241,6 +241,17 @@ class ApiLaravel {
       await _interpretar(response, enviado, true);
     }
     return response;
+  }
+
+  Future<RespuestaLaravel> enviarFormulario(
+    http.MultipartRequest request,
+  ) async {
+    final enviado = token;
+    final response = await enviarArchivo(request, limite: timeout * 2);
+    return RespuestaLaravel(
+      response.statusCode,
+      await _interpretar(response, enviado, true),
+    );
   }
 
   void close() => _client.close();
