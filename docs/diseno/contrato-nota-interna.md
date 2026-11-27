@@ -245,6 +245,8 @@ Definir `DOCUMENT_CHROMIUM_BINARY` con la ruta absoluta al ejecutable Chromium c
 
 Verificar que el ejecutable reproduce el membrete y el pie en todas las páginas y que el visor y la impresión muestran la misma distribución. Con la variable vacía, web ofrece lectura de la hoja en HTML y comunica que falta habilitar la exportación. Las rutas de PDF de Android requieren el generador configurado.
 
+Para probar la salida PDF mediante las rutas web y API, definir `TEST_DOCUMENT_CHROMIUM_BINARY` con la ruta al navegador de pruebas y ejecutar `php artisan test --filter=InternalNoteFlowTest` desde `web`. El caso de integración comprueba la paginación, la versión, los permisos y la recepción con un expediente ficticio.
+
 ## Pruebas con datos ficticios
 
 1. **Directa.** Unidad Alfa emite «Solicitud de inventario de prueba» a Unidad Beta sin VÍA. Beta confirma en Android. Web muestra el mismo estado y una única hoja. Repetir emisión y recepción con las claves originales. Verificar un CITE y un movimiento por acción.

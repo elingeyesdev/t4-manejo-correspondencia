@@ -9,6 +9,7 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Services\DeliverNoteNotices;
 use App\Services\FcmNoticeTransport;
+use App\Services\InstitutionalNoteDocument;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -112,10 +113,10 @@ class InternalNoteFlowTest extends TestCase
         $this->post(route('notes.request-signature', $note->id), ['version' => $note->version])->assertRedirect($show);
         $action = ['version' => $note->version, 'request_key' => (string) Str::uuid()];
         $this->from($show)->post(route('notes.sign', $note->id), $action + [
-            'imagen_sello' => UploadedFile::fake()->image('sello.png', 60, 50),
+            'imagen_sello' => $this->noteImage('sello.png'),
         ])->assertRedirect($show)->assertSessionHasErrors('firma');
         $this->post(route('notes.sign', $note->id), $action + [
-            'imagen_firma' => UploadedFile::fake()->image('firma.png', 60, 50),
+            'imagen_firma' => $this->noteImage('firma.png'),
         ])->assertRedirect($show);
         $this->post(route('notes.emit', $note->id), $action)->assertRedirect();
         $this->author->update(['name' => 'Remitente modificado']);
@@ -125,6 +126,51 @@ class InternalNoteFlowTest extends TestCase
             ->assertOk()->assertSee('Unidad BETA')->assertSee('data:image/png;base64,', false)
             ->assertDontSee('Remitente modificado')->assertDontSee('Destino modificado')->assertDontSee('RECIBIDO');
         $this->getJson(route('notes.download', [$note->id, 'version' => $note->version]))->assertConflict();
+    }
+
+    public function test_web_and_api_serve_the_paginated_document_before_and_after_receipt(): void
+    {
+        $browser = getenv('TEST_DOCUMENT_CHROMIUM_BINARY');
+        if ($browser === false || $browser === '') {
+            $this->markTestSkipped('Configura TEST_DOCUMENT_CHROMIUM_BINARY para probar el PDF real.');
+        }
+        config(['documents.chromium_binary' => $browser]);
+        $this->assertTrue(app(InstitutionalNoteDocument::class)->configured());
+        Http::fake([
+            self::ENGINE.'/process-instances' => Http::response(['processInstanceKey' => '200']),
+            self::ENGINE.'/user-tasks/search' => Http::response(['items' => [['userTaskKey' => '201']]]),
+            self::ENGINE.'/user-tasks/201' => Http::response(['state' => 'CREATED']),
+            self::ENGINE.'/user-tasks/201/completion' => Http::response(null, 204),
+        ]);
+        Sanctum::actingAs($this->author);
+        $draft = $this->postJson('/api/notas-internas', array_replace($this->draft(), [
+            'cuerpo' => str_repeat("Texto de prueba para la hoja institucional.\n\n", 40),
+        ]))->assertCreated();
+        $id = $draft->json('id');
+        $uri = '/api/notas-internas/'.$id;
+        $this->signDraft($uri, $draft->json('version'));
+        $emitted = $this->postJson($uri.'/emision', ['version' => $draft->json('version')], $this->key())->assertOk();
+        $version = $emitted->json('version');
+
+        $this->actingAs($this->recipient, 'web');
+        $before = $this->get(route('notes.download', [$id, 'version' => $version]))
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf')->assertHeader('X-Note-Version', (string) $version);
+        $this->assertStringStartsWith('inline;', $before->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF-', $before->getContent());
+        $this->assertGreaterThanOrEqual(2, preg_match_all('~/Type\s*/Page\b~', $before->getContent()));
+        $this->assertDatabaseCount('movements', 0);
+
+        Sanctum::actingAs($this->recipient);
+        $receipt = $this->postJson($uri.'/recepciones', ['version' => $version], $this->key())->assertOk();
+        $after = $this->get($uri.'/documento.pdf?version='.$receipt->json('version'))
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf')->assertHeader('X-Note-Version', (string) $receipt->json('version'));
+        $this->assertStringStartsWith('%PDF-', $after->getContent());
+        $this->get($uri.'/documento.pdf?version='.$version)->assertConflict();
+        $this->get(route('notes.document', $id))->assertOk()->assertSee('RECIBIDO');
+        $this->assertDatabaseCount('movements', 1);
+
+        Sanctum::actingAs($this->outsider);
+        $this->get($uri.'/documento.pdf')->assertNotFound();
     }
 
     public function test_web_draft_shows_saved_reviewers_and_rejects_duplicates(): void
@@ -330,7 +376,7 @@ class InternalNoteFlowTest extends TestCase
         $key = $this->key();
         $this->getJson($uri)->assertJsonPath('acciones_permitidas', ['confirmar_primera_recepcion']);
         $this->withHeaders($key)->post($uri.'/recepciones', $payload + [
-            'imagen_sello' => UploadedFile::fake()->image('sello-recepcion.png', 80, 40),
+            'imagen_sello' => $this->noteImage('sello-recepcion.png'),
         ], ['Accept' => 'application/json'])->assertAccepted()->assertJsonPath('hoja_id', null)->assertJsonPath('sello_recepcion', null);
         $this->actingAs($this->recipient, 'web')->get(route('notes.document', $draft->json('id')))
             ->assertOk()->assertDontSee('RECIBIDO')->assertDontSee('data:image/png;base64,', false);
@@ -377,7 +423,7 @@ class InternalNoteFlowTest extends TestCase
         $this->actingAs($this->recipient, 'web')->get(route('notes.show', $draft->json('id')))
             ->assertOk()->assertSee('Abrir hoja de ruta')->assertSee('Firma del remitente')->assertSee('RECIBIDO · DEMOSTRACIÓN');
         $this->get(route('documents.show', $document))->assertOk()->assertSee('Vista previa del documento')
-            ->assertSee(route('notes.document', $draft->json('id')))->assertSee('RECIBIDO · DEMOSTRACIÓN');
+            ->assertSee(route('notes.document', $draft->json('id'), false))->assertSee('RECIBIDO · DEMOSTRACIÓN');
         $this->get(route('notes.document', $draft->json('id')))->assertOk()
             ->assertSee($this->draft()['cuerpo'])->assertSee('RECIBIDO')->assertSee('data:image/png;base64,', false);
         Sanctum::actingAs($this->recipient);
@@ -619,5 +665,12 @@ class InternalNoteFlowTest extends TestCase
     private function key(): array
     {
         return ['Idempotency-Key' => (string) Str::uuid()];
+    }
+
+    private function noteImage(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2ioAAAAASUVORK5CYII=',
+        ));
     }
 }

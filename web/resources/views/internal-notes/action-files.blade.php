@@ -11,7 +11,7 @@
         </label>
     </div>
     <p class="form-text">PNG o JPEG, hasta 512 KB por imagen.</p>
-    <details class="mb-2" data-action-preview="{{ route('notes.preview-action', $note) }}" data-operation="{{ $operation }}">
+    <details class="mb-2" data-action-preview="{{ route('notes.preview-action', $note, false) }}" data-operation="{{ $operation }}">
         <summary>Revisar firma y sello sobre la hoja</summary>
         <p data-preview-status role="status"></p>
         <iframe class="document-preview-pdf" title="Ubicación de las constancias antes de confirmar" hidden></iframe>

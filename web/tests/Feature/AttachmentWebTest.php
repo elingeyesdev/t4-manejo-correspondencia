@@ -48,7 +48,7 @@ class AttachmentWebTest extends TestCase
 
     private function photo(string $name = 'carta.jpg'): UploadedFile
     {
-        return new UploadedFile(base_path('tests/Fixtures/adjunto.jpg'), $name, 'image/jpeg', null, true);
+        return UploadedFile::fake()->createWithContent($name, file_get_contents(base_path('tests/Fixtures/adjunto.jpg')));
     }
 
     public function test_api_and_web_share_the_same_files_and_original_content(): void

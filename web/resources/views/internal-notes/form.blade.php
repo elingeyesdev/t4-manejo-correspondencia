@@ -12,7 +12,7 @@
         $extraReviewers = count(array_filter(array_slice($vias, 1))) > 0 || $errors->has('vias_usuario_ids.*');
     @endphp
     <div class="note-editor">
-    <form class="note-form" id="nota-edicion" method="post" data-draft-preview="{{ route('notes.preview-draft') }}"
+    <form class="note-form" id="nota-edicion" method="post" data-draft-preview="{{ route('notes.preview-draft', [], false) }}"
           data-draft-id="{{ $note->id }}" action="{{ $note->exists ? route('notes.update', $note) : route('notes.store') }}">
         @csrf
         @if ($note->exists)
