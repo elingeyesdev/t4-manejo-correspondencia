@@ -45,11 +45,12 @@ class _Documento extends Fake implements PdfDocument {
   Future<PdfPage> getPage(
     int pageNumber, {
     bool autoCloseAndroid = false,
-  }) async => _Pagina(this, pageNumber);
+  }) async => _Pagina(this, pageNumber, cerrada: autoCloseAndroid);
 }
 
 class _Pagina extends Fake implements PdfPage {
-  _Pagina(this.document, this.pageNumber);
+  _Pagina(this.document, this.pageNumber, {bool cerrada = false})
+    : isClosed = cerrada;
   @override
   final PdfDocument document;
   @override
@@ -61,9 +62,13 @@ class _Pagina extends Fake implements PdfPage {
   @override
   double get height => 792;
   @override
-  bool get isClosed => false;
+  bool isClosed;
   @override
-  Future<void> close() async {}
+  Future<void> close() async {
+    if (isClosed) throw PdfPageAlreadyClosedException();
+    isClosed = true;
+  }
+
   @override
   Future<PdfPageTexture> createTexture() async => _Textura(pageNumber);
   @override
@@ -76,7 +81,10 @@ class _Pagina extends Fake implements PdfPage {
     int quality = 100,
     bool forPrint = false,
     bool removeTempFile = true,
-  }) async => _Imagen();
+  }) async {
+    if (isClosed) throw PdfPageAlreadyClosedException();
+    return _Imagen();
+  }
 }
 
 class _Imagen extends Fake implements PdfPageImage {

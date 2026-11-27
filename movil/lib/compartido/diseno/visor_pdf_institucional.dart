@@ -56,7 +56,7 @@ class _VisorPdfInstitucionalState extends State<VisorPdfInstitucional> {
     PdfPage? hoja;
     try {
       if (!mounted || generacion != _generacion) return;
-      hoja = await _pdf!.getPage(pagina, autoCloseAndroid: true);
+      hoja = await _pdf!.getPage(pagina);
       final imagen = await hoja.render(
         width: 1800,
         height: 1800 * hoja.height / hoja.width,
@@ -77,7 +77,9 @@ class _VisorPdfInstitucionalState extends State<VisorPdfInstitucional> {
     } catch (_) {
       _fallo(generacion);
     } finally {
-      await hoja?.close();
+      if (hoja != null && !hoja.isClosed) {
+        await hoja.close();
+      }
     }
   }
 
