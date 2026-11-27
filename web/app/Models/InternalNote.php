@@ -24,6 +24,8 @@ class InternalNote extends Model
 
     protected $guarded = [];
 
+    protected $hidden = ['receipt_images'];
+
     protected function casts(): array
     {
         return [
@@ -38,6 +40,8 @@ class InternalNote extends Model
             'receipt_actor_id' => 'integer',
             'receipt_version' => 'integer',
             'receipt_stamp' => 'array',
+            'receipt_images' => 'encrypted:array',
+            'document_heading' => 'array',
         ];
     }
 
@@ -108,6 +112,27 @@ class InternalNote extends Model
     public function origin(): BelongsTo
     {
         return $this->belongsTo(Unit::class, 'origin_unit_id');
+    }
+
+    public function documentHeading(): array
+    {
+        if ($this->document_heading !== null) {
+            return $this->document_heading;
+        }
+
+        $this->loadMissing(['author', 'origin', 'recipient', 'participants.user.unit']);
+        $people = $this->participants->map(fn (InternalNoteParticipant $person) => [
+            'id' => $person->user_id,
+            'role' => $person->role,
+            'name' => $person->user->name,
+            'unit' => $person->user->unit->name,
+        ])->values()->all();
+
+        return [
+            'sender' => ['name' => $this->author->name, 'unit' => $this->origin->name],
+            'recipient' => $this->recipient?->name,
+            'people' => $people,
+        ];
     }
 
     public function recipient(): BelongsTo

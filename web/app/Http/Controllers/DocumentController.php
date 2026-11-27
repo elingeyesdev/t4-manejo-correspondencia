@@ -6,6 +6,7 @@ use App\Http\Requests\StoreDocumentRequest;
 use App\Models\Attachment;
 use App\Models\Catalog;
 use App\Models\Document;
+use App\Models\InternalNote;
 use App\Models\Unit;
 use App\Services\DocumentHistory;
 use App\Services\RegisterDocument;
@@ -31,7 +32,14 @@ class DocumentController extends Controller
             'previewAttachments' => fn ($attachments) => $attachments->select('id', 'document_id', 'mime_type', 'original_name'),
         ]);
 
-        return view('documents.index', ['documents' => $docs]);
+        $sent = InternalNote::visibleTo($r->user())
+            ->whereIn('state', [InternalNote::REVIEW, InternalNote::RECEIVE])
+            ->whereNull('document_id')
+            ->with('recipient')
+            ->latest('updated_at')
+            ->paginate(10, pageName: 'remitidas')->withQueryString();
+
+        return view('documents.index', ['documents' => $docs, 'sentNotes' => $sent]);
     }
 
     public function configuration(Request $r)

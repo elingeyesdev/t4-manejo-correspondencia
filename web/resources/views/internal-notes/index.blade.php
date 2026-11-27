@@ -8,12 +8,13 @@
     </header>
 
     <nav class="nav nav-tabs tray-nav" aria-label="Bandejas de Nota Interna">
-        @foreach (['mis_notas' => 'Mis notas', 'por_firmar' => 'Por firmar', 'por_revisar' => 'Por revisar', 'por_recibir' => 'Por recibir', 'por_atender' => 'Por atender', 'copias' => 'Copias'] as $key => $label)
+        @foreach (['mis_notas' => 'Mis notas', 'por_firmar' => 'Por firmar', 'por_revisar' => 'Por revisar', 'por_recibir' => 'Por recibir', 'por_atender' => 'Por atender', 'copias' => 'Copias', 'cerradas' => 'Cerradas'] as $key => $label)
             <a class="nav-link @if ($tray === $key) active @endif" href="{{ route('notes.index', ['bandeja' => $key]) }}"
                @if ($tray === $key) aria-current="page" @endif>{{ $label }}</a>
         @endforeach
     </nav>
 
+    <div data-refresh-list>
     <div class="table-responsive notes-table-scroll" role="region" aria-label="Resultados de la bandeja" tabindex="0">
         <table class="table table-sm notes-table note-inbox">
             <thead>
@@ -47,4 +48,6 @@
         @if ($notes->previousPageUrl()) <a href="{{ $notes->previousPageUrl() }}" rel="prev">Anterior</a> @endif
         @if ($notes->nextPageUrl()) <a href="{{ $notes->nextPageUrl() }}" rel="next">Siguiente</a> @endif
     </nav>
+    </div>
+    <script src="{{ asset('js/document-list-refresh.js') }}" defer></script>
 @endsection

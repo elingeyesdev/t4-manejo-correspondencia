@@ -131,6 +131,7 @@ class InternalNoteWorkflow
                 'cite_sequence' => $sequence,
                 'emission_key' => $key,
                 'emission_version' => $version,
+                'document_heading' => $current->documentHeading(),
                 'version' => $version + 1,
             ]);
 
@@ -238,8 +239,9 @@ class InternalNoteWorkflow
 
     private function recordSignature(InternalNote $note, User $actor, string $action, int $version, string $key, ?array $strokes): void
     {
-        if ($strokes === null) {
-            throw ValidationException::withMessages(['firma' => 'Dibuja la firma antes de confirmar.']);
+        if ($strokes === null || (! array_is_list($strokes)
+            && empty($strokes['strokes']) && empty($strokes['images']['imagen_firma']))) {
+            throw ValidationException::withMessages(['firma' => 'Dibuja o carga la firma antes de confirmar.']);
         }
 
         $note->signatures()->create([

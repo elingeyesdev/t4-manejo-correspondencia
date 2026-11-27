@@ -39,6 +39,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (HttpExceptionInterface $error, Request $request) {
             $status = $error->getStatusCode();
+
+            if ($status === 503 && ! $request->expectsJson()
+                && $request->routeIs('notes.emit', 'notes.approve', 'notes.receive')) {
+                return redirect()->route('notes.show', $request->route('id'))
+                    ->withErrors(['flujo' => 'El servicio de trámites no confirmó la operación. Reintenta desde esta nota. La bandeja de destino se actualizará al confirmarse.']);
+            }
             if ($status === 409 && $request->routeIs('documents.responses.store')) {
                 return redirect()->route('documents.show', $request->route('id'))
                     ->withErrors(['recorrido' => 'La respuesta no se guardó. Revisa el estado del expediente.'])

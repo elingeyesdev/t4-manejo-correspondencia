@@ -17,15 +17,16 @@ class ReceiveInternalNote
 {
     public function __construct(private readonly NotaInternaEngine $engine) {}
 
-    public function execute(User $actor, InternalNote $note, int $version, string $key): InternalNote
+    public function execute(User $actor, InternalNote $note, int $version, string $key, array $images = []): InternalNote
     {
-        $note = DB::transaction(function () use ($actor, $note, $version, $key) {
+        $note = DB::transaction(function () use ($actor, $note, $version, $key, $images) {
             $actor = User::lockForUpdate()->findOrFail($actor->id);
             $current = InternalNote::lockForUpdate()->findOrFail($note->id);
             abort_unless($current->allowsInitialReceipt($actor), 403, 'ACCION_NO_PERMITIDA');
 
             if ($current->receipt_key !== null) {
                 abort_unless($current->receipt_key === $key && $current->receipt_version === $version, 409, 'CLAVE_REUTILIZADA');
+                abort_unless($images === [] || $current->receipt_images === $images, 409, 'CLAVE_REUTILIZADA');
 
                 return $current;
             }
@@ -33,7 +34,12 @@ class ReceiveInternalNote
             abort_unless($current->state === InternalNote::RECEIVE, 409, 'ESTADO_INCOMPATIBLE');
             abort_unless($current->version === $version, 409, 'VERSION_DESACTUALIZADA');
             abort_if(InternalNote::where('receipt_actor_id', $actor->id)->where('receipt_key', $key)->exists(), 409, 'CLAVE_REUTILIZADA');
-            $current->update(['receipt_key' => $key, 'receipt_version' => $version, 'receipt_actor_id' => $actor->id]);
+            $current->update([
+                'receipt_key' => $key,
+                'receipt_version' => $version,
+                'receipt_actor_id' => $actor->id,
+                'receipt_images' => $images === [] ? null : $images,
+            ]);
 
             return $current;
         }, 3);
@@ -53,7 +59,7 @@ class ReceiveInternalNote
             if (! $current->allowsInitialReceipt($actor)) {
                 if ($current->document_id === null) {
                     // Conserva la tarea de Camunda para que otro receptor autorizado pueda conciliarla.
-                    $current->update(['receipt_key' => null, 'receipt_version' => null, 'receipt_actor_id' => null]);
+                    $current->update(['receipt_key' => null, 'receipt_version' => null, 'receipt_actor_id' => null, 'receipt_images' => null]);
                 }
 
                 return null;

@@ -225,7 +225,39 @@ Usar el template institucional compartido definido en #48. Las pantallas web de 
 - **Estilo:** fondo blanco o gris claro, bordes finos, tipografía de sistema, una sola tonalidad sobria para acciones y color funcional para alertas. Usar títulos, tablas y formularios convencionales. Retirar degradados, tarjetas decorativas, iconos de adorno, indicadores de portada y animaciones que no ayuden a trabajar.
 - Mantener contraste, etiquetas explícitas, foco visible y mensajes de error legibles. El aspecto administrativo puede ser austero y seguir siendo cómodo para consultar expedientes todo el día.
 
+## Hoja institucional y constancias (#75)
+
+Desde **Nueva Nota Interna**, elegir la unidad destinataria y revisar la hoja mientras se redacta. Después de guardar, seguir la acción indicada debajo de la vista previa. En una tarea de firma, conformidad o recepción, **Revisar firma y sello sobre la hoja** muestra los archivos elegidos como provisionales. La confirmación registra la acción. **Descargar PDF** guarda el archivo de la versión consultada. **Imprimir** abre el diálogo de impresión para la hoja visible.
+
+| Operación | Contrato para Android |
+| --- | --- |
+| Obtener la hoja paginada | `GET /api/notas-internas/{id}/documento.pdf?version={version}` con el token de la sesión y la versión obtenida en el detalle. Responde `application/pdf` y `X-Note-Version`. La versión es opcional al abrir el documento vigente. Si la versión solicitada cambió, responde `409`. |
+| Previsualizar imágenes antes de actuar | `POST /api/notas-internas/{id}/vista-previa` en `multipart/form-data`, con `version` y `accion` (`firmar_borrador`, `dar_conformidad` o `confirmar_primera_recepcion`). Admite los campos de imagen y trazo descritos abajo. Devuelve un PDF provisional y conserva el estado del trámite. |
+| Confirmar | Conservar las rutas `firmas`, `conformidades` y `recepciones`, el campo `version` y la cabecera `Idempotency-Key`. Se mantiene el cuerpo JSON para trazos. Con archivos, enviar `multipart/form-data` y, si corresponde, `firma` como arreglo de puntos codificado en JSON dentro de un campo de texto. |
+
+`imagen_firma` e `imagen_sello` son archivos independientes. Se aceptan PNG y JPEG de hasta 512 KiB y 2000 × 2000 píxeles por archivo. La firma del remitente y la conformidad VÍA requieren el trazo o una imagen de firma. Adjuntar un sello es opcional en esos actos. Al confirmar recepción se genera la constancia **RECIBIDO** con el funcionario, la unidad, la fecha y la hora del servidor. La recepción también admite imágenes de firma y sello. Frente a una respuesta incierta, confirmar el resultado con la misma clave y la misma versión. Consultar el detalle y volver a obtener el PDF después de la confirmación.
+
+La hoja emitida conserva el contenido y fija los nombres y unidades del encabezado al asignar el CITE. El modelo actual identifica el destino por unidad. Las notas emitidas antes de la migración conservan su contenido y recurren a los nombres disponibles en el registro. Para una autoridad VÍA, se incorporan las constancias confirmadas a medida que avanza el flujo. El acceso a la vista y al PDF usa las mismas reglas que el detalle de la nota.
+
+### Configuración del PDF
+
+Definir `DOCUMENT_CHROMIUM_BINARY` con la ruta absoluta al ejecutable Chromium compatible que esté instalado en el mismo entorno que Laravel. El proceso web debe poder ejecutarlo como usuario sin privilegios y escribir en el directorio temporal de PHP. Instalar una fuente serif como Liberation Serif en el servidor. Aplicar las migraciones de #75 y reconstruir la caché de configuración si el entorno la usa.
+
+La vista previa web distribuye el contenido en hojas tamaño carta con margen reservado para el membrete y el pie en cada página. En pantallas estrechas reduce la escala de la hoja y mantiene los saltos de la vista previa. **Revisar saltos de página (PDF)** permite comprobar la salida del generador antes de guardar. Si falla la exportación web, abrir la hoja en el navegador y usar **Imprimir**. Las rutas de PDF de Android requieren el generador configurado.
+
+Para probar la salida PDF mediante las rutas web y API, definir `TEST_DOCUMENT_CHROMIUM_BINARY` con la ruta al navegador de pruebas y ejecutar `php artisan test --filter=InternalNoteFlowTest` desde `web`. El caso de integración comprueba la paginación, la versión, los permisos y la recepción con un expediente ficticio.
+
 ## Pruebas con datos ficticios
+
+### Revisión en Windows sin Ubuntu
+
+En un checkout de la rama, instalar PHP 8.5 con SQLite, Composer y Edge o Chrome. Desde la raíz, ejecutar `composer --working-dir=web install` y después `powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\demo-nota-interna\issue75-local-start.ps1`. Abrir `http://127.0.0.1:8176/acceso` y usar las credenciales que aparecen en la consola. Si el puerto está ocupado, pasar `-Port 8177`. Conservar la consola abierta durante la prueba.
+
+El arranque crea una base nueva con datos ficticios y simula las respuestas de Camunda solo en este servidor de revisión. Para probar de extremo a extremo, usar Administración para redactar, pedir firma, firmar y emitir una nota dirigida a Recepción. Comprobar que figure en **Documentos → Notas internas remitidas**. Si se agrega Dirección como VÍA, revisar la hoja y dar conformidad primero desde esa cuenta. Iniciar sesión con Gestión Documental en otra ventana de incógnito, abrir **Nota Interna → Por recibir** y comprobar la hoja antes de confirmar la recepción. Verificar que aparezca el sello **RECIBIDO**, que **Descargar PDF** guarde el archivo y que **Imprimir** abra el diálogo de impresión con la hoja. Abrir el expediente desde **Documentos**, registrar la atención, confirmar el cierre y comprobar los estados **En atención** y **Cerrada** en la bandeja inicial.
+
+Para la entrega, probar una emisión directa y otra con VÍA contra Camunda real. La nota en **Emisión pendiente** sigue disponible en **Mis notas** con su CITE reservado y la acción **Reintentar emisión**. Si el motor confirma el proceso existente al reintentar, Laravel reutiliza la misma solicitud y habilita la bandeja de la unidad de destino según corresponda. Una nota directa aparece en **Por recibir** del funcionario autorizado. Después de confirmar la recepción, figura también en **Correspondencia registrada**. Las notas cerradas se pueden consultar desde **Nota Interna → Cerradas**.
+
+Antes de habilitar el servidor para uso institucional, comprobar la conectividad desde Laravel, la disponibilidad del proceso BPMN y el recorrido íntegro hasta el cierre. Si Camunda sigue inaccesible o no se puede determinar el resultado de una emisión, conservar la nota pendiente y verificar la instancia antes de volver a enviarla.
 
 1. **Directa.** Unidad Alfa emite «Solicitud de inventario de prueba» a Unidad Beta sin VÍA. Beta confirma en Android. Web muestra el mismo estado y una única hoja. Repetir emisión y recepción con las claves originales. Verificar un CITE y un movimiento por acción.
 2. **Con VÍA y CC.** Unidad Alfa emite «Solicitud de revisión de formulario» con dos autoridades ficticias en secuencia, A en Unidad Beta y CC en Unidad Gamma. La segunda VÍA no actúa antes de la primera. A recibe solo tras la segunda conformidad. CC consulta sin alterar el flujo. Beta deriva a Unidad Delta, que recibe, atiende y registra respuesta cuando corresponda. La autorización de cierre se comprueba según la regla acordada.

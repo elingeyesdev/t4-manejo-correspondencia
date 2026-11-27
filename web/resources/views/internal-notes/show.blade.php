@@ -14,8 +14,11 @@
     @include('internal-notes.tracking', ['progress' => $data['seguimiento']])
 
     <section class="note-section" aria-labelledby="vista-previa-nota">
-        <h2 id="vista-previa-nota">Vista previa de la nota</h2>
-        <p class="note-body mb-0">{{ $note->body }}</p>
+        <div class="actions justify-content-between align-items-center">
+            <h2 id="vista-previa-nota">Vista previa de la nota</h2>
+            <a href="#siguiente-accion" class="btn btn-outline-secondary btn-sm">Ir a la siguiente acción</a>
+        </div>
+        @include('internal-notes.document-viewer', ['institutionalNote' => $note])
     </section>
     @if ($senderSignature || $note->participants->whereNotNull('confirmed_at')->isNotEmpty() || $data['sello_recepcion'])
         <section class="note-section" aria-labelledby="constancias-nota">
@@ -60,11 +63,12 @@
                     <button type="submit" class="btn btn-primary">Enviar a firma</button>
                 </form>
             @elseif (in_array('firmar_borrador', $data['acciones_permitidas'], true))
-                <form method="post" action="{{ route('notes.sign', $note) }}" data-note-signature>
+                <form method="post" enctype="multipart/form-data" action="{{ route('notes.sign', $note) }}" data-note-signature>
                     @csrf
                     <input type="hidden" name="version" value="{{ $note->version }}">
                     <input type="hidden" name="request_key" value="{{ $actionKey }}">
-                    @include('internal-notes.signature', ['version' => $note->version])
+                    @include('internal-notes.signature')
+                    @include('internal-notes.action-files', ['operation' => 'firmar_borrador'])
                     <button type="submit" class="btn btn-primary">Firmar borrador</button>
                 </form>
             @elseif (in_array('emitir', $data['acciones_permitidas'], true))
@@ -75,20 +79,25 @@
                     <button type="submit" class="btn btn-primary">{{ $note->emission_key ? 'Reintentar emisión' : 'Emitir Nota Interna' }}</button>
                 </form>
             @elseif (in_array('dar_conformidad', $data['acciones_permitidas'], true))
-                <form method="post" action="{{ route('notes.approve', $note) }}" @unless ($retryVia) data-note-signature @endunless>
+                <form method="post" enctype="multipart/form-data" action="{{ route('notes.approve', $note) }}" @unless ($retryVia) data-note-signature @endunless>
                     @csrf
                     <input type="hidden" name="version" value="{{ $via->action_version ?? $note->version }}">
                     <input type="hidden" name="request_key" value="{{ $via->action_key ?? $actionKey }}">
                     @unless ($retryVia)
-                        @include('internal-notes.signature', ['version' => $via->action_version ?? $note->version])
+                        @include('internal-notes.signature')
+                        @include('internal-notes.action-files', ['operation' => 'dar_conformidad'])
                     @endunless
                     <button type="submit" class="btn btn-primary">{{ $retryVia ? 'Reintentar conformidad' : 'Firmar y dar conformidad' }}</button>
                 </form>
             @elseif (in_array('confirmar_primera_recepcion', $data['acciones_permitidas'], true))
-                <form method="post" action="{{ route('notes.receive', $note) }}">
+                <form method="post" enctype="multipart/form-data" action="{{ route('notes.receive', $note) }}">
                     @csrf
                     <input type="hidden" name="version" value="{{ $note->receipt_version ?? $note->version }}">
                     <input type="hidden" name="request_key" value="{{ $note->receipt_key ?? $actionKey }}">
+                    @unless ($note->receipt_key)
+                        <p>Confirma después de revisar la nota. El sistema registrará quién recibió y a qué hora.</p>
+                        @include('internal-notes.action-files', ['operation' => 'confirmar_primera_recepcion'])
+                    @endunless
                     <button type="submit" class="btn btn-primary">{{ $note->receipt_key ? 'Reintentar recepción' : 'Confirmar recepción' }}</button>
                 </form>
             @elseif ($canOpenSheet)
@@ -136,4 +145,5 @@
         @endif
     </section>
     <script src="{{ asset('js/note-tracking.js') }}" defer></script>
+    <script src="{{ asset('js/note-document.js') }}" defer></script>
 @endsection

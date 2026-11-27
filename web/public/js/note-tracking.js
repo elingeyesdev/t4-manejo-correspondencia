@@ -9,6 +9,7 @@ if (trackingBar) {
     const cite = document.querySelector('[data-tracking-cite]');
     const current = document.querySelector('[data-tracking-current]');
     const destination = document.querySelector('[data-tracking-destination]');
+    const viewer = document.querySelector('[data-note-viewer]');
     let timer;
     let running = false;
     let stopped = false;
@@ -42,6 +43,31 @@ if (trackingBar) {
         setText(current, data.unidad_actual.nombre);
         setText(destination.querySelector('dd'), data.destino_pendiente?.nombre ?? '');
         destination.hidden = data.destino_pendiente === null;
+        if (viewer) {
+            const revision = `${data.version_documento}:${data.etiqueta_estado}`;
+            if (viewer.dataset.revision !== revision) {
+                viewer.dataset.revision = revision;
+                const pdfLinks = viewer.querySelectorAll('[data-versioned-pdf]');
+                for (const link of pdfLinks) {
+                    const url = new URL(link.href);
+                    url.searchParams.set('version', data.version_documento);
+                    link.href = url.href;
+                }
+                viewer.querySelector('iframe').src = viewer.dataset.source;
+                const action = document.querySelector('#siguiente-accion');
+                const next = action?.querySelector('form');
+                if (next) {
+                    for (const button of next.querySelectorAll('button[type="submit"]')) button.disabled = true;
+                    if (!action.querySelector('[data-reload-actions]')) {
+                        const link = document.createElement('a');
+                        link.href = location.href;
+                        link.dataset.reloadActions = '';
+                        link.textContent = 'La nota cambió. Actualizar acciones';
+                        action.append(link);
+                    }
+                }
+            }
+        }
     }
 
     async function refresh() {
@@ -60,6 +86,7 @@ if (trackingBar) {
             });
             if (response.redirected || [401, 403, 404].includes(response.status)) {
                 stopped = true;
+                if (viewer) viewer.hidden = true;
                 showMessage('El seguimiento ya no está disponible para esta sesión.');
             } else if (!response.ok) {
                 throw new Error('Seguimiento no disponible');
