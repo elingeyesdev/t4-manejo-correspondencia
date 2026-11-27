@@ -249,6 +249,10 @@ Para probar la salida PDF mediante las rutas web y API, definir `TEST_DOCUMENT_C
 
 ## Pruebas con datos ficticios
 
+Para la entrega, probar una emisión directa y otra con VÍA contra Camunda real. La nota en **Emisión pendiente** sigue disponible en **Mis notas** con su CITE reservado y la acción **Reintentar emisión**. Si el motor confirma el proceso existente al reintentar, Laravel reutiliza la misma solicitud y habilita la bandeja de la unidad de destino según corresponda. Una nota directa aparece en **Por recibir** del funcionario autorizado. Después de confirmar la recepción, figura también en **Correspondencia registrada**. Las notas cerradas se pueden consultar desde **Nota Interna → Cerradas**.
+
+Antes de habilitar el servidor para uso institucional, comprobar la conectividad desde Laravel, la disponibilidad del proceso BPMN y el recorrido íntegro hasta el cierre. Si Camunda sigue inaccesible o no se puede determinar el resultado de una emisión, conservar la nota pendiente y verificar la instancia antes de volver a enviarla.
+
 1. **Directa.** Unidad Alfa emite «Solicitud de inventario de prueba» a Unidad Beta sin VÍA. Beta confirma en Android. Web muestra el mismo estado y una única hoja. Repetir emisión y recepción con las claves originales. Verificar un CITE y un movimiento por acción.
 2. **Con VÍA y CC.** Unidad Alfa emite «Solicitud de revisión de formulario» con dos autoridades ficticias en secuencia, A en Unidad Beta y CC en Unidad Gamma. La segunda VÍA no actúa antes de la primera. A recibe solo tras la segunda conformidad. CC consulta sin alterar el flujo. Beta deriva a Unidad Delta, que recibe, atiende y registra respuesta cuando corresponda. La autorización de cierre se comprueba según la regla acordada.
 3. **Controles comunes.** Un usuario de Unidad Épsilon queda fuera del expediente y sus adjuntos. Web y Android muestran el mismo estado confirmado. Una pérdida de respuesta no produce una segunda constancia. Cada evidencia indica ejecutor, versión y resultado.
