@@ -1,15 +1,22 @@
 for (const visor of document.querySelectorAll('[data-note-viewer]')) {
     const estado = visor.querySelector('[data-pdf-status]');
     let generando = false;
+    visor.querySelector('[data-print-note]').addEventListener('click', () => {
+        const marco = visor.querySelector('iframe');
+        if (marco.contentDocument?.querySelector('article.hoja')) {
+            if (!generando) estado.hidden = true;
+            marco.contentWindow.print();
+        } else {
+            estado.hidden = false;
+            estado.textContent = 'Espera a que aparezca la hoja y vuelve a pulsar Imprimir.';
+        }
+    });
     visor.addEventListener('click', async (event) => {
         const enlace = event.target.closest('[data-versioned-pdf]');
         if (!enlace || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
         if (generando) return;
 
-        const imprimir = enlace.target === '_blank';
-        const pestaña = imprimir ? window.open('about:blank', '_blank') : null;
-        if (pestaña) pestaña.opener = null;
         const revision = visor.dataset.revision;
         estado.hidden = false;
         estado.textContent = 'Generando PDF…';
@@ -36,19 +43,16 @@ for (const visor of document.querySelectorAll('[data-note-viewer]')) {
                 throw new Error('La nota cambió. Revisa la hoja actualizada y vuelve a intentarlo.');
             }
             const url = URL.createObjectURL(archivo);
-            if (pestaña && !pestaña.closed) {
-                pestaña.location.replace(url);
-            } else {
-                const descarga = document.createElement('a');
-                const nombre = respuesta.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1];
-                descarga.href = url;
-                descarga.download = nombre ?? 'nota-interna.pdf';
-                descarga.click();
-            }
+            const descarga = document.createElement('a');
+            const nombre = respuesta.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1];
+            descarga.href = url;
+            descarga.download = nombre ?? 'nota-interna.pdf';
+            document.body.append(descarga);
+            descarga.click();
+            descarga.remove();
             setTimeout(() => URL.revokeObjectURL(url), 60000);
-            estado.textContent = imprimir && pestaña ? 'PDF abierto para imprimir.' : 'PDF listo para descargar.';
+            estado.textContent = 'Descarga iniciada.';
         } catch (error) {
-            pestaña?.close();
             estado.textContent = error instanceof TypeError || error.name === 'TimeoutError'
                 ? 'No se pudo obtener el PDF. Puedes seguir leyendo la hoja y reintentar.'
                 : error.message;

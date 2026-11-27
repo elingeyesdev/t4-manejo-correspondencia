@@ -40,6 +40,26 @@
         </table>
     </div>
     @include('partials.pagination', ['paginator' => $documents->withQueryString(), 'label' => 'Páginas de documentos'])
+    @if ($sentNotes->isNotEmpty())
+        <section class="mt-4" aria-labelledby="notas-remitidas">
+            <h2 class="h5" id="notas-remitidas">Notas internas remitidas</h2>
+            <div class="table-responsive">
+                <table class="table notes-table">
+                    <thead><tr><th scope="col">Asunto</th><th scope="col">Destino</th><th scope="col">Estado</th></tr></thead>
+                    <tbody>
+                        @foreach ($sentNotes as $note)
+                            <tr>
+                                <th scope="row"><a href="{{ route('notes.show', $note) }}">{{ $note->subject }}</a></th>
+                                <td>{{ $note->recipient->name }}</td>
+                                <td>@include('internal-notes.state', ['note' => $note])</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @include('partials.pagination', ['paginator' => $sentNotes, 'label' => 'Páginas de notas remitidas'])
+        </section>
+    @endif
     </div>
     <script src="{{ asset('js/document-list-refresh.js') }}" defer></script>
 @endsection

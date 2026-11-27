@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\InternalNote;
 use App\Models\InternalNoteSignature;
 use App\Models\NoteNotice;
 use App\Models\NoteNoticeDevice;
+use App\Models\RouteSheet;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\DeliverNoteNotices;
@@ -211,12 +213,54 @@ class InternalNoteFlowTest extends TestCase
         $after = $this->get($uri.'/documento.pdf?version='.$receipt->json('version'))
             ->assertOk()->assertHeader('Content-Type', 'application/pdf')->assertHeader('X-Note-Version', (string) $receipt->json('version'));
         $this->assertStringStartsWith('%PDF-', $after->getContent());
+        $download = $this->get(route('notes.download', [$id, 'version' => $receipt->json('version'), 'descargar' => 1]))
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('attachment;', $download->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF-', $download->getContent());
         $this->get($uri.'/documento.pdf?version='.$version)->assertConflict();
         $this->get(route('notes.document', $id))->assertOk()->assertSee('RECIBIDO');
         $this->assertDatabaseCount('movements', 1);
 
         Sanctum::actingAs($this->outsider);
         $this->get($uri.'/documento.pdf')->assertNotFound();
+    }
+
+    public function test_windows_review_flow_lists_the_note_from_emission_through_closure(): void
+    {
+        config(['camunda.url' => 'http://camunda.local.test/v2']);
+        require_once dirname(base_path()).'/scripts/demo-nota-interna/issue75-local-camunda.php';
+        issue75SimulateCamunda();
+
+        $this->actingAs($this->author, 'web')->post(route('notes.store'), $this->draft())->assertRedirect();
+        $note = InternalNote::query()->sole();
+        $show = route('notes.show', $note->id);
+        $action = ['version' => $note->version, 'request_key' => (string) Str::uuid()];
+        $this->post(route('notes.request-signature', $note->id), ['version' => $note->version])->assertRedirect($show);
+        $this->post(route('notes.sign', $note->id), $action + ['imagen_firma' => $this->noteImage('firma.png')])->assertRedirect($show);
+        $this->post(route('notes.emit', $note->id), $action)->assertRedirect($show);
+        $subject = $note->subject;
+        $this->get(route('documents.index'))
+            ->assertOk()->assertSee('Notas internas remitidas')->assertSee($subject);
+        $this->actingAs($this->recipient, 'web')->get(route('notes.index', ['bandeja' => 'por_recibir']))
+            ->assertOk()->assertSee($subject);
+        $this->get(route('notes.document', $note->id))->assertOk()->assertSee($subject)->assertDontSee('RECIBIDO');
+        $this->post(route('notes.receive', $note->id), ['version' => $note->refresh()->version, 'request_key' => (string) Str::uuid()])
+            ->assertRedirect($show);
+        $this->get(route('notes.document', $note->id))->assertOk()->assertSee('RECIBIDO');
+        $sheet = RouteSheet::query()->where('document_id', $note->refresh()->document_id)->sole();
+        $detail = route('documents.show', $sheet->document_id);
+        $this->post(route('route-sheets.attend', $sheet->id), [
+            'version' => $sheet->version, 'request_key' => (string) Str::uuid(), 'observacion' => 'Revisada',
+        ])->assertRedirect($detail);
+        $this->get(route('documents.index'))->assertOk()->assertSee($subject)->assertSee('En atención');
+        $closure = [
+            'version' => $sheet->refresh()->version, 'request_key' => (string) Str::uuid(),
+            'motivo' => 'Gestión completada', 'confirmar' => true,
+        ];
+        $this->post(route('route-sheets.close', $sheet->id), $closure)->assertRedirect($detail);
+        $this->post(route('route-sheets.close', $sheet->id), $closure)->assertRedirect($detail);
+        $this->get(route('documents.index'))->assertOk()->assertSee($subject)->assertSee('Cerrada');
+        $this->assertDatabaseCount('movements', 3);
     }
 
     public function test_web_draft_shows_saved_reviewers_and_rejects_duplicates(): void

@@ -5,9 +5,8 @@
 <div data-note-viewer data-source="{{ $htmlUrl }}"
      data-revision="{{ $institutionalNote->version }}:{{ $institutionalNote->stateLabel() }}">
     <div class="actions mb-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-print-note>Imprimir</button>
         @if ($usesPdf)
-            <a href="{{ route('notes.download', [$institutionalNote, 'version' => $institutionalNote->version], false) }}"
-               data-versioned-pdf target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">Abrir PDF para imprimir</a>
             <a href="{{ route('notes.download', [$institutionalNote, 'version' => $institutionalNote->version, 'descargar' => 1], false) }}"
                data-versioned-pdf class="btn btn-outline-secondary btn-sm">Descargar PDF</a>
             <a href="{{ $htmlUrl }}" target="_blank" rel="noopener">Abrir hoja en el navegador</a>
@@ -18,7 +17,7 @@
     </div>
     <p class="form-text" data-pdf-status role="status" hidden></p>
     <iframe class="document-preview-pdf" src="{{ $htmlUrl }}"
-            title="Documento completo de la nota interna" sandbox="allow-same-origin"></iframe>
+            title="Documento completo de la nota interna" sandbox="allow-same-origin allow-modals"></iframe>
 </div>
 @once
     <script src="{{ asset('js/note-pdf-actions.js') }}" defer></script>

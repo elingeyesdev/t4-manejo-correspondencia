@@ -45,7 +45,10 @@ class InstitutionalNoteDocument
         abort_unless($this->configured(), 503, 'El servidor no tiene habilitada la exportación PDF.');
 
         // Chromium writes nested profile files. A short temporary path avoids Windows path limits.
-        $directory = rtrim(sys_get_temp_dir(), '/\\').DIRECTORY_SEPARATOR.'ni-'.Str::random(16);
+        $temporaryRoot = PHP_OS_FAMILY === 'Windows' && getenv('LOCALAPPDATA')
+            ? getenv('LOCALAPPDATA').'/Temp'
+            : sys_get_temp_dir();
+        $directory = rtrim($temporaryRoot, '/\\').DIRECTORY_SEPARATOR.'ni-'.Str::random(16);
         File::makeDirectory($directory, 0700, true);
 
         try {
@@ -63,12 +66,13 @@ class InstitutionalNoteDocument
                 '--disable-background-networking',
                 '--disable-extensions',
                 '--no-first-run',
+                '--no-default-browser-check',
+                '--disable-features=msEdgeFirstRunExperience',
                 '--user-data-dir='.$directory.'/p',
                 '--no-pdf-header-footer',
                 '--print-to-pdf='.$directory.'/documento.pdf',
                 $fileUrl,
             ], $directory, timeout: 20);
-            $process->disableOutput();
             try {
                 $process->run();
             } catch (ProcessTimedOutException|ProcessRuntimeException $error) {
@@ -78,15 +82,23 @@ class InstitutionalNoteDocument
             }
 
             $output = $directory.'/documento.pdf';
-            $pdf = File::exists($output) ? File::get($output) : '';
-            if (! str_starts_with($pdf, '%PDF-') || ! str_ends_with(rtrim($pdf), '%%EOF')) {
-                logger()->warning('Chromium no entregó un PDF completo de la nota.', [
-                    'salida' => $process->getExitCode(),
-                ]);
-                abort(503, 'No se pudo exportar el PDF.');
-            }
-
-            return $pdf;
+            // Windows can return from the launcher before its browser process writes the PDF.
+            $deadline = microtime(true) + 4;
+            do {
+                clearstatcache(true, $output);
+                $pdf = File::exists($output) ? File::get($output) : '';
+                if (str_starts_with($pdf, '%PDF-') && str_ends_with(rtrim($pdf), '%%EOF')) {
+                    return $pdf;
+                }
+                if (PHP_OS_FAMILY !== 'Windows' || ! $process->isSuccessful()) {
+                    break;
+                }
+                usleep(100000);
+            } while (microtime(true) < $deadline);
+            logger()->warning('Chromium no entregó un PDF completo de la nota.', [
+                'salida' => $process->getExitCode(),
+            ]);
+            abort(503, 'No se pudo exportar el PDF.');
         } finally {
             File::deleteDirectory($directory);
         }
