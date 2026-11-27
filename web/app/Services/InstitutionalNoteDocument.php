@@ -7,6 +7,7 @@ use App\Models\InternalNoteSignature;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
+use Symfony\Component\Process\Exception\RuntimeException as ProcessRuntimeException;
 use Symfony\Component\Process\Process;
 
 class InstitutionalNoteDocument
@@ -43,7 +44,8 @@ class InstitutionalNoteDocument
         $browser = config('documents.chromium_binary');
         abort_unless($this->configured(), 503, 'El servidor no tiene habilitada la exportación PDF.');
 
-        $directory = storage_path('app/private/nota-pdf-'.Str::uuid());
+        // Chromium writes nested profile files. A short temporary path avoids Windows path limits.
+        $directory = rtrim(sys_get_temp_dir(), '/\\').DIRECTORY_SEPARATOR.'ni-'.Str::random(16);
         File::makeDirectory($directory, 0700, true);
 
         try {
@@ -61,19 +63,30 @@ class InstitutionalNoteDocument
                 '--disable-background-networking',
                 '--disable-extensions',
                 '--no-first-run',
-                '--user-data-dir='.$directory.'/chromium',
+                '--user-data-dir='.$directory.'/p',
                 '--no-pdf-header-footer',
                 '--print-to-pdf='.$directory.'/documento.pdf',
                 $fileUrl,
             ], $directory, timeout: 20);
             $process->disableOutput();
-            $process->run();
+            try {
+                $process->run();
+            } catch (ProcessTimedOutException|ProcessRuntimeException $error) {
+                logger()->warning('Chromium no terminó normalmente al exportar una nota.', [
+                    'tipo' => $error::class,
+                ]);
+            }
 
-            abort_unless($process->isSuccessful() && File::exists($directory.'/documento.pdf'), 503, 'No se pudo exportar el PDF.');
+            $output = $directory.'/documento.pdf';
+            $pdf = File::exists($output) ? File::get($output) : '';
+            if (! str_starts_with($pdf, '%PDF-') || ! str_ends_with(rtrim($pdf), '%%EOF')) {
+                logger()->warning('Chromium no entregó un PDF completo de la nota.', [
+                    'salida' => $process->getExitCode(),
+                ]);
+                abort(503, 'No se pudo exportar el PDF.');
+            }
 
-            return File::get($directory.'/documento.pdf');
-        } catch (ProcessTimedOutException) {
-            abort(503, 'El PDF tardó demasiado en generarse. Vuelve a intentar.');
+            return $pdf;
         } finally {
             File::deleteDirectory($directory);
         }

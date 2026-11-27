@@ -41,6 +41,12 @@
         .recibido { float: right; width: 47mm; margin: 0 0 3mm 4mm; border: 1pt solid #174377; color: #174377; text-align: center; padding: 2mm; font-size: 9pt; break-inside: avoid; overflow-wrap: anywhere; }
         .recibido strong { display: block; font-size: 12pt; }
         .provisional { border: 1pt dashed #6e5a3f; padding: 2mm; }
+        @media screen and (max-width: 815px) {
+            .hoja { width: 100%; min-height: min(279.4mm, 129vw); padding: 18vw 7vw 17vw; }
+            .membrete { width: 100%; height: auto; }
+            dt { flex-basis: 12vw; }
+            .recibido { max-width: 45%; }
+        }
         @media print {
             .hoja { width: auto; min-height: auto; padding: 0 20mm 0 30mm; margin: 0; }
             .membrete { display: none; }

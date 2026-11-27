@@ -188,7 +188,8 @@ class InternalNoteController extends Controller
             ],
         ]);
 
-        return $document->configured() ? $this->pdfResponse($document->pdf($draft), 'borrador-nota-interna.pdf')
+        return $request->boolean('paginar')
+            ? $this->pdfResponse($document->pdf($draft), 'borrador-nota-interna.pdf')
             : $this->htmlDocument($document->html($draft));
     }
 
@@ -211,7 +212,7 @@ class InternalNoteController extends Controller
             'strokes' => $this->signatureStrokes($request) ?? [],
         ];
 
-        return $request->is('api/*') || $document->configured()
+        return $request->is('api/*') || $request->boolean('paginar')
             ? $this->pdfResponse($document->pdf($note, $preview), 'vista-previa-no-confirmada.pdf', $note->version)
             : $this->htmlDocument($document->html($note, $preview));
     }

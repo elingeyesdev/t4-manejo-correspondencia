@@ -241,13 +241,19 @@ La hoja emitida conserva el contenido y fija los nombres y unidades del encabeza
 
 ### Configuración del PDF
 
-Definir `DOCUMENT_CHROMIUM_BINARY` con la ruta absoluta al ejecutable Chromium compatible que esté instalado en el mismo entorno que Laravel. El proceso web debe poder ejecutarlo como usuario sin privilegios y escribir en `storage/app/private`. Instalar una fuente serif como Liberation Serif en el servidor. Aplicar las migraciones de #75 y reconstruir la caché de configuración si el entorno la usa.
+Definir `DOCUMENT_CHROMIUM_BINARY` con la ruta absoluta al ejecutable Chromium compatible que esté instalado en el mismo entorno que Laravel. El proceso web debe poder ejecutarlo como usuario sin privilegios y escribir en el directorio temporal de PHP. Instalar una fuente serif como Liberation Serif en el servidor. Aplicar las migraciones de #75 y reconstruir la caché de configuración si el entorno la usa.
 
-Verificar que el ejecutable reproduce el membrete y el pie en todas las páginas y que el visor y la impresión muestran la misma distribución. Con la variable vacía, web ofrece lectura de la hoja en HTML y comunica que falta habilitar la exportación. Las rutas de PDF de Android requieren el generador configurado.
+La vista previa web utiliza la plantilla institucional en HTML. **Revisar saltos de página (PDF)** permite comprobar la paginación antes de guardar. Verificar que el ejecutable reproduzca el membrete y el pie en todas las páginas. Si falla la exportación web, abrir la hoja en el navegador y usar **Imprimir**. Las rutas de PDF de Android requieren el generador configurado.
 
 Para probar la salida PDF mediante las rutas web y API, definir `TEST_DOCUMENT_CHROMIUM_BINARY` con la ruta al navegador de pruebas y ejecutar `php artisan test --filter=InternalNoteFlowTest` desde `web`. El caso de integración comprueba la paginación, la versión, los permisos y la recepción con un expediente ficticio.
 
 ## Pruebas con datos ficticios
+
+### Revisión en Windows sin Ubuntu
+
+En un checkout de la rama, instalar PHP 8.5 con SQLite, Composer y Edge o Chrome. Desde la raíz, ejecutar `composer --working-dir=web install` y después `powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\demo-nota-interna\issue75-local-start.ps1`. Abrir `http://127.0.0.1:8176/acceso` y usar las credenciales que aparecen en la consola. Si el puerto está ocupado, pasar `-Port 8177`. Conservar la consola abierta durante la prueba.
+
+El arranque crea una base nueva con datos ficticios y simula las respuestas de Camunda solo en este servidor de revisión. Para probar de extremo a extremo, usar Administración para redactar, pedir firma, firmar y emitir una nota dirigida a Recepción. Si se agrega Dirección como VÍA, confirmar primero desde esa cuenta. Iniciar sesión con Gestión Documental en otra ventana de incógnito, abrir **Nota Interna → Por recibir**, confirmar la recepción y revisar el sello sobre la hoja. Desde el detalle, probar la descarga y abrir el PDF para imprimir.
 
 Para la entrega, probar una emisión directa y otra con VÍA contra Camunda real. La nota en **Emisión pendiente** sigue disponible en **Mis notas** con su CITE reservado y la acción **Reintentar emisión**. Si el motor confirma el proceso existente al reintentar, Laravel reutiliza la misma solicitud y habilita la bandeja de la unidad de destino según corresponda. Una nota directa aparece en **Por recibir** del funcionario autorizado. Después de confirmar la recepción, figura también en **Correspondencia registrada**. Las notas cerradas se pueden consultar desde **Nota Interna → Cerradas**.
 

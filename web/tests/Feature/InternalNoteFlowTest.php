@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class InternalNoteFlowTest extends TestCase
@@ -130,6 +131,23 @@ class InternalNoteFlowTest extends TestCase
         $id = DB::table('internal_notes')->value('id');
         $this->actingAs($this->outsider)->post(route('notes.preview-draft'), ['borrador' => $id])->assertNotFound();
         $this->get(route('notes.document', $id))->assertNotFound();
+    }
+
+    public function test_document_and_draft_remain_readable_when_the_pdf_renderer_fails(): void
+    {
+        $renderer = $this->partialMock(InstitutionalNoteDocument::class);
+        $renderer->shouldReceive('configured')->andReturn(true);
+        $renderer->shouldReceive('pdf')->twice()->andThrow(new HttpException(503));
+        $this->actingAs($this->author)->post(route('notes.store'), $this->draft())->assertRedirect();
+        $id = DB::table('internal_notes')->value('id');
+        $html = route('notes.document', $id, false);
+        $this->get(route('notes.show', $id))->assertOk()->assertSee('src="'.$html.'"', false);
+        $this->get($html)->assertOk()->assertSee($this->draft()['cuerpo']);
+        $this->getJson(route('notes.download', $id))->assertServiceUnavailable();
+        $this->postJson(route('notes.preview-draft'), $this->draft())
+            ->assertOk()->assertSee($this->draft()['cuerpo']);
+        $this->postJson(route('notes.preview-draft'), $this->draft() + ['paginar' => 1])->assertServiceUnavailable();
+        $this->assertDatabaseCount('internal_notes', 1);
     }
 
     public function test_uploaded_signature_is_required_independently_from_stamp_and_heading_is_preserved(): void

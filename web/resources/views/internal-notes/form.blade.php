@@ -101,6 +101,9 @@
         <p data-draft-status role="status">Preparando la hoja…</p>
         <iframe data-draft-frame class="document-preview-pdf" title="Vista previa del borrador" hidden></iframe>
         <button type="button" class="btn btn-outline-secondary mt-2" data-draft-retry hidden>Reintentar vista previa</button>
+        @if (app(\App\Services\InstitutionalNoteDocument::class)->configured())
+            <button type="button" class="btn btn-outline-secondary mt-2" data-draft-paginate>Revisar saltos de página (PDF)</button>
+        @endif
     </section>
     </div>
     <script src="{{ asset('js/note-document.js') }}" defer></script>

@@ -53,7 +53,7 @@ if (trackingBar) {
                     url.searchParams.set('version', data.version_documento);
                     link.href = url.href;
                 }
-                viewer.querySelector('iframe').src = pdfLinks[0]?.href ?? viewer.dataset.source;
+                viewer.querySelector('iframe').src = viewer.dataset.source;
                 const action = document.querySelector('#siguiente-accion');
                 const next = action?.querySelector('form');
                 if (next) {

@@ -3,6 +3,7 @@ function conectarVistaPrevia({ form, frame, estado, ruta, preparar, alError }) {
     let actual = 0;
     let enCurso = false;
     let solicitado = false;
+    let paginar = false;
     let temporizador;
 
     async function generar() {
@@ -15,6 +16,7 @@ function conectarVistaPrevia({ form, frame, estado, ruta, preparar, alError }) {
         const datos = new FormData(form);
         datos.delete('_method');
         preparar(datos);
+        if (paginar) datos.set('paginar', '1');
         estado.textContent = 'Preparando la hoja…';
         try {
             const respuesta = await fetch(ruta, {
@@ -29,6 +31,7 @@ function conectarVistaPrevia({ form, frame, estado, ruta, preparar, alError }) {
                 if (respuesta.status === 409) throw new Error('La nota cambió. Actualiza la página antes de confirmar.');
                 if (respuesta.status === 429) throw new Error('Espera unos segundos y vuelve a solicitar la vista previa.');
                 if (respuesta.status === 422) throw new Error('Revisa los datos o las imágenes seleccionadas.');
+                if (paginar && respuesta.status === 503) throw new Error('No se pudo generar el PDF. Puedes seguir usando la vista previa de la hoja.');
                 throw new Error('No se pudo preparar la hoja. Vuelve a intentar.');
             }
             const tipo = respuesta.headers.get('Content-Type');
@@ -41,9 +44,7 @@ function conectarVistaPrevia({ form, frame, estado, ruta, preparar, alError }) {
             generado = URL.createObjectURL(pdf);
             frame.src = generado;
             frame.hidden = false;
-            estado.textContent = tipo.startsWith('text/html')
-                ? 'Vista web. La paginación PDF estará disponible al configurar la exportación en el servidor.'
-                : '';
+            estado.textContent = '';
         } catch (error) {
             if (revision === actual) {
                 estado.textContent = error.name === 'TimeoutError' ? 'La vista previa tardó demasiado.' : error.message;
@@ -62,7 +63,8 @@ function conectarVistaPrevia({ form, frame, estado, ruta, preparar, alError }) {
         if (!event.persisted && generado) URL.revokeObjectURL(generado);
     });
 
-    return (espera = 0) => {
+    return (espera = 0, solicitarPdf = false) => {
+        paginar = solicitarPdf;
         actual++;
         clearTimeout(temporizador);
         estado.textContent = 'Actualizando la vista previa…';
@@ -95,6 +97,7 @@ if (borrador) {
         }
     });
     reintentar.addEventListener('click', () => actualizar());
+    document.querySelector('[data-draft-paginate]')?.addEventListener('click', () => actualizar(0, true));
     actualizar();
 }
 
