@@ -89,6 +89,34 @@ class InternalNoteFlowTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_web_returns_to_pending_note_when_the_engine_does_not_confirm_emission(): void
+    {
+        Http::fake([
+            self::ENGINE.'/process-instances' => Http::response([], 504),
+            self::ENGINE.'/process-instances/search' => Http::sequence()
+                ->push([], 503)
+                ->push(['items' => [['processInstanceKey' => '100']]]),
+        ]);
+        $this->actingAs($this->author)->post(route('notes.store'), $this->draft())->assertRedirect();
+        $note = DB::table('internal_notes')->sole();
+        $detail = route('notes.show', $note->id);
+        $action = ['version' => $note->version, 'request_key' => (string) Str::uuid()];
+        $this->post(route('notes.request-signature', $note->id), ['version' => $note->version])->assertRedirect($detail);
+        $this->post(route('notes.sign', $note->id), $action + ['firma' => json_encode(self::SIGNATURE)])->assertRedirect($detail);
+
+        $this->post(route('notes.emit', $note->id), $action)->assertRedirect($detail)->assertSessionHasErrors('flujo');
+        $this->get($detail)->assertOk()->assertSee('Emisión pendiente')->assertSee('Reintentar emisión');
+        $pending = DB::table('internal_notes')->sole();
+        $this->actingAs($this->recipient)->get(route('notes.index', ['bandeja' => 'por_recibir']))
+            ->assertOk()->assertDontSee($note->subject);
+
+        $this->actingAs($this->author)->post(route('notes.emit', $note->id), $action)->assertRedirect($detail);
+        $this->assertDatabaseHas('internal_notes', ['id' => $note->id, 'cite' => $pending->cite, 'state' => 'pendiente_recepcion']);
+        $this->assertDatabaseCount('note_workflow_instances', 1);
+        $this->actingAs($this->recipient)->get(route('notes.index', ['bandeja' => 'por_recibir']))
+            ->assertOk()->assertSee($note->subject);
+    }
+
     public function test_draft_preview_does_not_save_or_expose_another_authors_draft(): void
     {
         $literal = '<script>Contenido de prueba</script>';

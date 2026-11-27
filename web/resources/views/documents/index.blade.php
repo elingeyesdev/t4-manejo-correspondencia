@@ -1,14 +1,20 @@
 @extends('layout')
 @section('title', 'Documentos')
 @section('content')
+    <div data-refresh-list>
     <div class="page-heading">
         <div>
             <h1>Correspondencia registrada</h1>
             <p class="text-secondary mb-0 mt-1">{{ $documents->total() }} {{ $documents->total() === 1 ? 'registro disponible' : 'registros disponibles' }}</p>
         </div>
-        @if (auth()->user()->canRegister())
-            <a class="btn btn-primary" href="{{ route('documents.create') }}">Nueva correspondencia</a>
-        @endif
+        <div class="actions">
+            @if (auth()->user()->role === 'funcionario')
+                <a class="btn btn-outline-secondary" href="{{ route('notes.index', ['bandeja' => 'por_recibir']) }}">Notas por recibir</a>
+            @endif
+            @if (auth()->user()->canRegister())
+                <a class="btn btn-primary" href="{{ route('documents.create') }}">Nueva correspondencia</a>
+            @endif
+        </div>
     </div>
     <div class="table-responsive notes-table-scroll" tabindex="0" role="region" aria-label="Correspondencia registrada">
         <table class="table notes-table">
@@ -34,4 +40,6 @@
         </table>
     </div>
     @include('partials.pagination', ['paginator' => $documents->withQueryString(), 'label' => 'Páginas de documentos'])
+    </div>
+    <script src="{{ asset('js/document-list-refresh.js') }}" defer></script>
 @endsection

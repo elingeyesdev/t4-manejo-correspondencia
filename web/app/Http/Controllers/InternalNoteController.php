@@ -24,7 +24,7 @@ class InternalNoteController extends Controller
         $actor = $request->user();
         $api = $request->is('api/*');
         $filters = $request->validate([
-            'bandeja' => ['sometimes', Rule::in(['mis_notas', 'por_firmar', 'por_revisar', 'por_recibir', 'por_atender', 'copias'])],
+            'bandeja' => ['sometimes', Rule::in(['mis_notas', 'por_firmar', 'por_revisar', 'por_recibir', 'por_atender', 'copias', 'cerradas'])],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ]);
@@ -50,6 +50,7 @@ class InternalNoteController extends Controller
             'por_atender' => $query->whereHas('document.sheet', fn (Builder $sheet) => $sheet
                 ->whereIn('state', ['RECIBIDA', 'EN_ATENCION'])->where('responsible_id', $actor->id)
                 ->where('current_unit_id', $actor->unit_id)),
+            'cerradas' => $query->whereHas('document.sheet', fn (Builder $sheet) => $sheet->where('state', 'CERRADA')),
         };
 
         $notes = $query->orderByDesc('updated_at')->orderByDesc('id')->paginate($filters['per_page'] ?? 15)->withQueryString();
