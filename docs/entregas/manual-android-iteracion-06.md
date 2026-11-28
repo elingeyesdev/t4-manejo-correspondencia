@@ -129,3 +129,11 @@ Abra el menú de la aplicación y pulse **Cerrar sesión**. Antes de prestar el 
 - **No puede conectar:** compruebe la red del teléfono y consulte si el sistema está disponible.
 - **Una acción sigue pendiente:** no la dé por terminada. Use el reintento que ofrece la aplicación y espere su confirmación.
 - **No llegan avisos:** compruebe la conexión y el permiso de notificaciones del teléfono. Abra Correspondencia si la había detenido desde los ajustes.
+## Consultar la hoja y recuperar una confirmación
+
+1. Abra la nota desde la bandeja de su tarea. Amplíe la hoja y revise todas las páginas antes de firmar, dar conformidad VÍA o aceptar la recepción.
+2. Revise la versión y las marcas antes de confirmar. La recepción inicial incorpora el sello RECIBIDO cuando el servidor registra el acto. Las imágenes adicionales en recepción son opcionales.
+3. Si se corta la conexión durante la confirmación, vuelva al detalle y pulse **Comprobar mismo intento**. Espere el resultado del servidor antes de continuar.
+4. Para conservar la hoja vigente, pulse **Descargar PDF** y elija dónde guardarla. Para imprimir en web, abra la misma nota y pulse **Imprimir**. Compare el CITE y las constancias visibles.
+
+Para una entrada por archivo, abra el original y el anexo desde el expediente. Tras la derivación, ingrese con la cuenta de la unidad de destino, confirme la recepción y vuelva a abrir ambos archivos.

@@ -254,3 +254,14 @@ La búsqueda reutilizará código, asunto, intervalo de fechas, estado y paginac
 - [ ] Se registra la revisión de Russel en el PR hacia `develop` y se enlaza su evidencia al #29.
 
 El [#30](https://github.com/elingeyesdev/t4-manejo-correspondencia/issues/30) implementa primero derivación y recepción. El [#33](https://github.com/elingeyesdev/t4-manejo-correspondencia/issues/33) utiliza el mismo contrato desde Flutter.
+## Correspondencia externa · Casos de uso de entrega
+
+| Historia / caso | Actor y precondición | Resultado observable |
+| --- | --- | --- |
+| HU-05 / CU-03 · Registrar correspondencia | Recepción o administrador con permiso de registro. | La entrada obtiene guía y hoja en REGISTRADA. |
+| HU-08 y HU-09 / CU-05 · Derivar | Responsable actual de una hoja que admite derivación. | La hoja queda PENDIENTE_RECEPCION con la unidad de destino indicada. |
+| HU-10 / CU-06 · Recibir derivación | Funcionario de la unidad pendiente. | La confirmación transfiere la custodia y deja la hoja RECIBIDA. |
+| HU-11 / CU-07 · Registrar atención | Responsable y unidad actuales; estado RECIBIDA o EN_ATENCION. | La observación queda en el historial. Una hoja recién registrada rechaza la atención directa. |
+| HU-14 / CU-10 · Cerrar | Responsable actual, hoja recibida o en atención y sin recepción pendiente. | El motivo queda en el historial y la hoja queda CERRADA. |
+
+Los resultados de entrega y su evidencia se reúnen en el [anexo SQA de T37](../entregas/t37-integracion-documental.md).
